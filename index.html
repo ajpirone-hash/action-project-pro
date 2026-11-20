@@ -191,6 +191,10 @@ table.rc{font-size:12px}table.rc td,table.rc th{padding:3px 6px}
 select.inl{border:1px solid var(--line);border-radius:5px;padding:2px 4px;background:#fff;font-size:12.5px}
 .fedq{margin-top:14px;background:#f3f6fb;border:1px solid #d6e2f1;border-radius:10px;padding:12px 14px}
 .yn{display:flex;gap:18px;margin-top:8px}
+.rccheck{margin-top:12px;border-radius:10px;padding:10px 14px;font-size:13.5px}
+.rccheck.ok{background:#e8f6ee;color:#17693b}.rccheck.bad{background:#fff6e5;color:#7a4a00}.rccheck ul{margin:6px 0 0;padding-left:18px}
+.viewonly #recapBtn{display:none!important}
+#rcGo:disabled{opacity:.45;cursor:not-allowed}
 .svreq{margin-top:12px;border:1px dashed #c9d3df;border-radius:10px;padding:10px 14px;background:#fbfcfd}
 .svreq summary{cursor:pointer;font-weight:700;color:var(--brand-2);list-style:none}
 .svreq summary::-webkit-details-marker{display:none}
@@ -329,7 +333,7 @@ header .btn:not(#btnAccount),header input{order:3}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.16 (SV # request email)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.17 (recap sheet)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -780,12 +784,12 @@ const LOGS = {
     extraHead:['Wage','Cost'], extra:r=>{const c=laborLine(r); return [money(c.wage,2),money(c.cost,2)];},
     total:j=>bidBuild(j).lab, totalLabel:'Estimated labor'},
   bo:{label:'Job Expenses', key:'estOther',
-    cols:[['Expense','desc','select','EXPENSES'],['Details','notes'],['Amount','amount','money']],
+    cols:[['Expense','desc','select','EXPENSES'],['Details','notes'],['Days / hrs','qty','number'],['Amount','amount','money']],
     total:j=>bidBuild(j).other, totalLabel:'Other costs'},
 };
 const NUMT = new Set(['number','money']);
 // Lists taken from the RECAP template
-const TRADES = ['Insulation','Concrete coring/cutting','Electrical','Sheet metal','Civil','Millwright','Service','Pipe fab shop','Pipe support fab','Temperature controls','Air/water balancing','Hot tap','Backfill','Trench drain','Operator','Badges','Plumbing','Other'];
+const TRADES = ['Insulation','Concrete coring/cutting','Electrical','Sheet metal','Civil','Millwright','Service','Pipe fab shop','Pipe support fab','Temperature controls','Air/water balancing','Hot tap','Crane','Backfill','Trench drain','Operator','Badges','Plumbing','Other'];
 const EXPENSES = ['Hotel','Per diem','Travel time','Inter office expenses','As-built drawings','Ditching / backfill','Engineering','Field office','Pipe ID','Safety meeting','Welding machine rental','Temporary water / power','Valve tag / pipe identification','Warranty reserve','Permits','Other'];
 const colOpts = o => o==='ITEMST' ? ITEM_STATUS : o==='CLS' ? Store.settings.laborRates.map(r=>r.cls) : o==='TRADES' ? TRADES : o==='EXPENSES' ? EXPENSES : o;
 
@@ -950,6 +954,7 @@ function bidBuilderCard(j){
         <div class="r big"><span>Total price with bond</span><b>${money(b.suggested)}</b></div>
         ${j.federal ? fedBox(j,b) : ''}
         <button class="btn primary" id="useBid\" style="width:100%;margin-top:8px">Use as bid total</button>
+        <button class="btn" id="recapBtn" style="width:100%;margin-top:6px">📄 Fill recap sheet</button>
         ${j.bidTotal? `<div class="note" style="margin-top:6px;text-align:center">Current bid total ${money(j.bidTotal)}${b.suggested>0 && Math.abs(diff)>=1?` (${diff>0?'+':''}${money(diff)} vs suggested)`:''}</div>`:''}
       </div>
     </div></div>`;
@@ -1044,6 +1049,7 @@ function renderDrawer(){
   };
   $('#revSave').onclick = ()=>saveRevision(j);
   if($('#revOpen')) $('#revOpen').onclick = ()=>revHistory(j);
+  if($('#recapBtn')) $('#recapBtn').onclick = ()=>openRecap(j);
   $('#useBid').onclick = ()=>{ j.bidTotal = Math.round(bidBuild(j).suggested*100)/100; changed(); toast('Bid total updated'); };
 
   $('#drawer').querySelectorAll('[data-k]').forEach(el=>el.onchange=()=>{
@@ -1163,10 +1169,12 @@ $('#btnSettings').onclick = ()=>{
       <td class="num">${money(x.ot,2)}</td>
       <td class="num"><input data-r="${i}" data-rk="hw" type="number" step="any" value="${r.hw}" style="width:80px;text-align:right"></td></tr>`;}).join('')}
     </tbody></table>
+    <h4 style="margin:16px 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase">Recap form</h4>
+    <div id="rtBox"><div class="note">Loading…</div></div>
     <div style="display:flex;justify-content:space-between;margin-top:16px">
       <button class="btn ghost" id="sReset">Reset demo data</button>
       <button class="btn primary" id="sDone">Done</button></div>`;
-  $('#settings').classList.add('open');
+  $('#settings').classList.add('open'); RecapTpl.box();
   $('#settingsBox').querySelectorAll('[data-s]').forEach(el=>el.onchange=()=>{
     const k=el.dataset.s; s[k] = k==='rootFolder' ? el.value : (+el.value)/(el.dataset.pct!==undefined?100:1);
     Store.save(); render(); if(openId) renderDrawer(); $('#btnSettings').onclick();
@@ -1193,6 +1201,281 @@ $('#fileImport').onchange = async e=>{
   catch(_){ toast('That file is not a tracker backup'); }
   e.target.value='';
 };
+
+/* ==========================================================================
+   RECAP SHEET
+   Fills the blank 2026 RECAP workbook from the bid builder. The workbook is
+   opened as-is: only input cells on "Install material list 1" and
+   "Install Recap 1" get values, every other part of the file is copied byte
+   for byte, and Excel recalculates when it opens. Nothing here changes the job.
+   ========================================================================== */
+const Zip = {
+  _t: null,
+  crc(u8){ if(!this._t){ this._t = new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c = c&1 ? 0xEDB88320^(c>>>1) : c>>>1; this._t[n]=c>>>0; } }
+    let c = 0xFFFFFFFF; for(let i=0;i<u8.length;i++) c = this._t[(c^u8[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; },
+  async pipe(u8, s){ return new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(s)).arrayBuffer()); },
+  read(buf){
+    const u8 = new Uint8Array(buf), dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength);
+    let e = u8.length-22; while(e>=0 && dv.getUint32(e,true)!==0x06054b50) e--;
+    if(e<0) throw new Error('That file is not an Excel workbook (.xlsx).');
+    const n = dv.getUint16(e+10,true), out = []; let p = dv.getUint32(e+16,true);
+    for(let i=0;i<n;i++){
+      if(dv.getUint32(p,true)!==0x02014b50) throw new Error('The workbook looks damaged.');
+      const x = {flags:dv.getUint16(p+8,true), method:dv.getUint16(p+10,true), time:dv.getUint16(p+12,true), date:dv.getUint16(p+14,true),
+        crc:dv.getUint32(p+16,true), csize:dv.getUint32(p+20,true), usize:dv.getUint32(p+24,true)};
+      const nl = dv.getUint16(p+28,true), xl = dv.getUint16(p+30,true), cl = dv.getUint16(p+32,true), lo = dv.getUint32(p+42,true);
+      x.nameBytes = u8.slice(p+46, p+46+nl); x.name = new TextDecoder().decode(x.nameBytes);
+      const st = lo + 30 + dv.getUint16(lo+26,true) + dv.getUint16(lo+28,true);
+      x.data = u8.slice(st, st+x.csize); out.push(x); p += 46+nl+xl+cl;
+    }
+    return out;
+  },
+  async text(x){ return new TextDecoder().decode(x.method===0 ? x.data : await this.pipe(x.data, new DecompressionStream('deflate-raw'))); },
+  async setText(x, s){ const raw = new TextEncoder().encode(s); x.crc = this.crc(raw); x.usize = raw.length; x.data = await this.pipe(raw, new CompressionStream('deflate-raw')); x.csize = x.data.length; x.method = 8; },
+  write(ents){
+    const parts = [], cen = []; let off = 0;
+    for(const x of ents){
+      const fl = x.flags & ~8, h = new DataView(new ArrayBuffer(30)), c = new DataView(new ArrayBuffer(46));
+      [[0,0x04034b50,4],[4,20,2],[6,fl,2],[8,x.method,2],[10,x.time,2],[12,x.date,2],[14,x.crc,4],[18,x.csize,4],[22,x.usize,4],[26,x.nameBytes.length,2],[28,0,2]].forEach(([o,v,s])=>s===4?h.setUint32(o,v,true):h.setUint16(o,v,true));
+      [[0,0x02014b50,4],[4,20,2],[6,20,2],[8,fl,2],[10,x.method,2],[12,x.time,2],[14,x.date,2],[16,x.crc,4],[20,x.csize,4],[24,x.usize,4],[28,x.nameBytes.length,2],[42,off,4]].forEach(([o,v,s])=>s===4?c.setUint32(o,v,true):c.setUint16(o,v,true));
+      parts.push(new Uint8Array(h.buffer), x.nameBytes, x.data); cen.push(new Uint8Array(c.buffer), x.nameBytes);
+      off += 30 + x.nameBytes.length + x.data.length;
+    }
+    const cs = cen.reduce((a,u)=>a+u.length,0), end = new DataView(new ArrayBuffer(22));
+    end.setUint32(0,0x06054b50,true); end.setUint16(8,ents.length,true); end.setUint16(10,ents.length,true); end.setUint32(12,cs,true); end.setUint32(16,off,true);
+    return new Blob([...parts, ...cen, new Uint8Array(end.buffer)], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  }
+};
+
+const RECAP_ML = 'Install material list 1', RECAP_RC = 'Install Recap 1', RECAP_LINES = [6, 41];
+const XL = {
+  cellRe: ref => new RegExp(`<c r="${ref}"(?: [^>]*?)?(?:/>|>[\\s\\S]*?</c>)`),
+  has(xml, ref){ return this.cellRe(ref).test(xml); },
+  /* Puts a value into an existing cell, keeping its formatting. Refuses formula cells, so the form's math is never touched. */
+  set(xml, ref, val){
+    const m = xml.match(this.cellRe(ref));
+    if(!m) throw new Error(`Cell ${ref} is missing from the recap form.`);
+    if(m[0].includes('<f')) throw new Error(`Cell ${ref} on the recap form is a formula, so it was left alone.`);
+    const s = (m[0].match(/ s="\d+"/)||[''])[0];
+    const xmlEsc = t => String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const cell = typeof val === 'string' ? `<c r="${ref}"${s} t="inlineStr"><is><t xml:space="preserve">${xmlEsc(val)}</t></is></c>` : `<c r="${ref}"${s}><v>${+val}</v></c>`;
+    return xml.slice(0, m.index) + cell + xml.slice(m.index + m[0].length);
+  },
+  async sheets(ents){
+    const get = n => ents.find(x=>x.name===n);
+    const wb = await Zip.text(get('xl/workbook.xml')), rels = await Zip.text(get('xl/_rels/workbook.xml.rels'));
+    const map = {};
+    for(const m of wb.matchAll(/<sheet [^>]*name="([^"]+)"[^>]*r:id="([^"]+)"/g)){
+      const t = (rels.match(new RegExp(`Id="${m[2]}"[^>]*Target="([^"]+)"`))||rels.match(new RegExp(`Target="([^"]+)"[^>]*Id="${m[2]}"`))||[])[1];
+      if(t) map[m[1].replace(/&amp;/g,'&')] = get('xl/' + t.replace(/^\/?xl\//,''));
+    }
+    return {map, wbEnt: get('xl/workbook.xml')};
+  }
+};
+
+/* Your blank form: uploaded once, kept in this browser and (shared app) in your private Firebase. */
+const RecapTpl = {
+  b64(buf){ const u8 = new Uint8Array(buf); let s = ''; for(let i=0;i<u8.length;i+=0x8000) s += String.fromCharCode.apply(null, u8.subarray(i,i+0x8000)); return btoa(s); },
+  unb64(s){ const b = atob(s), u8 = new Uint8Array(b.length); for(let i=0;i<b.length;i++) u8[i] = b.charCodeAt(i); return u8.buffer; },
+  cloud(){ return typeof Cloud!=='undefined' && Cloud.on && Cloud.ready ? Cloud.ws.collection('files') : null; },
+  async get(){
+    const local = await IDB.get('recapTemplate').catch(()=>null), col = this.cloud();
+    if(!col) return local || null;
+    const meta = await col.doc('recap-meta').get().catch(()=>null);
+    if(!meta || !meta.exists) return local || null;
+    const md = meta.data();
+    if(local && local.at === md.at) return local;
+    let s = ''; for(let i=0;i<md.parts;i++){ const d = await col.doc('recap-'+i).get(); s += d.data().b64; }
+    const rec = {name:md.name, at:md.at, size:md.size, by:md.by||'', buf:this.unb64(s)};
+    await IDB.set('recapTemplate', rec).catch(()=>{}); return rec;
+  },
+  async check(buf){
+    const ents = Zip.read(buf), {map} = await XL.sheets(ents);
+    if(!map[RECAP_ML] || !map[RECAP_RC]) throw new Error(`This doesn't look like the recap form: it needs the tabs "${RECAP_ML}" and "${RECAP_RC}".`);
+    const ml = await Zip.text(map[RECAP_ML]), rc = await Zip.text(map[RECAP_RC]);
+    const need = [[ml,['B1','J1','B2','B3','J2','F44','B6','C6','D6','E6','B41','E41']],[rc,['F9','D11','D13','D15','D18','D30','E18','E38','D41','D43','F47','D51','E51','D53','E53','D55','E55','F60','D65','F74','F86','D88','G93']]];
+    for(const [x,refs] of need) for(const r of refs) if(!XL.has(x,r)) throw new Error(`The form is missing cell ${r}, so it can't be filled safely.`);
+  },
+  async upload(file){
+    const buf = await file.arrayBuffer(); await this.check(buf);
+    const rec = {name:file.name, at:new Date().toISOString(), size:buf.byteLength, by: (typeof Cloud!=='undefined' && Cloud.email) || '', buf};
+    const col = this.cloud();
+    if(col){
+      const s = this.b64(buf), N = 700000, parts = Math.ceil(s.length/N);
+      for(let i=0;i<parts;i++) await col.doc('recap-'+i).set({b64: s.slice(i*N,(i+1)*N)});
+      await col.doc('recap-meta').set({name:rec.name, at:rec.at, size:rec.size, by:rec.by, parts});
+    }
+    await IDB.set('recapTemplate', rec); return rec;
+  },
+  async box(){
+    const el = $('#rtBox'); if(!el) return;
+    const t = await this.get().catch(()=>null);
+    el.innerHTML = `<div class="note">${t ? `✓ Using <b>${esc(t.name)}</b> (${Math.round(t.size/1024)} KB, uploaded ${new Date(t.at).toLocaleDateString()}). The app fills a copy of it for each bid; this file itself is never changed.` : 'Upload your blank recap workbook once (the 2026 RECAP .xlsx). The app fills a copy of it from each bid builder.'}</div>
+      <div style="margin-top:6px"><button class="btn sm" id="rtUp">${t?'Upload a new version':'Upload blank recap form'}</button><input type="file" id="rtFile" accept=".xlsx" hidden></div>`;
+    $('#rtUp').onclick = ()=>$('#rtFile').click();
+    $('#rtFile').onchange = async e=>{ const f = e.target.files[0]; if(!f) return;
+      try{ await this.upload(f); toast('Recap form saved'); this.box(); }catch(err){ toast(err.message||String(err)); } };
+  }
+};
+
+/* Which recap row each bid-builder item lands on. Anything not listed has no line on the form. */
+const RECAP_MAP = {
+  st: {'Project Manager / Supervision':'D18','General Foreman':'D19','Foreman':'D20','Journeyman':'D21','Helper':'D22','1st Yr Apprentice':'D23','2nd Yr Apprentice':'D24','3rd Yr Apprentice':'D25','4th Yr Apprentice':'D26','5th Yr Apprentice':'D27'},
+  ot: {'General Foreman':'D28','Foreman':'D29','Journeyman':'D30','Helper':'D31','1st Yr Apprentice':'D32','2nd Yr Apprentice':'D33','3rd Yr Apprentice':'D34','4th Yr Apprentice':'D35','5th Yr Apprentice':'D36'},
+  exp: {'As-built drawings':'F47','Ditching / backfill':'F48','Engineering':'F49','Field office':'F50','Travel time':'F51','Pipe ID':'F52','Hotel':'F53','Safety meeting':'F54',
+        'Per diem':'F55','Welding machine rental':'F56','Temporary water / power':'F57','Valve tag / pipe identification':'F58','Warranty reserve':'F59','Inter office expenses':'F60'},
+  dept: {'Sheet metal':74,'Electrical':75,'Plumbing':76,'Millwright':77,'Service':78},
+  outside: {'Crane':81,'Temperature controls':83,'Air/water balancing':84,'Hot tap':85,'Concrete coring/cutting':86},
+  pct: {'1st Yr Apprentice':.5,'2nd Yr Apprentice':.55,'3rd Yr Apprentice':.6,'4th Yr Apprentice':.7,'5th Yr Apprentice':.8}
+};
+
+/* Works out every cell to fill, plus a list of anything that would make the recap wrong or incomplete. */
+function recapPlan(j){
+  const b = bidBuild(j), s = Store.settings, m = j.markup, issues = [], ml = {}, rc = {};
+  const r2 = n => Math.round(n*100)/100, need = (ok, msg) => { if(!ok) issues.push(msg); };
+  // header
+  need(j.name.trim(), 'Bid information: enter the job name.');
+  need((j.sv||'').trim(), 'Bid information: enter the SV number.');
+  need((j.recapLocation||'').trim(), 'Recap: enter the job location.');
+  need((j.recapDesc||'').trim(), 'Recap: enter the job description.');
+  Object.assign(ml, {B1:j.name.trim(), J1:(j.sv||'').trim(), B2:(j.recapLocation||'').trim(), B3:(j.recapDesc||'').trim(), J2:new Date().toLocaleDateString('en-US'), F44:0});
+  // I. material
+  const used = j.quotes.filter(q=>q.use!=='No');
+  used.forEach((q,i)=>{ need((q.supplier||'').trim(), `Supplier Quotes line ${i+1}: enter the supplier.`); need(+q.amount>0, `Supplier Quotes line ${i+1} (${q.supplier||'no supplier'}): enter the amount.`); });
+  const pvf = used.filter(q=>q.cat!=='Equipment');
+  need(pvf.length <= RECAP_LINES[1]-RECAP_LINES[0]+1, `Supplier Quotes: the material list has room for ${RECAP_LINES[1]-RECAP_LINES[0]+1} pipe/valve/fitting quotes; this bid has ${pvf.length}.`);
+  pvf.slice(0, RECAP_LINES[1]-RECAP_LINES[0]+1).forEach((q,i)=>{ const r = RECAP_LINES[0]+i;
+    ml['B'+r] = [q.supplier, q.quote ? 'quote '+q.quote : '', q.desc].filter(Boolean).join(' - '); ml['C'+r] = 1; ml['D'+r] = 'LOT'; ml['E'+r] = +q.amount||0; });
+  rc.F9 = r2(b.equip);
+  Object.assign(rc, {D11:+m.consumablesPerMH||0, D13:(+m.salesTax||0)/100, D15:(+m.matOP||0)/100});
+  // II. labor
+  need(j.estLabor.length, 'Labor Estimate: enter the man-hours.');
+  const hrs = {};
+  j.estLabor.forEach((l,i)=>{
+    const ot = l.timeType==='Overtime', ref = (ot ? RECAP_MAP.ot : RECAP_MAP.st)[l.cls];
+    need(+l.hours>0, `Labor Estimate line ${i+1} (${l.cls}): enter the hours.`);
+    need(ref, `Labor Estimate line ${i+1}: the recap has no ${ot?'overtime':'straight time'} row for ${l.cls}.`);
+    if(ref) hrs[ref] = (hrs[ref]||0) + (+l.hours||0);
+  });
+  Object.assign(rc, hrs);
+  const rate = c => (s.laborRates.find(r=>r.cls===c)||{});
+  Object.assign(rc, {E18:+rate('Project Manager / Supervision').st||0, E19:+rate('General Foreman').st||0, E20:+rate('Foreman').st||0, E21:+rate('Journeyman').st||0, E22:+rate('Helper').st||0,
+    E38:+rate('Journeyman').hw||0, E39:+rate('1st Yr Apprentice').hw||0, E40:+rate('Helper').hw||0, D41:+s.insuranceTaxes||0, D43:(+m.cleanup||0)/100});
+  // the form's own fixed math has to agree with the app's settings
+  need(+s.otMultiplier===1.5, `Rates & settings: the recap figures overtime at 1.5×; the app is set to ${s.otMultiplier}×.`);
+  ['Project Manager / Supervision','General Foreman','Foreman'].forEach(c=>need(+rate(c).hw===+rate('Journeyman').hw, `Rates & settings: the recap uses one H&W rate for PM, foremen and journeymen; ${c} is different.`));
+  Object.entries(RECAP_MAP.pct).forEach(([c,p])=>{ need(Math.abs((+rate(c).pctJ||0)-p)<1e-9, `Rates & settings: the recap pays ${c} ${p*100}% of journeyman.`); need(+rate(c).hw===+rate('1st Yr Apprentice').hw, `Rates & settings: the recap uses one apprentice H&W rate; ${c} is different.`); });
+  need(+m.toolTruckPerDay===100, `Bid builder: the recap figures tool & truck at $100/day; this bid uses $${m.toolTruckPerDay}.`);
+  // III. job expenses
+  const ex = {};
+  j.estOther.forEach((o,i)=>{
+    const ref = RECAP_MAP.exp[o.desc];
+    need(ref, `Job Expenses line ${i+1}: "${o.desc}" has no line on the recap. Change it to one that does, or remove it.`);
+    need(+o.amount>0, `Job Expenses line ${i+1} (${o.desc}): enter the amount.`);
+    if(['Hotel','Per diem','Travel time'].includes(o.desc)) need(+o.qty>0, `Job Expenses line ${i+1} (${o.desc}): enter the ${o.desc==='Travel time'?'hours':'days'} in "Days / hrs".`);
+    if(ref){ ex[ref] = ex[ref] || {amt:0, qty:0}; ex[ref].amt += +o.amount||0; ex[ref].qty += +o.qty||0; }
+  });
+  const amt = r => ex[r] ? ex[r].amt : 0, qty = r => ex[r] ? ex[r].qty : 0;
+  ['F48','F49','F52','F54','F56','F57','F58'].forEach(r=>rc[r] = r2(amt(r)));
+  rc.F47 = r2(amt('F47')); rc.D47 = qty('F47') || r2(amt('F47')/400);
+  rc.F50 = r2(amt('F50')); rc.D50 = qty('F50') || r2(amt('F50')/1200);
+  rc.D51 = qty('F51'); rc.E51 = qty('F51') ? amt('F51')/qty('F51') : 0;
+  rc.E53 = qty('F53'); rc.D53 = qty('F53') ? amt('F53')/qty('F53') : (+s.hotelRate||0);
+  rc.E55 = qty('F55'); rc.D55 = qty('F55') ? amt('F55')/qty('F55') : (+s.perDiem||0);
+  rc.F60 = r2(amt('F60'));
+  const labBase = b.labCost - b.cleanup; rc.D59 = labBase ? amt('F59')/labBase : 0;
+  need(!amt('F59') || labBase, 'Job Expenses: warranty reserve needs labor hours to figure against.');
+  rc.D65 = (+m.labOP||0)/100;
+  // IV. subs and rentals
+  const sel = j.subs.filter(x=>x.status==='Selected'), sub = {}, qn = {};
+  sel.forEach((x,i)=>{
+    const dept = x.type==='Action dept', row = (dept ? RECAP_MAP.dept : RECAP_MAP.outside)[x.trade];
+    need((x.company||'').trim(), `Subcontractors line ${i+1}: enter the company.`);
+    need(+x.amount>0, `Subcontractors line ${i+1} (${x.company||x.trade}): enter the quote amount.`);
+    need(row, `Subcontractors line ${i+1}: the recap has no ${dept?'Action department':'outside sub'} line for "${x.trade}". Pick a trade that's on the form.`);
+    if(row){ sub[row] = (sub[row]||0) + (+x.amount||0); if(x.quote) (qn[row] = qn[row]||[]).push(x.quote); }
+  });
+  [74,75,76,77,78,81,83,84,85,86].forEach(r=>{ rc['F'+r] = r2(sub[r]||0); if(qn[r]) rc['D'+r] = qn[r].join(', '); });
+  const rent = j.rentals.filter(x=>x.use!=='No');
+  rent.forEach((x,i)=>{ need((x.equip||'').trim() || (x.vendor||'').trim(), `Equipment Rentals line ${i+1}: enter the equipment.`); need(rentalLine(x)>0, `Equipment Rentals line ${i+1}: enter the rate and how long.`); });
+  rc.F82 = r2(b.rentals); const rq = rent.map(x=>x.quote).filter(Boolean); if(rq.length) rc.D82 = rq.join(', ');
+  rc.D88 = (+m.subOP||0)/100;
+  // bond: only on federal jobs over $150,000
+  if(b.bond.total) rc.G93 = r2(b.bond.total);
+  // double-check: run the form's own math on these numbers and compare with the bid builder
+  const total = recapMath(ml, rc);
+  need(Math.abs(total - b.suggested) < 0.01, `Totals don't match: the recap comes to ${money(total,2)} but the bid builder says ${money(b.suggested,2)}.`);
+  return {ml, rc, issues, total, app:b.suggested, lines:pvf.length};
+}
+
+/* The recap's formulas, written out, so the totals can be checked before anything is saved. */
+function recapMath(ml, rc){
+  const v = r => +rc[r]||0;
+  let lines = 0; for(let r=RECAP_LINES[0]; r<=RECAP_LINES[1]; r++) lines += (+ml['E'+r]||0)*(+ml['C'+r]||0);
+  const F10 = lines*(1+(+ml.F44||0));
+  const D38 = v('D18')+v('D19')+v('D20')+v('D21')+v('D28')+v('D29')+v('D30')+v('D37'), D39 = ['D23','D24','D25','D26','D27','D32','D33','D34','D35','D36'].reduce((a,r)=>a+v(r),0), D40 = v('D22')+v('D31');
+  const F12 = v('F9') + F10 + v('D11')*(D38+D39), G14 = F12*(1+v('D13')), G16 = G14*(1+v('D15'));
+  const E = {E18:v('E18'),E19:v('E19'),E20:v('E20'),E21:v('E21'),E22:v('E22')};
+  [.5,.55,.6,.7,.8].forEach((p,i)=>E['E'+(23+i)] = p*E.E21);
+  [19,20,21,22,23,24,25,26,27].forEach((r,i)=>E['E'+(28+i)] = 1.5*E['E'+r]);
+  let wages = 0; for(let r=18;r<=36;r++) wages += v('D'+r)*E['E'+r]; wages += v('D37')*2;
+  const G42 = wages + D38*v('E38') + D39*v('E39') + D40*v('E40') + wages*v('D41'), G44 = G42*(1+v('D43'));
+  const G62 = ['F47','F48','F49','F50','F52','F54','F56','F57','F58','F60'].reduce((a,r)=>a+v(r),0) + v('D51')*v('E51') + v('D53')*v('E53') + v('D55')*v('E55') + v('D59')*G42
+    + (v('D19')/8 + v('D20')/8 + v('D28')/8 + v('D29')/8)*100;
+  const G66 = (G44+G62)*(1+v('D65'));
+  const G79 = [74,75,76,77,78].reduce((a,r)=>a+v('F'+r),0), G87 = [81,82,83,84,85,86].reduce((a,r)=>a+v('F'+r),0);
+  return G16 + G66 + G79 + G87*(1+v('D88')) + v('G93');
+}
+
+async function recapBuild(j, plan, tpl){
+  const ents = Zip.read(tpl.buf), {map, wbEnt} = await XL.sheets(ents);
+  let ml = await Zip.text(map[RECAP_ML]), rc = await Zip.text(map[RECAP_RC]);
+  for(const [r,val] of Object.entries(plan.ml)) ml = XL.set(ml, r, val);
+  for(const [r,val] of Object.entries(plan.rc)) rc = XL.set(rc, r, val);
+  await Zip.setText(map[RECAP_ML], ml); await Zip.setText(map[RECAP_RC], rc);
+  let wb = await Zip.text(wbEnt);                                    // have Excel recalculate everything on open
+  wb = /<calcPr[^>]*fullCalcOnLoad=/.test(wb) ? wb : wb.replace(/<calcPr([^>]*?)\/>/, '<calcPr$1 fullCalcOnLoad="1"/>');
+  await Zip.setText(wbEnt, wb);
+  return Zip.write(ents);
+}
+
+async function openRecap(j){
+  const tpl = await RecapTpl.get().catch(()=>null);
+  const draw = ()=>{
+    const p = recapPlan(j); if(!tpl) p.issues.unshift('Upload your blank recap form once in Rates & settings.');
+    const ok = !p.issues.length;
+    $('#pickBox').innerHTML = `<h3>Recap sheet</h3>
+      <div class="note">Fills your recap form from this bid builder. It's a gross sum for the bid only and doesn't change the job.</div>
+      <div class="form" style="margin-top:10px">
+        <div class="f wide"><label>Job location</label><input id="rcLoc" value="${esc(j.recapLocation||'')}" placeholder="City, State"></div>
+        <div class="f wide"><label>Job description</label><input id="rcDesc" value="${esc(j.recapDesc||'')}" placeholder="Short description of the work"></div></div>
+      <div class="rccheck ${ok?'ok':'bad'}">${ok
+        ? `✓ Every line checks out. The recap comes to <b>${money(p.total,2)}</b>, the same as the bid builder.`
+        : `<b>Fix these before it can be saved:</b><ul>${p.issues.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>`}</div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button class="btn" id="rcClose">Close</button><button class="btn primary" id="rcGo" ${ok?'':'disabled'}>Save recap</button></div>`;
+    $('#pickBox').parentElement.style.width = 'min(640px,96%)';
+    const keep = (id,k)=>$('#'+id).onchange = e=>{ j[k] = e.target.value.trim(); Store.save(); draw(); };
+    keep('rcLoc','recapLocation'); keep('rcDesc','recapDesc');
+    $('#rcClose').onclick = ()=>$('#pick').classList.remove('open');
+    $('#rcGo').onclick = async ()=>{
+      const p2 = recapPlan(j); if(p2.issues.length) return draw();
+      $('#rcGo').disabled = true; $('#rcGo').textContent = 'Saving…';
+      try{
+        const blob = await recapBuild(j, p2, tpl);
+        const name = safeName(`${j.sv} ${j.name} - RECAP ${revName(j.revisions.length)}`) + '.xlsx';
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+        let where = 'Downloaded';
+        const par = parentOf(j), home = par || j;
+        if(FileLayer.connected && home.folder && home.folder.status==='created'){
+          await FileLayer.writeFile([FileLayer.folderName(home), par ? '03 Change Orders' : '01 Bid Documents', name], blob);
+          where += ` and saved to ${FileLayer.folderName(home)}\\${par ? '03 Change Orders' : '01 Bid Documents'}`;
+        }
+        $('#pick').classList.remove('open'); toast(where + ': ' + name);
+      }catch(e){ toast('Could not make the recap: ' + (e.message||e)); $('#rcGo').disabled = false; $('#rcGo').textContent = 'Save recap'; }
+    };
+  };
+  draw(); $('#pick').classList.add('open');
+}
 
 function folderCard(j){
   const f = j.folder||{}, made = f.status==='created', awarded = j.bidStatus==='Awarded';
