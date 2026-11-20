@@ -342,6 +342,23 @@ header .btn:not(#btnAccount),header input{order:3}
 .viewonly #btnNew,.viewonly #btnImport,.viewonly #btnIntake,.viewonly #sReset,.viewonly .btn.danger{display:none!important}
 .cloud #sReset{display:none!important}
 .viewonly #drawer .btn.primary{display:none!important}
+/* Material Quotes tab (online copies of quote PDFs) */
+.qlist{display:flex;flex-direction:column;gap:6px}
+.qrow{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff}
+.qrow .qic{font-size:20px;flex:none}
+.qrow .qmain{flex:1;min-width:0}
+.qrow .qmain a{font-weight:600;color:#1b3a66;word-break:break-word;text-decoration:none}
+.qrow .qmain a:hover{text-decoration:underline}
+.qrow .qsub{font-size:12px;color:var(--muted);margin-top:2px}
+.qbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
+.qbar label.btn{cursor:pointer}
+.qmsg{margin-top:8px}
+.qmsg.err{color:var(--lost)}
+.qdone{background:#f3f7fc;border:1px solid #d6e2f1;border-radius:8px;padding:10px 12px;margin-bottom:10px}
+.pill.done{background:#e6f0fb;color:#1b3a66}
+.donerow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
+.viewonly .qedit{display:none!important}
+@media (max-width:640px){ .qrow{padding:10px} .qbar .btn{flex:1 1 auto;text-align:center} }
 </style>
 </head>
 <body>
@@ -351,7 +368,7 @@ header .btn:not(#btnAccount),header input{order:3}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.23 (job chat)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.24 (material quotes)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -471,7 +488,7 @@ function normalizeJob(j){
   const s = (typeof Store!=='undefined' && Store.settings) || DEFAULT_SETTINGS;
   return Object.assign({sv:'', name:'', priority:'Normal', estStatus:'Not Started', startDate:'', sentDate:'', pct:0, notes:'',
     bidTotal:0, bidStatus:'Estimating', awardDate:'', federal:false, parentId:null, revisions:[], bidBond:{req:'No', pct:20},
-    changeOrders:[], materials:[], materialItems:[], labor:[], travel:[],
+    changeOrders:[], materials:[], materialItems:[], labor:[], travel:[], quotePdfs:[], completedDate:'',
     quotes:[], subs:[], rentals:[], estLabor:[], estOther:[],
     markup:{}}, j, {markup: Object.assign({}, DEFAULT_SETTINGS.recap, s.recap, j.markup||{})});
 }
@@ -695,6 +712,7 @@ function tileHTML(j){
     <h3>${esc(j.name)}</h3>
     ${childrenOf(j.id).length?`<div><span class="pill co">+${childrenOf(j.id).length} change order${childrenOf(j.id).length>1?'s':''}</span></div>`:''}
     ${isChild(j)?`<div><span class="pill co">Change order of ${esc(parentOf(j).name)}</span></div>`:''}
+    ${j.completedDate?`<div><span class="pill done">✓ Job completed ${fdate(j.completedDate)}</span></div>`:''}
     <div class="money">${j.bidTotal?money(j.bidTotal):'<span class="note">No bid total yet</span>'}</div>
     <div class="meta"><span>Started ${fdate(j.startDate)}</span><span>Sent ${fdate(j.sentDate)}</span></div>
     ${j.bidStatus==='Estimating' ? `<div><div class="meta" style="justify-content:space-between"><span>Estimate</span><span>${j.pct||0}%</span></div><div class="prog"><i style="width:${j.pct||0}%"></i></div></div>`:''}
@@ -931,6 +949,8 @@ async function moveMaterial(src, idx, t){
   }
   // a filing can't be undone into the old job once its order has moved
   (Store.intake.filed||[]).forEach(f=>{ if((m.files||[]).includes(f.savedAs) && f.jobId===src.id) delete f.undo; });
+  const qMove = (src.quotePdfs||[]).filter(q=>(m.files||[]).includes(q.name));
+  if(qMove.length){ src.quotePdfs = src.quotePdfs.filter(q=>!qMove.includes(q)); dst.quotePdfs = (dst.quotePdfs||[]).concat(qMove); }
   let moved = 0;
   try{ moved = await moveOrderFiles(src, dst, m.files || []); }catch(_){}
   changed();
@@ -1173,7 +1193,7 @@ function renderDrawer(){
         <p>Change orders, material, labor and travel open up once this bid is marked <b>Awarded</b>.</p>
         <button class="btn primary" id="unlock">Mark as Awarded</button></div></div>
       <div class="lockbody" style="display:flex;flex-direction:column;gap:14px">
-        <div class="card"><h4>Job financials ${awarded&&j.awardDate?`<span class="pill ok">Awarded ${fdate(j.awardDate)}</span>`:''}</h4>
+        <div class="card"><h4>Job financials ${awarded&&j.awardDate?`<span class="pill ok">Awarded ${fdate(j.awardDate)}</span>`:''} ${folderJob(j).completedDate?`<span class="pill done">✓ Completed ${fdate(folderJob(j).completedDate)}</span>`:''}</h4>
           <div class="fin">
             <div><span>Bid total</span><b>${money(j.bidTotal)}</b></div>
             <div><span>CO total</span><b>${money(t.co)}</b></div>
@@ -1186,10 +1206,11 @@ function renderDrawer(){
             <div class="rem ${t.remaining<0?'neg':''}"><span>Remaining</span><b>${money(t.remaining)}</b></div>
           </div>
           <div class="form" style="margin-top:12px">${fld('Award date','awardDate',j.awardDate,'date')}</div>
+          ${completeRow(j)}
         </div>
         <div class="card">
-          <div class="tabs">${['co','mat','items','lab','trav'].map(k=>`<button class="tab ${k===openTab?'on':''}" data-tab="${k}">${LOGS[k].label}<span class="n">${j[LOGS[k].key].length + (k==='co'?childrenOf(j.id).length:0)}</span></button>`).join('')}</div>
-          ${logTable(j,openTab)}
+          <div class="tabs">${['co','mat','items','quotes','lab','trav'].map(k=>`<button class="tab ${k===openTab?'on':''}" data-tab="${k}">${k==='quotes'?'Material Quotes':LOGS[k].label}<span class="n">${k==='quotes' ? (j.quotePdfs||[]).length : j[LOGS[k].key].length + (k==='co'?childrenOf(j.id).length:0)}</span></button>`).join('')}</div>
+          ${openTab==='quotes' ? quotesTab(j) : logTable(j,openTab)}
         </div>
       </div>
     </div>
@@ -1209,6 +1230,9 @@ function renderDrawer(){
     catch(_){ toast(t); }
   });
   JobChat.wire(j);
+  QuoteTab.wire(j);
+  if($('#dComplete')) $('#dComplete').onclick = ()=>completeJob(j);
+  if($('#dReopen')) $('#dReopen').onclick = ()=>reopenJob(j);
   $('#dStatus').onchange = e=>setStatus(j.id, e.target.value);
   $('#unlock').onclick = ()=>setStatus(j.id,'Awarded');
   $('#drawer').querySelectorAll('[data-view],[data-openjob]').forEach(b=>b.onclick=()=>{ openId = b.dataset.view||b.dataset.openjob; renderDrawer(); $('#drawer .db').scrollTop=0; });
@@ -1979,6 +2003,143 @@ const JobChat = {
   }
 };
 
+/* ---------------- Material Quotes ----------------
+   Online copies (Firebase Storage) of the quote / order PDFs filed to a job's
+   "04 Material Quotes & POs" folder, so anyone signed in can open them on any device.
+   j.quotePdfs = [{id, path, url, name, size, at, by, supplier, docNo, docType, total, from}]
+   Nothing here ever touches the PDFs on the PC. */
+const QuotePdfs = {
+  MAX: 25*1024*1024,
+  avail(){ return typeof Cloud!=='undefined' && Cloud.on && Cloud.ready && !!Cloud.storage; },
+  key: id => String(id).replace(/[^A-Za-z0-9_-]/g,'_'),
+  has(j, name, size){ return (j.quotePdfs||[]).some(e=>e.name===name && (!size || !e.size || +e.size===+size)); },
+  async upload(j, file, info={}){
+    const name = info.name || file.name || 'quote.pdf';
+    if(file.size > this.MAX) throw new Error(`${name} is over 25 MB`);
+    const id = Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+    const path = `quotes/${this.key(CLOUD_CONFIG.workspace||'main')}/${this.key(j.id)}/${id}.pdf`;
+    const ref = Cloud.storage.ref(path);
+    await ref.put(file, {contentType:'application/pdf', customMetadata:{file:String(name).slice(0,200), job:String(j.sv||j.name||'').slice(0,100)}});
+    let url = ''; try{ url = await ref.getDownloadURL(); }catch(_){}
+    const e = {id, path, url, name, size:file.size, at:new Date().toISOString(), by:Cloud.email||'', supplier:info.supplier||'', docNo:info.docNo||'', docType:info.docType||'', total:+info.total||0, from:info.from||'upload'};
+    (j.quotePdfs = j.quotePdfs||[]).push(e);
+    return e;
+  },
+  async remove(e){
+    try{ await Cloud.storage.ref(e.path).delete(); }
+    catch(err){ if(err.code!=='storage/object-not-found') throw err; }
+  },
+  why(err){
+    const c = (err && err.code) || '';
+    if(c==='storage/unauthorized') return "Firebase Storage rules aren't published yet (or your login can't add files).";
+    if(/storage\/(unknown|bucket-not-found|project-not-found|retry-limit-exceeded)/.test(c)) return "Firebase Storage isn't turned on yet.";
+    return (err && err.message) || String(err);
+  },
+  async url(e){ if(e.url) return e.url; e.url = await Cloud.storage.ref(e.path).getDownloadURL(); return e.url; }
+};
+const kb = n => !+n ? '' : n >= 1048576 ? (n/1048576).toFixed(1)+' MB' : Math.max(1,Math.round(n/1024))+' KB';
+function quotesTab(j){
+  const L = (j.quotePdfs||[]).slice().sort((a,b)=>String(b.at).localeCompare(String(a.at)));
+  const on = QuotePdfs.avail(), top = folderJob(j), done = !!top.completedDate;
+  if(!on) return `<div class="note">Quote PDFs are saved online, so they show up in the online app: <a href="https://ajpirone-hash.github.io/action-project-pro/" target="_blank" rel="noopener">Action Project PRO online</a>.</div>`;
+  const rows = L.map(e=>{
+    const sub = [e.supplier, e.docNo ? '#'+e.docNo : '', e.docType, e.total ? money(e.total,2) : '', 'added '+fdate(String(e.at).slice(0,10))+(e.by?' by '+Cloud.nameOf(e.by):''), kb(e.size)].filter(Boolean);
+    return `<div class="qrow"><span class="qic">📄</span><div class="qmain"><a href="${esc(e.url||'#')}" target="_blank" rel="noopener" data-qopen="${esc(e.id)}">${esc(e.name)}</a><div class="qsub">${sub.map(esc).join(' · ')}</div></div>
+      <button class="btn ghost sm qedit" data-qdel="${esc(e.id)}" title="Delete the online copy" aria-label="Delete the online copy">✕</button></div>`;
+  }).join('');
+  const rem = top.quotesRemoved;
+  const doneNote = done ? `<div class="qdone note">✓ ${isChild(j)?esc(top.name)+' is':'This job is'} completed${rem&&rem.n?`, so its ${rem.n} quote PDF${rem.n>1?'s were':' was'} removed from online storage on ${fdate(rem.at)}`:''}. The PDFs in the job folder on your PC were not touched.${L.length?` <b>${L.length} online cop${L.length>1?'ies are':'y is'} still here.</b>`:''}</div>` : '';
+  const folderOk = FileLayer.connected && j.folder && j.folder.status==='created';
+  const bar = done
+    ? (L.length ? `<div class="qbar"><button class="btn qedit" id="qPurge" style="color:var(--lost);border-color:#efc4bf">🗑 Delete the ${L.length} online cop${L.length>1?'ies':'y'}</button></div>` : '')
+    : `<div class="qbar"><label class="btn qedit">⬆ Upload PDF<input type="file" accept="application/pdf,.pdf" multiple id="qFile" style="display:none"></label>
+        ${folderOk ? `<button class="btn qedit" id="qFolder" title="Uploads the PDFs in this job's 04 Material Quotes &amp; POs folder that aren't online yet">⇪ Add PDFs from job folder</button>` : ''}
+        <span class="note">Quote PDFs filed by the email intake are added here on their own.</span></div>`;
+  return `<div id="qTab">${doneNote}<div class="qlist">${rows || (done ? '' : `<div class="note">No quote PDFs saved for this job yet.</div>`)}</div>${bar}<div class="note qmsg" id="qMsg"></div></div>`;
+}
+const QuoteTab = {
+  msg(t, err){ const m = $('#qMsg'); if(m){ m.textContent = t||''; m.classList.toggle('err', !!err); } },
+  async add(j, files, from){
+    let n = 0, bad = [];
+    for(const [i,f] of files.entries()){
+      if(!/\.pdf$/i.test(f.name) && f.type!=='application/pdf'){ bad.push(`${f.name} is not a PDF`); continue; }
+      this.msg(`Uploading ${i+1} of ${files.length}: ${f.name}…`);
+      try{ await QuotePdfs.upload(j, f, {name:f.name, from}); n++; }
+      catch(err){ bad.push(`${f.name}: ${QuotePdfs.why(err)}`); }
+    }
+    if(n) changed();
+    this.msg(bad.join(' · '), bad.length>0);
+    if(n) toast(`Saved ${n} PDF${n>1?'s':''} to Material Quotes`);
+    return n;
+  },
+  wire(j){
+    const box = $('#qTab'); if(!box) return;
+    box.querySelectorAll('[data-qopen]').forEach(a=>a.onclick = async ev=>{
+      const e = (j.quotePdfs||[]).find(x=>x.id===a.dataset.qopen); if(!e || e.url) return;
+      ev.preventDefault(); const w = window.open('', '_blank');
+      try{ const u = await QuotePdfs.url(e); if(w) w.location = u; else location.href = u; }catch(err){ if(w) w.close(); toast('Could not open it: '+QuotePdfs.why(err)); }
+    });
+    box.querySelectorAll('[data-qdel]').forEach(b=>b.onclick = async ()=>{
+      const e = (j.quotePdfs||[]).find(x=>x.id===b.dataset.qdel); if(!e) return;
+      if(!await askSure('Delete this online copy?', `${e.name} will be removed from Material Quotes for everyone. The PDF in the job folder on your PC is not touched.`, 'Delete')) return;
+      try{ await QuotePdfs.remove(e); j.quotePdfs = j.quotePdfs.filter(x=>x!==e); changed(); toast('Online copy deleted'); }
+      catch(err){ toast('Could not delete it: '+QuotePdfs.why(err)); }
+    });
+    const inp = $('#qFile');
+    if(inp) inp.onchange = async ()=>{ const fs = [...inp.files]; inp.value = ''; if(fs.length) await this.add(j, fs, 'upload'); };
+    if($('#qFolder')) $('#qFolder').onclick = async ()=>{
+      try{
+        const d = await FileLayer.dir([FileLayer.folderName(j), FileLayer.MAT_SUB], false), fs = [];
+        for await (const [name,h] of d.entries()) if(h.kind==='file' && /\.pdf$/i.test(name)){ const f = await h.getFile(); if(!QuotePdfs.has(j, name, f.size)) fs.push(f); }
+        if(!fs.length){ this.msg('Every PDF in this job\'s 04 Material Quotes & POs folder is already here.'); return; }
+        await this.add(j, fs, 'folder');
+      }catch(err){ this.msg('Could not read the job folder: '+(err.message||err), true); }
+    };
+    if($('#qPurge')) $('#qPurge').onclick = async ()=>{
+      const L = j.quotePdfs||[];
+      if(!await askSure('Delete the online copies?', `${L.length} quote PDF${L.length>1?'s':''} will be deleted from online storage. This can't be undone. The PDFs in the job folder on your PC are not touched.`, 'Delete')) return;
+      const r = await purgeQuotes([j]); changed(); toast(r.failed ? `Deleted ${r.gone}, ${r.failed} could not be deleted` : `Deleted ${r.gone} online cop${r.gone>1?'ies':'y'}`);
+    };
+  }
+};
+/* Removes the online copies only. Returns {gone, failed}. */
+async function purgeQuotes(jobs){
+  let gone = 0, failed = 0;
+  for(const x of jobs){
+    const keep = [];
+    for(const e of x.quotePdfs||[]){
+      if(!QuotePdfs.avail()){ keep.push(e); failed++; continue; }
+      try{ await QuotePdfs.remove(e); gone++; }catch(_){ keep.push(e); failed++; }
+    }
+    const n = (x.quotePdfs||[]).length - keep.length;
+    if(n) x.quotesRemoved = {at:today(), n};
+    x.quotePdfs = keep;
+  }
+  return {gone, failed};
+}
+function completeRow(j){
+  if(isChild(j)) return '';
+  return j.completedDate
+    ? `<div class="donerow"><span class="pill done">✓ Job completed ${fdate(j.completedDate)}</span><button class="btn qedit" id="dReopen">↺ Reopen job</button></div>`
+    : `<div class="donerow"><button class="btn qedit" id="dComplete">✓ Mark job completed</button><span class="note">Removes this job's quote PDFs from online storage to save space. Files on your PC stay.</span></div>`;
+}
+async function completeJob(j){
+  const fam = [j, ...childrenOf(j.id)];
+  const n = fam.reduce((a,x)=>a+(x.quotePdfs||[]).length, 0), kids = fam.length>1 && fam.slice(1).some(x=>(x.quotePdfs||[]).length);
+  const msg = n
+    ? `${j.name} will be marked completed, and its ${n} quote PDF${n>1?'s':''} saved online${kids?' (including its change orders)':''} will be deleted from online storage to save space. This can't be undone. The PDFs in the job folder on your PC are not touched.`
+    : `${j.name} will be marked completed. It has no quote PDFs saved online, so nothing is deleted.`;
+  if(!await askSure('Mark this job completed?', msg, n ? `Complete & delete ${n} PDF${n>1?'s':''}` : 'Mark completed')) return;
+  j.completedDate = today();
+  const r = n ? await purgeQuotes(fam) : {gone:0, failed:0};
+  changed();
+  toast(`${j.name} completed` + (r.gone ? ` · ${r.gone} online PDF${r.gone>1?'s':''} deleted` : '') + (r.failed ? ` · ${r.failed} could not be deleted, see Material Quotes` : ''));
+}
+async function reopenJob(j){
+  if(!await askSure('Reopen this job?', `${j.name} goes back to an open job. Quote PDFs that were removed from online storage don't come back on their own. On the PC, use "Add PDFs from job folder" in Material Quotes to put them back.`, 'Reopen')) return;
+  j.completedDate = ''; changed(); toast(`${j.name} reopened`);
+}
+
 function folderCard(j){
   const f = j.folder||{}, made = f.status==='created', awarded = j.bidStatus==='Awarded';
   const pill = made ? `<span class="pill ok">Created ${fdate(f.at)}</span>` : f.status==='error' ? `<span class="pill warn">Error</span>` : `<span class="pill">${awarded?'Not created yet':'Created on award'}</span>`;
@@ -2179,9 +2340,14 @@ const Intake = {
     }catch(_){}
     const snap = {materials: structuredClone(j.materials), materialItems: structuredClone(j.materialItems||[])};
     applyDocToJob(j, e, saveAs);
+    let cloudId = '';
+    if(sub===FileLayer.MAT_SUB && QuotePdfs.avail() && !folderJob(j).completedDate){   // online copy for the Material Quotes tab
+      try{ cloudId = (await QuotePdfs.upload(j, copy, {name:saveAs, supplier:e.supplier, docNo:e.docNo, docType:e.docType, total:e.total, from:'intake'})).id; }
+      catch(err){ toast(`${saveAs} is filed on this PC, but the online copy failed: ${QuotePdfs.why(err)}`); }
+    }
     delete Store.intake.assign[r.name];
     Store.intake.filed.forEach(f=>delete f.undo);      // only the latest filing can be undone
-    Store.intake.filed.unshift({file:r.name, savedAs:saveAs, sub, jobId:j.id, sv:j.sv, job:j.name, folder:FileLayer.folderName(j), at:new Date().toISOString(), docNo:e.docNo||'', supplier:e.supplier||'', docType:e.docType||'', undo:snap});
+    Store.intake.filed.unshift({file:r.name, savedAs:saveAs, sub, jobId:j.id, sv:j.sv, job:j.name, folder:FileLayer.folderName(j), at:new Date().toISOString(), docNo:e.docNo||'', supplier:e.supplier||'', docType:e.docType||'', cloudId, undo:snap});
     Store.intake.filed = Store.intake.filed.slice(0,500);
     Store.save();
     await writeMaterialList(j);
@@ -2293,6 +2459,10 @@ async function undoLastFiling(){
   };
   const back = await move(f.savedAs, f.file);
   try{ await move(f.savedAs + '.email.txt', back + '.email.txt'); }catch(_){}
+  if(j && f.cloudId){
+    const q = (j.quotePdfs||[]).find(x=>x.id===f.cloudId);
+    if(q && QuotePdfs.avail()){ try{ await QuotePdfs.remove(q); j.quotePdfs = j.quotePdfs.filter(x=>x!==q); }catch(_){} }
+  }
   if(j){
     if(f.undo){ j.materials = f.undo.materials; j.materialItems = f.undo.materialItems; }
     else {   // filed before undo existed: take out what this PDF added
@@ -2446,8 +2616,9 @@ const Cloud = {
 
   async loadSDK(){
     const base = CLOUD_CONFIG.sdkBase || 'https://www.gstatic.com/firebasejs/10.14.1/';
-    for(const n of ['firebase-app-compat.js','firebase-auth-compat.js','firebase-firestore-compat.js'])
-      await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=base+n; s.onload=res; s.onerror=()=>rej(new Error('Could not load '+n)); document.head.appendChild(s); });
+    for(const n of ['firebase-app-compat.js','firebase-auth-compat.js','firebase-firestore-compat.js','firebase-storage-compat.js'])
+      await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=base+n; s.onload=res;
+        s.onerror=()=>n.includes('storage') ? res() : rej(new Error('Could not load '+n)); document.head.appendChild(s); });   // storage is optional: only Material Quotes needs it
   },
 
   async start(){
@@ -2457,8 +2628,9 @@ const Cloud = {
     catch(e){ return this.login('Could not reach the sign-in service. Check your internet connection and reload the page.', true); }
     firebase.initializeApp(CLOUD_CONFIG.firebase);
     this.auth = firebase.auth(); this.db = firebase.firestore();
+    try{ if(firebase.storage) this.storage = firebase.storage(); }catch(_){ this.storage = null; }
     const emu = CLOUD_CONFIG.emulator;
-    if(emu){ this.auth.useEmulator(emu.auth); this.db.useEmulator(emu.host, emu.port); }
+    if(emu){ this.auth.useEmulator(emu.auth); this.db.useEmulator(emu.host, emu.port); if(this.storage && emu.storagePort) this.storage.useEmulator(emu.host, emu.storagePort); }
     else { try{ await this.db.enablePersistence({synchronizeTabs:true}); }catch(_){} }
     const qp = new URLSearchParams(location.search);
     if(qp.get('mode')==='resetPassword' && qp.get('oobCode')) return this.resetLanding(qp.get('oobCode'), /welcome/.test(qp.get('continueUrl')||''));
