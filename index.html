@@ -193,6 +193,18 @@ select.inl{border:1px solid var(--line);border-radius:5px;padding:2px 4px;backgr
 .yn{display:flex;gap:18px;margin-top:8px}
 .rccheck{margin-top:12px;border-radius:10px;padding:10px 14px;font-size:13.5px}
 .rccheck.ok{background:#e8f6ee;color:#17693b}.rccheck.bad{background:#fff6e5;color:#7a4a00}.rccheck ul{margin:6px 0 0;padding-left:18px}
+.chatlist{max-height:340px;min-height:70px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:8px;background:#f8f9fb;border:1px solid var(--line);border-radius:10px;margin-top:8px;-webkit-overflow-scrolling:touch}
+.chatempty{margin:auto;text-align:center;padding:10px}
+.cmsg{max-width:85%;align-self:flex-start;background:#fff;border:1px solid var(--line);border-radius:12px 12px 12px 4px;padding:7px 11px;overflow-wrap:anywhere}
+.cmsg.me{align-self:flex-end;background:#e8eef8;border-color:#cfdaee;border-radius:12px 12px 4px 12px}
+.cmeta{font-size:11px;color:var(--muted);margin-bottom:2px;display:flex;align-items:center;gap:4px}
+.cdel{border:0;background:none;color:var(--muted);cursor:pointer;font-size:15px;line-height:1;padding:0 2px;margin-left:auto}
+.cdel:hover{color:var(--lost)}
+.chatin{display:flex;gap:8px;margin-top:8px;align-items:stretch}
+.chatin textarea{flex:1;min-width:0;resize:vertical;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit}
+.chatsend{background:#1b3a66;color:#fff;border-color:#1b3a66;padding:0 18px}
+.chathint{margin-top:4px;font-size:11px}
+@media (pointer:coarse){ .chathint{display:none} }
 .viewonly #recapBtn,.viewonly #rateEdit{display:none!important}
 .viewonly .mvcol{display:none!important}
 select.mvsel{max-width:210px;border-color:#e8a317;background:#fffaf0;color:#0d1b2e;font-weight:600}
@@ -339,7 +351,7 @@ header .btn:not(#btnAccount),header input{order:3}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.22 (recap matches your form)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.23 (job chat)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -741,8 +753,7 @@ async function setStatus(id, status){
   if(status==='Bid Sent' && !j.sentDate) j.sentDate = today();
   if(status==='Awarded' && was!=='Awarded'){
     if(!j.awardDate) j.awardDate = today();
-    await FileLayer.ensureJobFolder(j);
-    toast(FileLayer.connected ? `${j.name} awarded – job folder created` : `${j.name} awarded – connect your Action Projects folder (PDF intake) to create its folder`);
+    toast(`${j.name} awarded`);
     if(FileLayer.connected) setTimeout(()=>Intake.sync(),50);
   }
   Store.save(); render();
@@ -752,7 +763,7 @@ async function setStatus(id, status){
 
 /* ---------------- Drawer ---------------- */
 function openJob(id){ openId=id; renderDrawer(); $('#drawer').classList.add('open'); $('#scrim').classList.add('open'); }
-function closeJob(){ openId=null; $('#drawer').classList.remove('open'); $('#scrim').classList.remove('open'); }
+function closeJob(){ JobChat.stop(); openId=null; $('#drawer').classList.remove('open'); $('#scrim').classList.remove('open'); }
 $('#scrim').onclick = closeJob;
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeJob(); $('#settings').classList.remove('open'); $('#newBid').classList.remove('open'); $('#pick').classList.remove('open'); $('#intake').classList.remove('open'); }});
 
@@ -1151,6 +1162,8 @@ function renderDrawer(){
       </div>
     </div>
 
+    ${chatCard(j)}
+
     ${recapsCard(j)}
 
     ${bidBuilderCard(j)}
@@ -1181,7 +1194,6 @@ function renderDrawer(){
       </div>
     </div>
 
-    ${folderCard(j)}
     <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap">
       ${isChild(j) ? `<button class="btn" id="dDetach">↩ Make this its own job again</button>`
         : childrenOf(j.id).length ? `<span class="note" style="align-self:center">This job has change orders, so it can't become a change order itself.</span>`
@@ -1196,8 +1208,7 @@ function renderDrawer(){
     try{ await navigator.clipboard.writeText(t); toast('Path copied. Paste it into File Explorer.'); }
     catch(_){ toast(t); }
   });
-  if($('#fConnect')) $('#fConnect').onclick = async ()=>{ if(await FileLayer.connect()){ toast('Action Projects folder connected'); await Intake.sync(); renderDrawer(); } };
-  if($('#fCreate')) $('#fCreate').onclick = async ()=>{ await FileLayer.ensureJobFolder(j); Store.save(); renderDrawer(); toast(j.folder.status==='created'?'Job folder created':'Could not create folder'); };
+  JobChat.wire(j);
   $('#dStatus').onchange = e=>setStatus(j.id, e.target.value);
   $('#unlock').onclick = ()=>setStatus(j.id,'Awarded');
   $('#drawer').querySelectorAll('[data-view],[data-openjob]').forEach(b=>b.onclick=()=>{ openId = b.dataset.view||b.dataset.openjob; renderDrawer(); $('#drawer .db').scrollTop=0; });
@@ -1288,7 +1299,7 @@ $('#btnNew').onclick = ()=>{
     if(!fed){ toast('Answer: is this a federal job?'); return; }
     const j = normalizeJob({id:'job-'+Date.now(), sv:$('#nSv').value.trim(), name, priority:$('#nPri').value, estStatus:'In Progress', startDate:today(), bidStatus:'Estimating', federal: fed.value==='yes',
       recapLocation:($('#nLoc').value||'').trim(), recapDesc:($('#svDesc').value||'').trim()});
-    Store.jobs.unshift(j); Store.save(); FileLayer.ensureJobFolder(j);
+    Store.jobs.unshift(j); Store.save();
     $('#newBid').classList.remove('open'); filter='Active'; bidTab='bq'; render(); openJob(j.id);
   };
 };
@@ -1328,7 +1339,6 @@ $('#btnSettings').onclick = ()=>{
       <div class="f"><label>Insurance &amp; taxes (%)</label><input data-s="insuranceTaxes" data-pct type="number" step="any" value="${(s.insuranceTaxes*100).toFixed(1)}"></div>
       <div class="f"><label>Hotel rate / night</label><input data-s="hotelRate" type="number" step="any" value="${s.hotelRate}"></div>
       <div class="f"><label>Per diem / day</label><input data-s="perDiem" type="number" step="any" value="${s.perDiem}"></div>
-      <div class="f wide"><label>Job folder location (for later)</label><input data-s="rootFolder" value="${esc(s.rootFolder)}"></div>
     </div>
     <h4 style="margin:16px 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase">Payment &amp; performance bond (federal jobs)</h4>
     <div class="note">Same formula as the CALCULATION sheet in your 2026 RECAP: 2.5% on the first $100,000, 1.5% from $100,000 to $500,000, 1.0% above $500,000. Only added on federal jobs over $150,000, and figured from each bid's own total.</div>
@@ -1902,6 +1912,73 @@ async function openRecap(j){
   draw(); $('#pick').classList.add('open');
 }
 
+/* ---------------- Job chat ----------------
+   A chat box on every job. Anyone who can sign in (view only people too) can post.
+   Messages live online in jobchat/{workspace}/jobs/{job id}/msgs, apart from the
+   job itself, so posting never changes job data. Works in the online app only. */
+function chatCard(j){
+  if(!JobChat.avail()) return `<div class="card"><h4>Job chat</h4><div class="note">The job chat works in the online app: <a href="https://ajpirone-hash.github.io/action-project-pro/" target="_blank" rel="noopener">Action Project PRO online</a>.</div></div>`;
+  return `<div class="card chatcard"><h4 style="margin-bottom:2px">💬 Job chat</h4><div class="note">Ask a question about this job. Everyone who can sign in sees it.</div>
+    <div id="chatList" class="chatlist" aria-live="polite"></div>
+    <div class="chatin"><textarea id="chatText" rows="2" maxlength="2000" placeholder="Type a question about this job…"></textarea><button class="btn chatsend" id="chatSend">Send</button></div>
+    <div class="note chathint">Enter sends · Shift+Enter for a new line</div>
+  </div>`;
+}
+const JobChat = {
+  jobId:null, unsub:null, msgs:[], draft:{}, err:'', loading:false,
+  avail(){ return typeof Cloud!=='undefined' && Cloud.on && Cloud.ready; },
+  col(id){ return Cloud.db.collection('jobchat').doc(CLOUD_CONFIG.workspace||'main').collection('jobs').doc(Cloud.enc(id)).collection('msgs'); },
+  watch(id){
+    if(this.jobId===id) return;
+    this.stop(); this.jobId = id; this.msgs = []; this.err = ''; this.loading = true;
+    this.unsub = this.col(id).orderBy('at').limitToLast(300).onSnapshot(snap=>{
+      this.loading = false; this.err = '';
+      this.msgs = snap.docs.map(d=>Object.assign({id:d.id}, d.data({serverTimestamps:'estimate'})));
+      this.draw();
+    }, e=>{ this.loading = false; this.err = e.code==='permission-denied' ? 'The chat is waiting on a one-time update to the Firestore rules.' : 'Chat unavailable: '+e.message; this.draw(); });
+  },
+  stop(){ if(this.unsub) this.unsub(); this.unsub = null; this.jobId = null; this.msgs = []; },
+  when(t){
+    const d = t && t.toDate ? t.toDate() : new Date(); const now = new Date();
+    const tm = d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+    return d.toDateString()===now.toDateString() ? tm : d.toLocaleDateString([], {month:'short', day:'numeric', year: d.getFullYear()===now.getFullYear()?undefined:'numeric'}) + ' ' + tm;
+  },
+  draw(){
+    const box = $('#chatList'); if(!box || openId!==this.jobId) return;
+    const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
+    if(this.err) box.innerHTML = `<div class="note chatempty">${esc(this.err)}</div>`;
+    else if(this.loading) box.innerHTML = `<div class="note chatempty">Loading…</div>`;
+    else if(!this.msgs.length) box.innerHTML = `<div class="note chatempty">No messages yet. Be the first to ask a question about this job.</div>`;
+    else box.innerHTML = this.msgs.map(m=>{
+      const me = m.by===Cloud.email, del = me || Cloud.role==='owner';
+      return `<div class="cmsg ${me?'me':''}"><div class="cmeta"><b>${esc(me?'You':Cloud.nameOf(m.by))}</b> · ${esc(this.when(m.at))}${del?` <button class="cdel" data-cdel="${esc(m.id)}" title="Delete message" aria-label="Delete message">×</button>`:''}</div><div class="ctext">${esc(m.text).replace(/\n/g,'<br>')}</div></div>`;
+    }).join('');
+    box.querySelectorAll('[data-cdel]').forEach(b=>b.onclick = async ()=>{
+      if(!await askSure('Delete this message?', 'It will be removed for everyone.', 'Delete')) return;
+      try{ await this.col(this.jobId).doc(b.dataset.cdel).delete(); }catch(e){ toast('Could not delete: '+(e.message||e)); }
+    });
+    if(atBottom || this.justSent){ box.scrollTop = box.scrollHeight; this.justSent = false; }
+  },
+  async send(){
+    const ta = $('#chatText'); if(!ta) return;
+    const text = ta.value.trim(); if(!text) return;
+    if(text.length > 2000) return toast('That message is too long (2,000 characters max).');
+    const id = this.jobId; ta.value = ''; delete this.draft[id]; this.justSent = true;
+    try{ await this.col(id).add({text, by:Cloud.email, at:firebase.firestore.FieldValue.serverTimestamp()}); }
+    catch(e){ if(openId===id && $('#chatText') && !$('#chatText').value) $('#chatText').value = text; this.draft[id] = text;
+      toast(e.code==='permission-denied' ? 'Could not send: the chat needs the Firestore rules update first.' : 'Could not send: '+(e.message||e)); }
+  },
+  wire(j){
+    if(!this.avail() || !$('#chatList')) return;
+    this.watch(j.id);
+    const ta = $('#chatText'); ta.value = this.draft[j.id] || '';
+    ta.oninput = ()=>{ this.draft[j.id] = ta.value; };
+    ta.onkeydown = e=>{ if(e.key==='Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); this.send(); } };
+    $('#chatSend').onclick = ()=>this.send();
+    this.draw(); const box = $('#chatList'); box.scrollTop = box.scrollHeight;
+  }
+};
+
 function folderCard(j){
   const f = j.folder||{}, made = f.status==='created', awarded = j.bidStatus==='Awarded';
   const pill = made ? `<span class="pill ok">Created ${fdate(f.at)}</span>` : f.status==='error' ? `<span class="pill warn">Error</span>` : `<span class="pill">${awarded?'Not created yet':'Created on award'}</span>`;
@@ -1975,8 +2052,6 @@ const FileLayer = {
     await this.root.getDirectoryHandle(this.SYS, {create:true});
     this.connected = true; this.state = 'on';
     await this.cleanupNested().catch(()=>{});
-    for(const j of Store.jobs) if(j.bidStatus==='Awarded' && (!j.folder || j.folder.status!=='created')) await this.ensureJobFolder(j);
-    Store.save();
   },
   /* If the folder was once connected to _Intake by mistake, the dashboard made an empty
      "Action Projects" inside it. Remove it, but only if it holds nothing except what the
@@ -2704,7 +2779,7 @@ if(Cloud.on){
   const _settings = $('#btnSettings').onclick; $('#btnSettings').onclick = function(){ _settings(); Cloud.people(); };
   document.addEventListener('focusout', ()=>setTimeout(()=>{ if(Cloud.holdDrawer && !Cloud.typing()){ Cloud.holdDrawer=false; if(openId) renderDrawer(); } }, 0));
   /* View only: lock the fields so nobody types into something that won't save. */
-  new MutationObserver(()=>{ if(Cloud.ready && !Cloud.canEdit()) document.querySelectorAll('#drawer input,#drawer select,#drawer textarea,#grid select,#settingsBox input,#settingsBox select').forEach(el=>{ if(!el.disabled) el.disabled = true; }); })
+  new MutationObserver(()=>{ if(Cloud.ready && !Cloud.canEdit()) document.querySelectorAll('#drawer input,#drawer select,#drawer textarea,#grid select,#settingsBox input,#settingsBox select').forEach(el=>{ if(!el.disabled && !el.closest('.chatin')) el.disabled = true; }); })
     .observe(document.body, {childList:true, subtree:true});
   $('#lGo').onclick = ()=>Cloud.doSignIn();
   document.querySelectorAll('#login .lgLogo').forEach(im=>im.src = document.querySelector('header .brand img').src);
