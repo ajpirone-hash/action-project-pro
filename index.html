@@ -368,7 +368,7 @@ header .btn:not(#btnAccount),header input{order:3}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.24 (material quotes)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.25 (material quotes)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -1188,6 +1188,8 @@ function renderDrawer(){
 
     ${bidBuilderCard(j)}
 
+    ${awarded ? '' : `<div class="card"><h4>📄 Material Quotes <span class="n" style="font-weight:400;color:var(--muted)">${(j.quotePdfs||[]).length}</span></h4>${quotesTab(j)}</div>`}
+
     <div class="lockwrap ${awarded?'':'locked'}">
       <div class="lockover"><div class="lockbox"><div class="ic">🔒</div><b>Job tracking is locked</b>
         <p>Change orders, material, labor and travel open up once this bid is marked <b>Awarded</b>.</p>
@@ -1210,7 +1212,7 @@ function renderDrawer(){
         </div>
         <div class="card">
           <div class="tabs">${['co','mat','items','quotes','lab','trav'].map(k=>`<button class="tab ${k===openTab?'on':''}" data-tab="${k}">${k==='quotes'?'Material Quotes':LOGS[k].label}<span class="n">${k==='quotes' ? (j.quotePdfs||[]).length : j[LOGS[k].key].length + (k==='co'?childrenOf(j.id).length:0)}</span></button>`).join('')}</div>
-          ${openTab==='quotes' ? quotesTab(j) : logTable(j,openTab)}
+          ${openTab==='quotes' ? (awarded ? quotesTab(j) : logTable(j,'co')) : logTable(j,openTab)}
         </div>
       </div>
     </div>
@@ -2308,6 +2310,7 @@ const Intake = {
     this.busy = true; let n = 0;
     try{
       await importJobs().catch(e=>console.warn('import failed', e));
+      await importQuotes().catch(e=>console.warn('quote import failed', e));
       await purgeCleared().catch(e=>console.warn('purge failed', e));
       await this.scan();
       for(const r of this.rows.filter(r=>r.status==='ready')){
@@ -2399,6 +2402,34 @@ async function importJobs(){
     Store.intake.imported.push(imp.importId); n++;
   }
   if(n){ Store.save(); render(); if(openId) renderDrawer(); toast(`Added ${n} job${n>1?'s':''} from job folders`); }
+}
+
+/* Quote imports: Claude puts copies of existing quote PDFs in _system\Quote imports\ and lists
+   them in _system\quote-imports.json ({imports:[{importId, file, jobId, sv, supplier, docNo, docType, total, source}]}).
+   Each one is uploaded once to that job's Material Quotes (online copy). Files on the PC are only read. */
+const QUOTE_IMPORTS = 'Quote imports';
+async function importQuotes(){
+  if(!QuotePdfs.avail()) return;
+  const f = await FileLayer.readJSON([FileLayer.SYS,'quote-imports.json']); if(!f || !Array.isArray(f.imports)) return;
+  Store.intake.quotesImported = Store.intake.quotesImported || [];
+  const done = Store.intake.quotesImported, todo = f.imports.filter(i=>i.importId && !done.includes(i.importId));
+  if(!todo.length) return;
+  let dir; try{ dir = await FileLayer.dir([FileLayer.SYS, QUOTE_IMPORTS], false); }catch(_){ return; }
+  let n = 0; const miss = [];
+  for(const imp of todo){
+    const j = (imp.jobId && Store.get(imp.jobId)) || (imp.sv ? Store.jobs.find(x=>normKey(x.sv)===normKey(imp.sv)) : null);
+    if(!j){ miss.push(imp.file); continue; }                       // job not in the app (yet): try again next time
+    let file; try{ file = await (await dir.getFileHandle(imp.file)).getFile(); }catch(_){ miss.push(imp.file); continue; }
+    const name = imp.name || imp.file;
+    if(!QuotePdfs.has(j, name, file.size)){
+      try{ await QuotePdfs.upload(j, file, {name, supplier:imp.supplier, docNo:imp.docNo, docType:imp.docType, total:imp.total, from:'import'}); n++; }
+      catch(err){ toast(`Could not add ${name}: ${QuotePdfs.why(err)}`); break; }
+    }
+    done.push(imp.importId);
+    Store.save();
+  }
+  if(n){ render(); if(openId) renderDrawer(); toast(`Added ${n} quote PDF${n>1?'s':''} to Material Quotes`); }
+  if(miss.length) console.warn('quote imports waiting:', miss);
 }
 
 /* Clear _Intake: moves every PDF in _Intake (and its .email.txt note) into
