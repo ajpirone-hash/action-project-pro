@@ -287,13 +287,15 @@ header .btn:not(#btnAccount),header input{order:3}
 .lg-in input{width:100%;font-size:16px;border:1.5px solid #d5dae1;border-radius:10px;padding:12px 44px 12px 14px;background:#fff;transition:border-color .15s, box-shadow .15s}
 .lg-in input:focus{outline:none;border-color:#2c6aa3;box-shadow:0 0 0 4px rgba(44,106,163,.15)}
 .lg-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:none;background:none;cursor:pointer;color:var(--muted);font-size:13px;font-weight:600;padding:8px}
-#lGo{width:100%;margin-top:6px;border:none;border-radius:10px;padding:14px;font-size:16px;font-weight:800;letter-spacing:.3px;cursor:pointer;
+#lGo,.lgGold{width:100%;margin-top:6px;border:none;border-radius:10px;padding:14px;font-size:16px;font-weight:800;letter-spacing:.3px;cursor:pointer;
   background:#e8a317;color:#0d1b2e;box-shadow:0 6px 18px rgba(232,163,23,.35);transition:transform .08s, background .15s}
-#lGo:hover{background:#f2b53a}#lGo:active{transform:translateY(1px)}
+#lGo:hover,.lgGold:hover{background:#f2b53a}#lGo:active,.lgGold:active{transform:translateY(1px)}
 .lg-link{display:block;text-align:center;margin-top:16px;color:#2c6aa3;font-weight:600;text-decoration:none}
 .lg-link:hover{text-decoration:underline}
 #lMsg{min-height:20px;margin:0 0 16px;font-size:14px;border-radius:9px}
 #lMsg:empty{display:none}
+.invite-prev{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin:10px 0 14px;max-height:52vh;overflow-y:auto}
+.invite-prev td{border:0;padding:0}
 #lMsg.err{background:#fdecea;color:#a12a1e;padding:10px 12px}
 #lMsg.ok{background:#e8f6ee;color:#17693b;padding:10px 12px}
 #lMsg.busy{color:var(--muted);display:flex;align-items:center;gap:10px;justify-content:center;padding:20px 0}
@@ -322,7 +324,7 @@ header .btn:not(#btnAccount),header input{order:3}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.12 (fits every screen)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.13 (branded invites)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -373,13 +375,19 @@ header .btn:not(#btnAccount),header input{order:3}
     <div class="lg-foot">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
   </section>
   <section class="lg-side"><div class="lg-card">
-    <h2>Welcome back</h2><p class="sub">Sign in to see your jobs.</p>
+    <h2 id="lTitle">Welcome back</h2><p class="sub" id="lSub">Sign in to see your jobs.</p>
     <div id="lMsg"></div>
     <div id="lForm">
       <div class="lg-field"><label for="lEmail">Email</label><div class="lg-in"><input id="lEmail" type="email" placeholder="you@actioncontractors.com" autocomplete="username" autocapitalize="off" spellcheck="false"></div></div>
       <div class="lg-field"><label for="lPass">Password</label><div class="lg-in"><input id="lPass" type="password" placeholder="Your password" autocomplete="current-password"><button type="button" class="lg-eye" id="lEye">Show</button></div></div>
       <button id="lGo">Sign in</button>
       <a href="#" class="lg-link" id="lReset">Forgot your password, or first time here?</a>
+    </div>
+    <div id="lSetForm" style="display:none">
+      <div class="lg-field" id="lSetWho" style="display:none"><label>Email</label><div class="lg-in"><input id="lSetEmail" disabled></div></div>
+      <div class="lg-field"><label for="lNew1">New password</label><div class="lg-in"><input id="lNew1" type="password" placeholder="At least 8 characters" autocomplete="new-password"></div></div>
+      <div class="lg-field"><label for="lNew2">Type it again</label><div class="lg-in"><input id="lNew2" type="password" placeholder="Same password" autocomplete="new-password"></div></div>
+      <button id="lSetGo" class="lgGold">Save password and sign in</button>
     </div>
     <div class="lg-secure"><span>🔒</span><span>Private to Action E&amp;M. Only people the owner has invited can sign in.</span></div>
   </div></section>
@@ -1607,18 +1615,65 @@ const Cloud = {
     const emu = CLOUD_CONFIG.emulator;
     if(emu){ this.auth.useEmulator(emu.auth); this.db.useEmulator(emu.host, emu.port); }
     else { try{ await this.db.enablePersistence({synchronizeTabs:true}); }catch(_){} }
+    const qp = new URLSearchParams(location.search);
+    if(qp.get('mode')==='resetPassword' && qp.get('oobCode')) return this.resetLanding(qp.get('oobCode'), /welcome/.test(qp.get('continueUrl')||''));
     let first = true;
     this.auth.onAuthStateChanged(u=>{
       if(u) this.signedIn(u).catch(e=>this.login('Something went wrong loading the data: '+(e.message||e)));
       else if(!first) location.reload();
-      else { const na = sessionStorage.getItem('apNoAccess'); sessionStorage.removeItem('apNoAccess'); this.login(na ? `${na} isn't on the list of people who can open this yet. Ask the owner to add you in Rates & settings.` : ''); }
+      else { const na = sessionStorage.getItem('apNoAccess'), am = sessionStorage.getItem('apMsg'); sessionStorage.removeItem('apNoAccess'); sessionStorage.removeItem('apMsg'); if(am) return this.login(am); this.login(na ? `${na} isn't on the list of people who can open this yet. Ask the owner to add you in Rates & settings.` : ''); }
       first = false;
     });
   },
 
+  /* ---------- set-a-password screens ---------- */
+  setScreen(title, sub, email){
+    $('#login').classList.add('open'); $('#lForm').style.display='none'; $('#lSetForm').style.display='';
+    $('#lTitle').textContent = title; $('#lSub').textContent = sub;
+    $('#lSetWho').style.display = email ? '' : 'none'; $('#lSetEmail').value = email||'';
+    $('#lMsg').textContent=''; $('#lMsg').className=''; setTimeout(()=>$('#lNew1').focus(), 50);
+    return new Promise(res=>{
+      const go = async ()=>{
+        const a = $('#lNew1').value, b = $('#lNew2').value;
+        if(a.length < 8){ $('#lMsg').textContent='Use at least 8 characters.'; $('#lMsg').className='err'; return; }
+        if(a !== b){ $('#lMsg').textContent="The two passwords don't match."; $('#lMsg').className='err'; return; }
+        $('#lSetForm').style.display='none'; $('#lMsg').textContent='Saving…'; $('#lMsg').className='busy';
+        res(a);
+      };
+      $('#lSetGo').onclick = go; $('#lNew2').onkeydown = e=>{ if(e.key==='Enter') go(); };
+    });
+  },
+  setFailed(msg){ $('#lSetForm').style.display=''; $('#lMsg').textContent=msg; $('#lMsg').className='err'; },
+  /* Arrived from the "set your password" email link. */
+  async resetLanding(code, welcome){
+    let email;
+    try{ email = await this.auth.verifyPasswordResetCode(code); }
+    catch(e){ sessionStorage.setItem('apMsg', 'This link has expired or was already used. Type your email below and tap "Forgot your password" for a new one.'); return location.replace(location.pathname); }
+    await this.auth.signOut().catch(()=>{});
+    for(;;){
+      const pw = await this.setScreen(welcome ? "You're invited" : 'Set a new password', welcome ? 'Choose a password for Action Project PRO.' : 'Choose a new password for your account.', email);
+      try{ await this.auth.confirmPasswordReset(code, pw); history.replaceState(null,'',location.pathname); break; }
+      catch(e){ if(/weak-password/.test(e.code)){ this.setFailed('That password is too easy to guess. Try a longer one.'); continue; }
+        sessionStorage.setItem('apMsg', 'That link has expired. Tap "Forgot your password" for a new one.'); return location.replace(location.pathname); }
+    }
+    this.login('Password saved. Signing you in…', true);
+    this.auth.onAuthStateChanged(u=>{ if(u) this.signedIn(u).catch(e=>this.login('Something went wrong loading the data: '+(e.message||e))); });
+    const pw = $('#lNew1').value;
+    try{ await this.auth.signInWithEmailAndPassword(email, pw); }catch(e){ this.login('Password saved. Sign in with it below.'); $('#lEmail').value = email; }
+  },
+  /* First sign-in with the temporary password from an invite. */
+  async choosePassword(u, ref){
+    for(;;){
+      const pw = await this.setScreen('Welcome to Action Project PRO', "You signed in with a temporary password. Choose your own to finish.", u.email);
+      try{ await u.updatePassword(pw); await ref.update({mustChange:false, pwSetAt:new Date().toISOString()}); return; }
+      catch(e){ this.setFailed(/weak-password/.test(e.code) ? 'That password is too easy to guess. Try a longer one.' : 'Could not save it: '+(e.message||e)); }
+    }
+  },
+
   /* ---------- sign-in screen ---------- */
   login(msg='', busy=false, kind='err'){
-    $('#login').classList.add('open');
+    $('#login').classList.add('open'); $('#lSetForm').style.display='none';
+    if(!busy){ $('#lTitle').textContent='Welcome back'; $('#lSub').textContent='Sign in to see your jobs.'; }
     $('#lMsg').textContent = msg; $('#lMsg').className = msg ? (busy ? 'busy' : kind) : '';
     $('#lForm').style.display = busy ? 'none' : '';
   },
@@ -1643,6 +1698,7 @@ const Cloud = {
       let m = null; try{ m = await this.db.collection('members').doc(this.email).get(); }catch(_){}
       if(!m || !m.exists){ sessionStorage.setItem('apNoAccess', this.email); await this.auth.signOut().catch(()=>{}); return; }
       this.role = m.data().role === 'editor' ? 'editor' : 'viewer';
+      if(m.data().mustChange) await this.choosePassword(u, m.ref);
     }
     this.login('Loading jobs…', true);
     this.ws = this.db.collection('ws').doc(CLOUD_CONFIG.workspace || 'main');
@@ -1770,7 +1826,7 @@ const Cloud = {
       const snap = await this.db.collection('members').get();
       $('#pplRows').innerHTML = snap.docs.length ? snap.docs.map(m=>`<tr><td>${esc(m.id)}</td>
         <td><select class="inl" data-prole="${esc(m.id)}"><option value="viewer" ${m.data().role!=='editor'?'selected':''}>View only</option><option value="editor" ${m.data().role==='editor'?'selected':''}>Can edit</option></select></td>
-        <td><button class="btn sm" data-plink="${esc(m.id)}">Resend link</button> <button class="btn sm danger" data-pdel="${esc(m.id)}">Remove</button></td></tr>`).join('')
+        <td><button class="btn sm" data-plink="${esc(m.id)}">Email reset link</button> <button class="btn sm danger" data-pdel="${esc(m.id)}">Remove</button></td></tr>`).join('')
         : `<tr><td class="note">Nobody else yet.</td></tr>`;
       $('#pplRows').querySelectorAll('[data-prole]').forEach(s=>s.onchange=async ()=>{ await this.db.collection('members').doc(s.dataset.prole).set({role:s.value}, {merge:true}); toast('Access updated'); });
       $('#pplRows').querySelectorAll('[data-plink]').forEach(b=>b.onclick=()=>this.sendLink(b.dataset.plink));
@@ -1783,19 +1839,88 @@ const Cloud = {
       const em = $('#pEmail').value.trim().toLowerCase();
       if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) return toast('Enter their email address');
       try{
-        await this.db.collection('members').doc(em).set({role:$('#pRole').value, addedBy:this.email, addedAt:new Date().toISOString()});
-        await this.makeAccount(em); await this.sendLink(em); $('#pEmail').value=''; load();
+        const role = $('#pRole').value, temp = this.tempPassword();
+        const isNew = await this.makeAccount(em, temp);
+        await this.db.collection('members').doc(em).set({role, addedBy:this.email, addedAt:new Date().toISOString(), mustChange:isNew});
+        $('#pEmail').value=''; load();
+        if(isNew) this.inviteCard(em, role, temp);
+        else { await this.sendLink(em); toast(`${em} already had a login, so they were emailed a link to set a new password`); }
       }catch(e){ toast('Could not add them: '+(e.message||e)); }
     };
     load().catch(e=>{ $('#pplRows').innerHTML = `<tr><td class="note">Could not load: ${esc(e.message)}</td></tr>`; });
   },
   /* Makes their login without signing you out (uses a second, throwaway connection). */
-  async makeAccount(em){
+  async makeAccount(em, pw){
     const app2 = firebase.apps.find(a=>a.name==='invite') || firebase.initializeApp(CLOUD_CONFIG.firebase, 'invite');
     const a2 = app2.auth(); if(CLOUD_CONFIG.emulator) try{ a2.useEmulator(CLOUD_CONFIG.emulator.auth); }catch(_){}
-    const pw = crypto.getRandomValues(new Uint32Array(4)).join('-') + 'Aa!';
-    try{ await a2.createUserWithEmailAndPassword(em, pw); await a2.signOut(); }
-    catch(e){ if(e.code!=='auth/email-already-in-use') throw e; }
+    try{ await a2.createUserWithEmailAndPassword(em, pw); await a2.signOut(); return true; }
+    catch(e){ if(e.code!=='auth/email-already-in-use') throw e; return false; }
+  },
+  tempPassword(){
+    const W = ['Pipe','Valve','Flange','Copper','Trench','Riser','Elbow','Union','Header','Anchor','Hanger','Gauge'];
+    const r = crypto.getRandomValues(new Uint32Array(3));
+    return `${W[r[0]%W.length]}-${1000 + r[1]%9000}-${W[r[2]%W.length]}`;
+  },
+  appUrl(){ return location.origin + location.pathname; },
+  inviteFrom(){ try{ return localStorage.getItem('apInviteFrom') || 'Action E&M'; }catch(_){ return 'Action E&M'; } },
+  /* The invite email, styled like the app. Inline styles and tables so it looks right in Outlook and Gmail. */
+  inviteHTML(em, role, temp){
+    const url = this.appUrl(), logo = new URL('icons/email-logo.png', url).href, from = this.inviteFrom();
+    const access = role==='editor' ? 'view and edit' : 'view';
+    return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f7;padding:24px 0;font-family:Segoe UI,Helvetica,Arial,sans-serif"><tr><td align="center">
+<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e5ea">
+<tr><td style="background:#0d1b2e;background-image:linear-gradient(120deg,#0d1b2e,#1b3a66);padding:22px 28px;border-bottom:4px solid #e8a317">
+ <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+  <td style="padding-right:14px"><img src="${logo}" width="64" height="40" alt="AE" style="display:block;border:0"></td>
+  <td style="border-left:2px solid #e8a317;padding-left:14px">
+   <div style="font-family:'Arial Black',Arial,sans-serif;font-style:italic;font-weight:900;font-size:22px;color:#ffffff;letter-spacing:.5px">ACTION PROJECT <span style="background:#e8a317;color:#0d1b2e;font-style:normal;font-size:12px;letter-spacing:2px;padding:3px 7px;border-radius:3px">PRO</span></div>
+   <div style="font-size:10px;letter-spacing:2px;color:#c9d6e8;font-weight:700;margin-top:4px">ACTION ELECTRICAL &amp; MECHANICAL CONTRACTORS</div>
+  </td></tr></table>
+</td></tr>
+<tr><td style="padding:30px 28px 8px;color:#1d232b">
+ <div style="font-size:24px;font-weight:800;margin:0 0 8px">You've been invited to Action Project PRO</div>
+ <div style="font-size:15px;line-height:1.55;color:#3b4552">${esc(from)} added you so you can ${access} our bids and jobs. Everything updates live, on your computer or your phone.</div>
+</td></tr>
+<tr><td style="padding:18px 28px 6px">
+ <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f7;border-radius:10px;border:1px solid #e2e5ea">
+  <tr><td style="padding:14px 18px;font-size:13px;color:#68717d;text-transform:uppercase;letter-spacing:.5px;font-weight:700">Your sign-in</td></tr>
+  <tr><td style="padding:0 18px 6px;font-size:15px;color:#1d232b">Email: <b>${esc(em)}</b></td></tr>
+  <tr><td style="padding:0 18px 16px;font-size:15px;color:#1d232b">Temporary password: <b style="font-family:Consolas,Menlo,monospace;font-size:16px;background:#fff;border:1px solid #e2e5ea;border-radius:6px;padding:2px 8px">${esc(temp)}</b></td></tr>
+ </table>
+</td></tr>
+<tr><td align="center" style="padding:22px 28px 8px">
+ <a href="${url}" style="display:inline-block;background:#e8a317;color:#0d1b2e;font-weight:800;font-size:16px;text-decoration:none;padding:14px 34px;border-radius:10px">Open Action Project PRO</a>
+</td></tr>
+<tr><td style="padding:14px 28px 26px;font-size:14px;line-height:1.6;color:#3b4552">
+ <b>Getting started</b><br>1. Open the link and sign in with the email and temporary password above.<br>2. Choose your own password when asked.<br>3. On iPhone: open the link in Safari, tap Share, then <b>Add to Home Screen</b>.
+</td></tr>
+<tr><td style="background:#f4f5f7;padding:16px 28px;font-size:12px;color:#8a929c;border-top:1px solid #e2e5ea">Action Electrical &amp; Mechanical Contractors · 2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551</td></tr>
+</table></td></tr></table>`;
+  },
+  inviteText(em, role, temp){
+    return `You've been invited to Action Project PRO\n\n${this.inviteFrom()} added you so you can ${role==='editor'?'view and edit':'view'} our bids and jobs. Everything updates live, on your computer or your phone.\n\nOpen: ${this.appUrl()}\nEmail: ${em}\nTemporary password: ${temp}\n\n1. Open the link and sign in with the email and temporary password above.\n2. Choose your own password when asked.\n3. On iPhone: open the link in Safari, tap Share, then Add to Home Screen.\n\nAction Electrical & Mechanical Contractors`;
+  },
+  inviteCard(em, role, temp){
+    const subj = "You've been invited to Action Project PRO";
+    $('#pickBox').innerHTML = `<h3>Invite ready for ${esc(em)}</h3>
+      <div class="note">Send it from <b>your own email</b>, so it arrives from someone they know instead of landing in junk. The temporary password is only shown here; they'll choose their own the first time they sign in.</div>
+      <div class="form" style="margin-top:10px"><div class="f wide"><label>Your name, as it shows in the invite</label><input id="invFrom" placeholder="e.g. Austin Pirone" value="${esc(localStorage.getItem('apInviteFrom')||'')}"></div></div>
+      <div class="invite-prev" id="invPrev">${this.inviteHTML(em, role, temp)}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+        <button class="btn" id="invMail">Open in Outlook</button>
+        <button class="btn primary" id="invCopy">Copy email</button>
+        <button class="btn" id="invDone">Done</button></div>
+      <div class="note" style="margin-top:8px"><b>Best look:</b> click <b>Copy email</b>, start a new email in Outlook to ${esc(em)}, use the subject "${subj}", and paste. "Open in Outlook" starts a plain-text version.</div>`;
+    $('#pickBox').parentElement.style.width = 'min(680px,96%)';
+    $('#pick').classList.add('open');
+    $('#invDone').onclick = ()=>$('#pick').classList.remove('open');
+    $('#invFrom').oninput = e=>{ try{ localStorage.setItem('apInviteFrom', e.target.value.trim()); }catch(_){} $('#invPrev').innerHTML = this.inviteHTML(em, role, temp); };
+    $('#invMail').onclick = ()=>{ location.href = `mailto:${encodeURIComponent(em)}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(this.inviteText(em, role, temp))}`; };
+    $('#invCopy').onclick = async ()=>{
+      const html = this.inviteHTML(em, role, temp), text = this.inviteText(em, role, temp);
+      try{ await navigator.clipboard.write([new ClipboardItem({'text/html': new Blob([html],{type:'text/html'}), 'text/plain': new Blob([text],{type:'text/plain'})})]); toast('Copied. Paste it into a new Outlook email.'); }
+      catch(_){ const r = document.createRange(); r.selectNodeContents($('#invPrev')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); document.execCommand('copy'); s.removeAllRanges(); toast('Copied. Paste it into a new Outlook email.'); }
+    };
   },
   async sendLink(em){
     try{ await this.auth.sendPasswordResetEmail(em); toast(`Emailed ${em} a link to set their password`); }
