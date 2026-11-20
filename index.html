@@ -1450,7 +1450,7 @@ $('#intake').onclick = e=>{ if(e.target.id==='intake') $('#intake').classList.re
    ws/<workspace>/meta/{settings,intake}, members/<email> {role}.
    Each doc holds {json, by, at}. Saves only write what changed.
    ========================================================================== */
-const CLOUD_CONFIG = {"firebase": {"apiKey": "AIzaSyCGvTCBJVSUc-V6655Ukbqjomnv6d_a9t0", "authDomain": "action-project-pro-d38d9.firebaseapp.com", "projectId": "action-project-pro-d38d9", "storageBucket": "action-project-pro-d38d9.firebasestorage.app", "messagingSenderId": "328180623566", "appId": "1:328180623566:web:7a9595d6477f33fbf4489f"}, "owner": "austinpironeaec1@gmail.com", "workspace": "main"};
+const CLOUD_CONFIG = {"firebase": {"apiKey": "AIzaSyCGvTCBJVSUc-V6655Ukbqjomnv6d_a9t0", "authDomain": "action-project-pro-d38d9.firebaseapp.com", "projectId": "action-project-pro-d38d9", "storageBucket": "action-project-pro-d38d9.firebasestorage.app", "messagingSenderId": "328180623566", "appId": "1:328180623566:web:7a9595d6477f33fbf4489f"}, "owner": "austinpironeaec1@gmail.com", "workspace": "main", "sdkBase": "sdk/"};
 
 const Cloud = {
   on: !!CLOUD_CONFIG, ready:false, role:null, email:'', db:null, auth:null, ws:null,
