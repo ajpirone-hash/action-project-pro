@@ -193,7 +193,8 @@ select.inl{border:1px solid var(--line);border-radius:5px;padding:2px 4px;backgr
 .yn{display:flex;gap:18px;margin-top:8px}
 .rccheck{margin-top:12px;border-radius:10px;padding:10px 14px;font-size:13.5px}
 .rccheck.ok{background:#e8f6ee;color:#17693b}.rccheck.bad{background:#fff6e5;color:#7a4a00}.rccheck ul{margin:6px 0 0;padding-left:18px}
-.viewonly #recapBtn{display:none!important}
+.viewonly #recapBtn,.viewonly #rateEdit{display:none!important}
+.sum .r.rates select{font-size:12.5px;padding:2px 4px;margin-left:4px}
 #rcGo:disabled{opacity:.45;cursor:not-allowed}
 .svreq{margin-top:12px;border:1px dashed #c9d3df;border-radius:10px;padding:10px 14px;background:#fbfcfd}
 .svreq summary{cursor:pointer;font-weight:700;color:var(--brand-2);list-style:none}
@@ -333,7 +334,7 @@ header .btn:not(#btnAccount),header input{order:3}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.18 (recap fills from the job)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.19 (labor rates per local)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -487,16 +488,21 @@ const Store = {
 /* ==========================================================================
    CALCULATIONS (mirror the formulas in PLUMBING CONSTRUCTION.xlsm)
    ========================================================================== */
-function rateFor(cls){
-  const s = Store.settings, r = s.laborRates.find(x=>x.cls===cls);
+/* Labor rates for a job: its own local's rates when set (a change order uses its original bid's), else Rates & settings. */
+function jobRates(job){
+  const s = Store.settings, own = job && (job.rates || (job.parentId && (Store.get(job.parentId)||{}).rates));
+  return own ? {name:own.name, list:own.list, ins:own.ins, custom:true} : {name:'Standard rates', list:s.laborRates, ins:s.insuranceTaxes, custom:false};
+}
+function rateFor(cls, job){
+  const s = Store.settings, list = jobRates(job).list, r = list.find(x=>x.cls===cls);
   if(!r) return {st:0,ot:0,hw:0};
   let st = r.st;
-  if(st==null){ const j = s.laborRates.find(x=>x.cls==='Journeyman'); st = (r.pctJ||0)*(j?j.st:0); }
+  if(st==null){ const j = list.find(x=>x.cls==='Journeyman'); st = (r.pctJ||0)*(j?j.st:0); }
   return {st, ot: st*s.otMultiplier, hw: r.hw||0};
 }
-function laborLine(l){
-  const r = rateFor(l.cls), wage = l.timeType==='Overtime' ? r.ot : r.st, h = +l.hours||0;
-  return {wage, hw:r.hw, cost: h*wage*(1+Store.settings.insuranceTaxes) + h*r.hw};
+function laborLine(l, job){
+  const r = rateFor(l.cls, job), wage = l.timeType==='Overtime' ? r.ot : r.st, h = +l.hours||0;
+  return {wage, hw:r.hw, cost: h*wage*(1+jobRates(job).ins) + h*r.hw};
 }
 function travelLine(t){
   const s = Store.settings, hotel=(+t.nights||0)*s.hotelRate, pd=(+t.days||0)*s.perDiem;
@@ -538,7 +544,7 @@ function bidBuild(j){
   const matCost = matSub + tax, matOP = matCost*(+m.matOP||0)/100, matPrice = matCost + matOP;
 
   const hours = j.estLabor.reduce((a,l)=>a+(+l.hours||0),0);
-  const labBase = j.estLabor.reduce((a,l)=>a+laborLine(l).cost,0);
+  const labBase = j.estLabor.reduce((a,l)=>a+laborLine(l,j).cost,0);
   const cleanup = labBase*(+m.cleanup||0)/100, labCost = labBase + cleanup;
 
   const fmHours = j.estLabor.filter(l=>FOREMAN.has(l.cls)).reduce((a,l)=>a+(+l.hours||0),0);
@@ -574,7 +580,7 @@ function totals(j){
              + childrenOf(j.id).filter(c=>coStatus(c.bidStatus)!=='Rejected').reduce((a,c)=>a+(+c.bidTotal||0),0);
   const mat  = j.materials.reduce((a,m)=>a+(+m.cost||0),0);
   const lh   = j.labor.reduce((a,l)=>a+(+l.hours||0),0);
-  const lab  = j.labor.reduce((a,l)=>a+laborLine(l).cost,0);
+  const lab  = j.labor.reduce((a,l)=>a+laborLine(l,j).cost,0);
   const trav = j.travel.reduce((a,t)=>a+travelLine(t).total,0);
   const revised = (+j.bidTotal||0) + co;
   // federal jobs: the bond premium is a real cost against the contract
@@ -762,7 +768,7 @@ const LOGS = {
     total:j=>(j.materialItems||[]).reduce((a,r)=>a+(+r.ext || (+r.qty||0)*(+r.price||0)),0), totalLabel:'Material on job (value)'},
   lab:{label:'Labor Hours', key:'labor',
     cols:[['Date','date','date'],['Classification','cls','select','CLS'],['Employee','employee'],['Time type','timeType','select',['Straight Time','Overtime']],['Hours','hours','number'],['Notes','notes']],
-    extraHead:['Wage','H&W','Labor cost'], extra:r=>{const c=laborLine(r); return [money(c.wage,2),money(c.hw,2),money(c.cost,2)];},
+    extraHead:['Wage','H&W','Labor cost'], extra:(r,j)=>{const c=laborLine(r,j); return [money(c.wage,2),money(c.hw,2),money(c.cost,2)];},
     total:j=>totals(j).lab, totalLabel:'Labor cost'},
   trav:{label:'Hotel & Per Diem', key:'travel',
     cols:[['Date','date','date'],['Employee','employee'],['Hotel nights','nights','number'],['Per diem days','days','number'],['Notes','notes']],
@@ -781,7 +787,7 @@ const LOGS = {
     total:j=>bidBuild(j).rentals, totalLabel:'Rentals used in bid'},
   bl:{label:'Labor Estimate', key:'estLabor',
     cols:[['Classification','cls','select','CLS'],['Time type','timeType','select',['Straight Time','Overtime']],['Hours','hours','number'],['Notes','notes']],
-    extraHead:['Wage','Cost'], extra:r=>{const c=laborLine(r); return [money(c.wage,2),money(c.cost,2)];},
+    extraHead:['Wage','Cost'], extra:(r,j)=>{const c=laborLine(r,j); return [money(c.wage,2),money(c.cost,2)];},
     total:j=>bidBuild(j).lab, totalLabel:'Estimated labor'},
   bo:{label:'Job Expenses', key:'estOther',
     cols:[['Expense','desc','select','EXPENSES'],['Details','notes'],['Days / hrs','qty','number'],['Amount','amount','money']],
@@ -806,7 +812,7 @@ function logTable(j, tabKey){
   };
   const linked = tabKey==='co' ? childrenOf(j.id) : [];
   const linkedRows = linked.map(c=>`<tr class="linked"><td>${esc(c.sv)||'—'}</td><td>${fdate(c.sentDate||c.startDate)}</td><td>${esc(c.name)} <span class="pill co">linked job</span></td><td>${coStatus(c.bidStatus)}</td><td class="num">${money(c.bidTotal,2)}</td><td class="note">From its own bid</td><td><button class="btn sm" data-openjob="${esc(c.id)}">Open</button></td></tr>`).join('');
-  const body = (rows.length||linked.length) ? linkedRows + rows.map((r,ri)=>`<tr>${L.cols.map(c=>cell(r,ri,c)).join('')}${L.extra?L.extra(r).map(v=>`<td class="num">${v}</td>`).join(''):''}<td><button class="btn ghost sm" data-del="${ri}" title="Remove">✕</button></td></tr>`).join('')
+  const body = (rows.length||linked.length) ? linkedRows + rows.map((r,ri)=>`<tr>${L.cols.map(c=>cell(r,ri,c)).join('')}${L.extra?L.extra(r,j).map(v=>`<td class="num">${v}</td>`).join(''):''}<td><button class="btn ghost sm" data-del="${ri}" title="Remove">✕</button></td></tr>`).join('')
     : `<tr><td colspan="${heads.length+1}" class="note">Nothing entered yet.</td></tr>`;
   const add = L.cols.map(([label,k,t,o])=>`<div class="f"><label>${label}</label>${t==='select'
       ? `<select data-add="${k}">${opts(colOpts(o),'')}</select>`
@@ -916,6 +922,47 @@ function revHistory(j){
   });
 }
 const pin = (k,j) => `<input class="pct" data-mk="${k}" type="number" step="any" value="${j.markup[k]}">`;
+function rateOptions(j){
+  const sets = Store.settings.rateSets||[], cur = jobRates(j), own = j.rates || (parentOf(j)||{}).rates;
+  return `<option value="std" ${!cur.custom?'selected':''}>Standard rates</option>`
+    + (own ? `<option value="own" selected>${esc(own.name||'This job')}</option>` : '')
+    + sets.map((x,i)=>`<option value="${i}">${esc(x.name)}</option>`).join('');
+}
+/* Edit the rates this job is priced at (a different state or local), optionally saving them for other jobs. */
+function editJobRates(j){
+  const s = Store.settings, cur = jobRates(j);
+  const rs = {name: cur.custom ? cur.name : '', ins: cur.ins, list: structuredClone(cur.list)};
+  const draw = ()=>{
+    $('#pickBox').innerHTML = `<h3>Labor rates for this job</h3>
+      <div class="note">For jobs in another state or local. These rates price this job's labor estimate, its labor hours and its recap. Other jobs keep their own.</div>
+      <div class="form" style="margin-top:10px">
+        <div class="f"><label>Local / area name</label><input id="jrName" value="${esc(rs.name)}" placeholder="e.g. Local 538 Chattanooga"></div>
+        <div class="f"><label>Insurance &amp; taxes (%)</label><input id="jrIns" type="number" step="any" value="${(rs.ins*100).toFixed(2).replace(/\.?0+$/,'')}"></div></div>
+      <div style="overflow:auto;margin-top:10px"><table><thead><tr><th>Classification</th><th class="num">ST rate</th><th class="num">OT rate</th><th class="num">H&amp;W</th></tr></thead><tbody>
+      ${rs.list.map((r,i)=>{ const jm = rs.list.find(x=>x.cls==='Journeyman'), st = r.st==null ? (r.pctJ||0)*(jm?jm.st:0) : r.st;
+        return `<tr><td>${esc(r.cls)}${r.pctJ?` <span class="note">(${Math.round(r.pctJ*1000)/10}% of JM)</span>`:''}</td>
+        <td class="num">${r.st==null?money(st,2):`<input data-jr="${i}" data-jk="st" type="number" step="any" value="${r.st}" style="width:84px;text-align:right">`}</td>
+        <td class="num">${money(st*s.otMultiplier,2)}</td>
+        <td class="num"><input data-jr="${i}" data-jk="hw" type="number" step="any" value="${r.hw}" style="width:74px;text-align:right"></td></tr>`; }).join('')}
+      </tbody></table></div>
+      <label style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:13.5px"><input type="checkbox" id="jrKeep" checked> Also save these rates so other jobs can pick them</label>
+      <div style="display:flex;gap:8px;justify-content:space-between;margin-top:14px;flex-wrap:wrap">
+        <button class="btn ghost" id="jrStd">Use standard rates</button>
+        <span style="display:flex;gap:8px"><button class="btn" id="jrCancel">Cancel</button><button class="btn primary" id="jrSave">Save rates</button></span></div>`;
+    $('#pickBox').querySelectorAll('[data-jr]').forEach(el=>el.onchange=()=>{ rs.list[+el.dataset.jr][el.dataset.jk] = +el.value; rs.name = $('#jrName').value; rs.ins = (+$('#jrIns').value||0)/100; draw(); });
+    $('#jrCancel').onclick = ()=>$('#pick').classList.remove('open');
+    $('#jrStd').onclick = ()=>{ j.rates = null; $('#pick').classList.remove('open'); changed(); toast('Using standard rates'); };
+    $('#jrSave').onclick = ()=>{
+      rs.name = $('#jrName').value.trim(); rs.ins = (+$('#jrIns').value||0)/100;
+      if(!rs.name) return toast('Name the local or area');
+      j.rates = structuredClone(rs);
+      if($('#jrKeep').checked){ s.rateSets = s.rateSets||[]; const i = s.rateSets.findIndex(x=>x.name===rs.name);
+        if(i>=0) s.rateSets[i] = structuredClone(rs); else s.rateSets.push(structuredClone(rs)); }
+      $('#pick').classList.remove('open'); changed(); toast(`${rs.name} rates saved to this job`);
+    };
+  };
+  draw(); $('#pick').classList.add('open');
+}
 function bidBuilderCard(j){
   const b = bidBuild(j), s = Store.settings;
   const diff = (+j.bidTotal||0) - b.suggested;
@@ -935,6 +982,7 @@ function bidBuilderCard(j){
         <div class="r"><span>O&amp;P ${pin('matOP',j)}%</span><b>${money(b.matOP)}</b></div>
         <div class="r t"><span>Material price</span><b>${money(b.matPrice)}</b></div>
         <div class="sh">II–III. Labor &amp; job expenses</div>
+        <div class="r rates"><span>Rates <select id="rateSel" style="max-width:170px">${rateOptions(j)}</select></span><button class="btn sm" id="rateEdit">Edit rates</button></div>
         <div class="r"><span>Labor (${b.hours.toLocaleString()} MH, H&amp;W, ins.)</span><b>${money(b.labCost-b.cleanup)}</b></div>
         <div class="r"><span>Clean-up ${pin('cleanup',j)}%</span><b>${money(b.cleanup)}</b></div>
         <div class="r"><span>Tool &amp; truck ${pin('toolTruckPerDay',j)} $/day</span><b>${money(b.toolTruck)}</b></div>
@@ -1052,6 +1100,10 @@ function renderDrawer(){
   $('#revSave').onclick = ()=>saveRevision(j);
   if($('#revOpen')) $('#revOpen').onclick = ()=>revHistory(j);
   if($('#recapBtn')) $('#recapBtn').onclick = ()=>openRecap(j);
+  if($('#rateSel')) $('#rateSel').onchange = e=>{ const v = e.target.value;
+    if(v==='std') j.rates = null; else if(v==='own') return; else j.rates = structuredClone((Store.settings.rateSets||[])[+v]);
+    changed(); toast(`Using ${jobRates(j).name} for this job`); };
+  if($('#rateEdit')) $('#rateEdit').onclick = ()=>editJobRates(j);
   $('#useBid').onclick = ()=>{ j.bidTotal = Math.round(bidBuild(j).suggested*100)/100; changed(); toast('Bid total updated'); };
 
   $('#drawer').querySelectorAll('[data-k]').forEach(el=>el.onchange=()=>{
@@ -1168,11 +1220,15 @@ $('#btnSettings').onclick = ()=>{
     <div class="note">Same formula as the CALCULATION sheet in your 2026 RECAP: 2.5% on the first $100,000, 1.5% from $100,000 to $500,000, 1.0% above $500,000. Only added on federal jobs over $150,000, and figured from each bid's own total.</div>
     <h4 style="margin:16px 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase">Labor rates</h4>
     <table><thead><tr><th>Classification</th><th class="num">ST rate</th><th class="num">OT rate</th><th class="num">H&amp;W</th></tr></thead><tbody>
-    ${s.laborRates.map((r,i)=>{const x=rateFor(r.cls); return `<tr><td>${esc(r.cls)}${r.pctJ?` <span class="note">(${r.pctJ*100}% of Journeyman)</span>`:''}</td>
+    ${s.laborRates.map((r,i)=>{const x=rateFor(r.cls); return `<tr><td>${esc(r.cls)}${r.pctJ?` <span class="note">(${Math.round(r.pctJ*1000)/10}% of Journeyman)</span>`:''}</td>
       <td class="num">${r.pctJ?money(x.st,2):`<input data-r="${i}" data-rk="st" type="number" step="any" value="${r.st}" style="width:90px;text-align:right">`}</td>
       <td class="num">${money(x.ot,2)}</td>
       <td class="num"><input data-r="${i}" data-rk="hw" type="number" step="any" value="${r.hw}" style="width:80px;text-align:right"></td></tr>`;}).join('')}
     </tbody></table>
+    <div class="note" style="margin-top:8px">These are the standard rates. Jobs in another state or local get their own rates from <b>Edit rates</b> in the bid builder.</div>
+    ${(s.rateSets||[]).length ? `<h4 style="margin:16px 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase">Saved locals</h4>
+      ${(s.rateSets||[]).map((x,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0"><span>${esc(x.name)} <span class="note">JM ${money((x.list.find(r=>r.cls==='Journeyman')||{}).st,2)} · H&amp;W ${money((x.list.find(r=>r.cls==='Journeyman')||{}).hw,2)} · ins. ${+(x.ins*100).toFixed(2)}%</span></span><button class="btn ghost sm" data-rsdel="${i}">Remove</button></div>`).join('')}
+      <div class="note">Removing one here doesn't change jobs already using it.</div>` : ''}
     <h4 style="margin:16px 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase">Recap form</h4>
     <div id="rtBox"><div class="note">Loading…</div></div>
     <div style="display:flex;justify-content:space-between;margin-top:16px">
@@ -1186,6 +1242,7 @@ $('#btnSettings').onclick = ()=>{
   $('#settingsBox').querySelectorAll('[data-r]').forEach(el=>el.onchange=()=>{
     s.laborRates[+el.dataset.r][el.dataset.rk] = +el.value; Store.save(); render(); if(openId) renderDrawer(); $('#btnSettings').onclick();
   });
+  $('#settingsBox').querySelectorAll('[data-rsdel]').forEach(b=>b.onclick=()=>{ s.rateSets.splice(+b.dataset.rsdel,1); Store.save(); render(); if(openId) renderDrawer(); $('#btnSettings').onclick(); });
   $('#sDone').onclick = ()=>$('#settings').classList.remove('open');
   $('#sReset').onclick = async ()=>{ if(await askSure('Reset all data?','Every job and change will be replaced with the original data from the spreadsheet, and Recently deleted will be emptied. This cannot be undone.','Reset')){ Store.settings=structuredClone(DEFAULT_SETTINGS); Store.jobs=structuredClone(SEED).map(normalizeJob); Store.trash=[]; Store.save(); $('#settings').classList.remove('open'); closeJob(); render(); toast('Demo data restored'); } };
 };
@@ -1362,9 +1419,9 @@ function recapPlan(j){
     if(ref) hrs[ref] = (hrs[ref]||0) + (+l.hours||0);
   });
   Object.assign(rc, hrs);
-  const rate = c => (s.laborRates.find(r=>r.cls===c)||{});
+  const JR = jobRates(j), rate = c => (JR.list.find(r=>r.cls===c)||{});
   Object.assign(rc, {E18:+rate('Project Manager / Supervision').st||0, E19:+rate('General Foreman').st||0, E20:+rate('Foreman').st||0, E21:+rate('Journeyman').st||0, E22:+rate('Helper').st||0,
-    E38:+rate('Journeyman').hw||0, E39:+rate('1st Yr Apprentice').hw||0, E40:+rate('Helper').hw||0, D41:+s.insuranceTaxes||0, D43:(+m.cleanup||0)/100});
+    E38:+rate('Journeyman').hw||0, E39:+rate('1st Yr Apprentice').hw||0, E40:+rate('Helper').hw||0, D41:+JR.ins||0, D43:(+m.cleanup||0)/100});
   // the form's own fixed math has to agree with the app's settings
   need(+s.otMultiplier===1.5, `Rates & settings: the recap figures overtime at 1.5×; the app is set to ${s.otMultiplier}×.`);
   ['Project Manager / Supervision','General Foreman','Foreman'].forEach(c=>need(+rate(c).hw===+rate('Journeyman').hw, `Rates & settings: the recap uses one H&W rate for PM, foremen and journeymen; ${c} is different.`));
