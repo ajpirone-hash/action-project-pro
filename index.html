@@ -194,6 +194,11 @@ select.inl{border:1px solid var(--line);border-radius:5px;padding:2px 4px;backgr
 .rccheck{margin-top:12px;border-radius:10px;padding:10px 14px;font-size:13.5px}
 .rccheck.ok{background:#e8f6ee;color:#17693b}.rccheck.bad{background:#fff6e5;color:#7a4a00}.rccheck ul{margin:6px 0 0;padding-left:18px}
 .viewonly #recapBtn,.viewonly #rateEdit{display:none!important}
+.viewonly .mvcol{display:none!important}
+select.mvsel{max-width:210px;border-color:#e8a317;background:#fffaf0;color:#0d1b2e;font-weight:600}
+.mvphone{display:none}
+@media (max-width:640px){ .mvphone{display:block;margin-top:6px} .mvphone select.mvsel{max-width:150px;font-size:16px} #drawer .mvcol{display:none} }
+.viewonly .mvphone{display:none!important}
 .sum .r.rates select{font-size:12.5px;padding:2px 4px;margin-left:4px}
 #rcGo:disabled{opacity:.45;cursor:not-allowed}
 .svreq{margin-top:12px;border:1px dashed #c9d3df;border-radius:10px;padding:10px 14px;background:#fbfcfd}
@@ -334,7 +339,7 @@ header .btn:not(#btnAccount),header input{order:3}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.20 (recaps in Documents)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.21 (move material orders)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -578,14 +583,19 @@ const coStatus = k => k==='Awarded' ? 'Approved' : (k==='Lost'||k==='No Bid') ? 
 function totals(j){
   const co   = j.changeOrders.filter(c=>c.status!=='Rejected').reduce((a,c)=>a+(+c.amount||0),0)
              + childrenOf(j.id).filter(c=>coStatus(c.bidStatus)!=='Rejected').reduce((a,c)=>a+(+c.bidTotal||0),0);
-  const mat  = j.materials.reduce((a,m)=>a+(+m.cost||0),0);
-  const lh   = j.labor.reduce((a,l)=>a+(+l.hours||0),0);
-  const lab  = j.labor.reduce((a,l)=>a+laborLine(l,j).cost,0);
-  const trav = j.travel.reduce((a,t)=>a+travelLine(t).total,0);
+  // costs logged on linked change-order jobs count against the main job too,
+  // because their amounts are part of its revised total
+  const fam  = [j, ...childrenOf(j.id)];
+  const matOf = x => x.materials.reduce((a,m)=>a+(+m.cost||0),0);
+  const mat  = fam.reduce((a,x)=>a+matOf(x),0);
+  const coMat = mat - matOf(j);
+  const lh   = fam.reduce((a,x)=>a+x.labor.reduce((b,l)=>b+(+l.hours||0),0),0);
+  const lab  = fam.reduce((a,x)=>a+x.labor.reduce((b,l)=>b+laborLine(l,x).cost,0),0);
+  const trav = fam.reduce((a,x)=>a+x.travel.reduce((b,t)=>b+travelLine(t).total,0),0);
   const revised = (+j.bidTotal||0) + co;
   // federal jobs: the bond premium is a real cost against the contract
   const bond = bondApplies(j, revised) ? bondFor(revised).total : 0;
-  return {co, revised, mat, lh, lab, trav, bond, remaining: revised-mat-lab-trav-bond};
+  return {co, revised, mat, coMat, lh, lab, trav, bond, remaining: revised-mat-lab-trav-bond};
 }
 
 /* ==========================================================================
@@ -758,6 +768,7 @@ const LOGS = {
   // job-tracking logs (unlock when Awarded)
   co:{label:'Change Orders', key:'changeOrders',
     cols:[['CO #','no'],['Date','date','date'],['Description','desc'],['Status','status','select',['Pending','Approved','Rejected']],['Amount','amount','money'],['Notes','notes']],
+    extraHead:['Material'], extra:(r,j)=>[money(j.materials.filter(m=>m.co && m.co===coKey(r)).reduce((a,m)=>a+(+m.cost||0),0),2)],
     total:j=>totals(j).co, totalLabel:'Approved + pending'},
   mat:{label:'Material Orders', key:'materials',
     cols:[['Quote / PO #','quote'],['Date ordered','date','date'],['Description','desc'],['Supplier','supplier'],['Cost','cost','money'],['Notes','notes']],
@@ -811,16 +822,107 @@ function logTable(j, tabKey){
     return `<td>${esc(r[k])}</td>`;
   };
   const linked = tabKey==='co' ? childrenOf(j.id) : [];
-  const linkedRows = linked.map(c=>`<tr class="linked"><td>${esc(c.sv)||'—'}</td><td>${fdate(c.sentDate||c.startDate)}</td><td>${esc(c.name)} <span class="pill co">linked job</span></td><td>${coStatus(c.bidStatus)}</td><td class="num">${money(c.bidTotal,2)}</td><td class="note">From its own bid</td><td><button class="btn sm" data-openjob="${esc(c.id)}">Open</button></td></tr>`).join('');
-  const body = (rows.length||linked.length) ? linkedRows + rows.map((r,ri)=>`<tr>${L.cols.map(c=>cell(r,ri,c)).join('')}${L.extra?L.extra(r,j).map(v=>`<td class="num">${v}</td>`).join(''):''}<td><button class="btn ghost sm" data-del="${ri}" title="Remove">✕</button></td></tr>`).join('')
-    : `<tr><td colspan="${heads.length+1}" class="note">Nothing entered yet.</td></tr>`;
+  const linkedRows = linked.map(c=>`<tr class="linked"><td>${esc(c.sv)||'—'}</td><td>${fdate(c.sentDate||c.startDate)}</td><td>${esc(c.name)} <span class="pill co">linked job</span></td><td>${coStatus(c.bidStatus)}</td><td class="num">${money(c.bidTotal,2)}</td><td class="note">From its own bid</td><td class="num">${money(c.materials.reduce((a,m)=>a+(+m.cost||0),0),2)}</td><td><button class="btn sm" data-openjob="${esc(c.id)}">Open</button></td></tr>`).join('');
+  const isMat = tabKey==='mat', T = isMat ? moveTargets() : null;
+  const tagCell = (r,ri,c) => { const td = cell(r,ri,c);
+    if(isMat && c[1]==='quote') return td.replace(/<\/td>$/, `<div class="mvphone">${moveSelect(T, j, r, ri)}</div></td>`);
+    if(!isMat || c[1]!=='desc' || !r.co) return td;
+    const cr = j.changeOrders.find(x=>coKey(x)===r.co);
+    return td.replace(/<\/td>$/, ` <span class="pill co">${cr ? 'CO '+esc(cr.no||cr.desc) : 'CO '+esc(r.co)+' (removed)'}</span></td>`); };
+  const moveCell = (r,ri) => isMat ? `<td class="mvcol">${moveSelect(T, j, r, ri)}</td>` : '';
+  const body = (rows.length||linked.length) ? linkedRows + rows.map((r,ri)=>`<tr>${L.cols.map(c=>tagCell(r,ri,c)).join('')}${L.extra?L.extra(r,j).map(v=>`<td class="num">${v}</td>`).join(''):''}${moveCell(r,ri)}<td><button class="btn ghost sm" data-del="${ri}" title="Remove">✕</button></td></tr>`).join('')
+    : `<tr><td colspan="${heads.length+1+(isMat?1:0)}" class="note">Nothing entered yet.</td></tr>`;
   const add = L.cols.map(([label,k,t,o])=>`<div class="f"><label>${label}</label>${t==='select'
       ? `<select data-add="${k}">${opts(colOpts(o),'')}</select>`
       : `<input data-add="${k}" type="${NUMT.has(t)?'number':(t||'text')}" ${NUMT.has(t)?'step="any"':''} ${t==='date'?`value="${today()}"`:''}>`}</div>`).join('');
-  return `<div data-log="${tabKey}"><div class="tscroll"><table><thead><tr>${heads.map(([h,n])=>`<th class="${n?'num':''}">${h}</th>`).join('')}<th></th></tr></thead>
+  return `<div data-log="${tabKey}"><div class="tscroll"><table><thead><tr>${heads.map(([h,n])=>`<th class="${n?'num':''}">${h}</th>`).join('')}${isMat?'<th class="mvcol">Job / change order</th>':''}<th></th></tr></thead>
     <tbody>${body}</tbody>
-    <tfoot><tr><td colspan="${heads.length-1}" style="text-align:right">${L.totalLabel}</td><td class="num">${money(L.total(j),2)}</td><td></td></tr></tfoot></table></div>
+    <tfoot><tr><td colspan="${heads.length-1}" style="text-align:right">${L.totalLabel}</td><td class="num">${money(L.total(j),2)}</td>${isMat?'<td class="mvcol"></td>':''}<td></td></tr></tfoot></table></div>
+    ${isMat && totals(j).coMat ? `<div class="note" style="margin-top:6px">Job financials also count ${money(totals(j).coMat,2)} of material logged on this job's change-order jobs.</div>` : ''}
     <div class="addform"><div class="addhead">Add ${L.label.replace(/s$/,'').toLowerCase()}</div><div class="addgrid">${add}<div class="f addbtn"><button class="btn primary" data-addrow>+ Add</button></div></div></div></div>`;
+}
+
+/* ---------------- Moving material orders ----------------
+   Every material order has a "Job / change order" dropdown that lists every
+   job, its change-order lines (j.changeOrders) and its linked change-order
+   jobs. Moving an order takes its cost (and its Material on Job lines and
+   PDFs) off one job and puts it on the other. A change-order line only
+   tags the order (m.co) so the CO table can show what material went to it. */
+const coKey = c => String(c.no || c.desc || '').trim();
+function moveTargets(){
+  const label = x => (x.sv ? x.sv + ' · ' : '') + (x.name || 'Untitled job');
+  const rank = x => x.bidStatus==='Awarded' ? 0 : 1;          // awarded jobs first, then newest SV
+  const T = [];
+  topJobs().slice().sort((a,b)=>rank(a)-rank(b) || String(b.sv).localeCompare(String(a.sv)) || String(a.name).localeCompare(String(b.name))).forEach(P=>{
+    const g = label(P) + (P.bidStatus==='Awarded' ? '' : ' (' + P.bidStatus + ')');
+    T.push({group:g, jobId:P.id, co:'', label:'Main job · ' + label(P)});
+    P.changeOrders.filter(c=>coKey(c)).forEach(c=>T.push({group:g, jobId:P.id, co:coKey(c), label:'↳ CO ' + (c.no||'') + (c.desc ? ' · ' + String(c.desc).slice(0,40) : '')}));
+    childrenOf(P.id).forEach(k=>T.push({group:g, jobId:k.id, co:'', label:'↳ CO job · ' + label(k)}));
+    childrenOf(P.id).forEach(k=>k.changeOrders.filter(c=>coKey(c)).forEach(c=>T.push({group:g, jobId:k.id, co:coKey(c), label:'   ↳ ' + (k.sv||k.name) + ' CO ' + (c.no||String(c.desc).slice(0,30))})));
+  });
+  return T;
+}
+function moveSelect(T, j, r, ri){
+  let cur = T.findIndex(t=>t.jobId===j.id && t.co===(r.co||''));
+  if(cur<0) cur = T.findIndex(t=>t.jobId===j.id && !t.co);
+  const groups = [...new Set(T.map(t=>t.group))];
+  return `<select class="inl mvsel" data-move="${ri}" title="Move this order to another job or change order">${groups.map(g=>`<optgroup label="${esc(g)}">${
+    T.map((t,i)=>t.group===g ? `<option value="${i}" ${i===cur?'selected':''}>${esc(t.label)}</option>` : '').join('')}</optgroup>`).join('')}</select>`;
+}
+const folderJob = x => parentOf(x) || x;
+async function moveOrderFiles(src, dst, files){
+  const A = folderJob(src), B = folderJob(dst);
+  if(!files.length || A===B || !FileLayer.connected || !A.folder || A.folder.status!=='created') return 0;
+  if(!B.folder || B.folder.status!=='created'){ if(B.bidStatus!=='Awarded') return 0; await FileLayer.ensureJobFolder(B); if(!B.folder || B.folder.status!=='created') return 0; }
+  const from = await FileLayer.dir([FileLayer.folderName(A), FileLayer.MAT_SUB]), to = await FileLayer.dir([FileLayer.folderName(B), FileLayer.MAT_SUB]);
+  let n = 0;
+  for(const name of [...files]){
+    for(const f of [name, name + '.email.txt']){
+      try{
+        const file = await (await from.getFileHandle(f)).getFile();
+        let saveAs = f, i = 2;
+        while(await FileLayer.exists(to, saveAs)) saveAs = f.replace(/(\.pdf)?(\.email\.txt)?$/i, m=>` (${i})` + m), i++;
+        const w = await (await to.getFileHandle(saveAs, {create:true})).createWritable(); await w.write(file); await w.close();
+        if((await (await to.getFileHandle(saveAs)).getFile()).size !== file.size) continue;
+        await from.removeEntry(f);
+        if(f===name){ n++; if(saveAs!==name) files[files.indexOf(name)] = saveAs; }
+      }catch(_){}
+    }
+  }
+  return n;
+}
+async function moveMaterial(src, idx, t){
+  const m = src.materials[idx], dst = t && Store.get(t.jobId);
+  if(!m || !dst) return;
+  const name = m.quote ? `${m.supplier ? m.supplier + ' ' : ''}#${m.quote}` : (m.desc || 'This order');
+  const where = x => (x.sv ? x.sv + ' ' : '') + x.name;
+  const coName = t.co ? ` (CO ${t.co})` : '';
+  if(dst===src){                                   // same job: just tag / untag a change order
+    if(t.co) m.co = t.co; else delete m.co;
+    changed(); toast(t.co ? `${name} is now on CO ${t.co}` : `${name} is back on the main job`); return;
+  }
+  const key = normKey(m.quote);
+  const mine = key ? (src.materialItems||[]).filter(it=>{ const d = String(it.doc||'').split(', ').map(normKey).filter(Boolean); return d.length && d.every(x=>x===key); }) : [];
+  const msg = `${name} (${money(m.cost,2)}) moves from ${where(src)} to ${where(dst)}${coName}. Its cost comes off ${src.name} and counts on ${dst.name}.`
+    + (mine.length ? ` Its ${mine.length} Material on Job line${mine.length>1?'s':''} move with it.` : '')
+    + (dst.bidStatus!=='Awarded' ? ` ${dst.name} isn't marked Awarded yet, so its material tab stays locked until it is.` : '');
+  if(!await askSure('Move this material order?', msg, 'Move order')){ renderDrawer(); return; }
+  src.materials.splice(src.materials.indexOf(m), 1);
+  if(t.co) m.co = t.co; else delete m.co;
+  (m.moves = m.moves || []).push({from:src.id, fromName:where(src), to:dst.id, toName:where(dst), co:t.co||'', at:new Date().toISOString(), by:(typeof Cloud!=='undefined' && Cloud.email) || ''});
+  dst.materials.push(m);
+  if(mine.length){
+    src.materialItems = src.materialItems.filter(it=>!mine.includes(it));
+    dst.materialItems = dst.materialItems || [];
+    for(const it of mine){ const same = dst.materialItems.find(x=>x.key && x.key===it.key && normKey(x.doc)===normKey(it.doc)); if(!same) dst.materialItems.push(it); }
+  }
+  // a filing can't be undone into the old job once its order has moved
+  (Store.intake.filed||[]).forEach(f=>{ if((m.files||[]).includes(f.savedAs) && f.jobId===src.id) delete f.undo; });
+  let moved = 0;
+  try{ moved = await moveOrderFiles(src, dst, m.files || []); }catch(_){}
+  changed();
+  writeMaterialList(folderJob(src)).catch(()=>{}); writeMaterialList(folderJob(dst)).catch(()=>{});
+  toast(`Moved to ${dst.name}${coName}` + (moved ? ` · ${moved} PDF${moved>1?'s':''} moved too` : ''));
 }
 
 function bindLog(j, wrap){
@@ -829,6 +931,8 @@ function bindLog(j, wrap){
     if(!await askSure('Remove this line?', `This ${L.label.replace(/s$/,'').toLowerCase()} entry will move to Recently deleted. You can restore it for ${Store.TRASH_DAYS} days.`, 'Remove')) return;
     Store.trashLine(j, L, +b.dataset.del); changed(); toast('Moved to Recently deleted');
   });
+  if(wrap.dataset.log==='mat'){ const T = moveTargets();
+    wrap.querySelectorAll('[data-move]').forEach(s=>s.onchange=()=>moveMaterial(j, +s.dataset.move, T[+s.value])); }
   wrap.querySelectorAll('[data-edit]').forEach(s=>s.onchange=()=>{ j[L.key][+s.dataset.edit][s.dataset.ek] = s.type==='number' ? +s.value : s.value; changed(); if(L.key==='materialItems') writeMaterialList(j).catch(()=>{}); });
   wrap.querySelector('[data-addrow]').onclick = ()=>{
     const row = {}; let filled = false;
@@ -1687,6 +1791,8 @@ const Intake = {
   entryFor(f){ return (this.log.entries||[]).filter(e=>e.file===f.name && (!e.size || !f.size || +e.size===+f.size)).at(-1); },
   matchJob(e){
     const r = e.jobRef||{};
+    const ok = [e.docNo, e.relatesTo].filter(Boolean).map(normKey);
+    if(ok.length){ const mv = Store.jobs.find(j=>j.materials.some(m=>m.moves && m.moves.length && ok.includes(normKey(m.quote)))); if(mv) return mv; }
     if(r.id && Store.get(r.id)) return Store.get(r.id);
     if(r.sv){ const j = Store.jobs.find(j=>normKey(j.sv)===normKey(r.sv)); if(j) return j; }
     if(r.name){ const j = Store.jobs.find(j=>normKey(j.name)===normKey(r.name)); if(j) return j; }
