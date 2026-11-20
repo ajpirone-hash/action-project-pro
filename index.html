@@ -191,6 +191,11 @@ table.rc{font-size:12px}table.rc td,table.rc th{padding:3px 6px}
 select.inl{border:1px solid var(--line);border-radius:5px;padding:2px 4px;background:#fff;font-size:12.5px}
 .fedq{margin-top:14px;background:#f3f6fb;border:1px solid #d6e2f1;border-radius:10px;padding:12px 14px}
 .yn{display:flex;gap:18px;margin-top:8px}
+.svreq{margin-top:12px;border:1px dashed #c9d3df;border-radius:10px;padding:10px 14px;background:#fbfcfd}
+.svreq summary{cursor:pointer;font-weight:700;color:var(--brand-2);list-style:none}
+.svreq summary::-webkit-details-marker{display:none}
+.svreq[open] summary{margin-bottom:10px}
+.svprev{white-space:pre-wrap;font:13px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:10px 0;max-height:240px;overflow:auto}
 .yn label{display:flex;gap:6px;align-items:center;cursor:pointer;font-weight:600}
 .ibadge{background:#eef0f3;color:#1f2937;border-radius:999px;padding:0 7px;font-size:12px;margin-left:2px}
 .ibadge.need{background:#e8a317;color:#fff}
@@ -324,7 +329,7 @@ header .btn:not(#btnAccount),header input{order:3}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.14 (invites never send reset emails)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.15 (SV # request email)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -1087,9 +1092,22 @@ $('#btnNew').onclick = ()=>{
       <div class="note">Federal jobs get the payment &amp; performance bond added to the bid automatically (same formula as your recap).</div>
       <div class="yn"><label><input type="radio" name="nFed" value="yes"> Yes, federal</label><label><input type="radio" name="nFed" value="no"> No</label></div>
     </div>
+    <details class="svreq" id="svReq"><summary>✉ Need an SV #? Email a request</summary>
+      <div class="form">
+        <div class="f"><label>Send to (name)</label><input id="svTo" placeholder="e.g. Sarah"></div>
+        <div class="f"><label>Their email (optional)</label><input id="svToEmail" type="email" placeholder="name@actioncontractors.com"></div>
+        <div class="f"><label>Customer</label><input id="svCust" placeholder="e.g. PepsiCo"></div>
+        <div class="f"><label>Job location</label><input id="svLoc" placeholder="City, State"></div>
+        <div class="f wide"><label>Notes (optional)</label><input id="svNote" placeholder="Scope, bid due date, contact…"></div>
+        <div class="f wide"><label>Your name</label><input id="svFrom" placeholder="Your name"></div>
+      </div>
+      <div class="svprev" id="svPrev"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap"><button class="btn" id="svCopy">Copy email</button><button class="btn primary" id="svMail">Open in Outlook</button></div>
+    </details>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
       <button class="btn" id="nCancel">Cancel</button><button class="btn primary" id="nCreate">Create bid</button></div>`;
   $('#newBid').classList.add('open'); setTimeout(()=>$('#nName').focus(),50);
+  svRequestWire();
   $('#nCancel').onclick = ()=>$('#newBid').classList.remove('open');
   $('#nCreate').onclick = ()=>{
     const name = $('#nName').value.trim(), fed = document.querySelector('input[name=nFed]:checked');
@@ -1101,6 +1119,33 @@ $('#btnNew').onclick = ()=>{
   };
 };
 $('#newBid').onclick = e=>{ if(e.target.id==='newBid') $('#newBid').classList.remove('open'); };
+
+/* "Need an SV #?" in the New bid box: a simple request email built from what's typed in. */
+function svRequestEmail(){
+  const v = id => ($('#'+id) ? $('#'+id).value.trim() : '');
+  const fed = document.querySelector('input[name=nFed]:checked');
+  const job = v('nName') || '(job name)';
+  const lines = [['Job name', job], ['Customer', v('svCust')], ['Location', v('svLoc')], ['Federal job', fed ? (fed.value==='yes'?'Yes':'No') : ''], ['Priority', v('nPri')], ['Notes', v('svNote')]]
+    .filter(([,x])=>x).map(([k,x])=>`${k}: ${x}`).join('\n');
+  const subject = `SV # request: ${job}`;
+  const body = `Hi ${v('svTo') || '(name)'},\n\nCould you please set up an SV number for a new bid?\n\n${lines}\n\nPlease reply with the SV number when it's ready.\n\nThanks,\n${v('svFrom') || '(your name)'}`;
+  return {subject, body, to: v('svToEmail')};
+}
+function svRequestWire(){
+  const keep = (id, key)=>{ const el=$('#'+id); try{ el.value = localStorage.getItem(key)||''; }catch(_){} el.addEventListener('input', ()=>{ try{ localStorage.setItem(key, el.value.trim()); }catch(_){} }); };
+  keep('svFrom', 'apInviteFrom'); keep('svTo', 'apSvTo'); keep('svToEmail', 'apSvToEmail');
+  const show = ()=>{ const m = svRequestEmail(); $('#svPrev').textContent = 'Subject: ' + m.subject + '\n\n' + m.body; };
+  $('#newBox').addEventListener('input', show); $('#newBox').addEventListener('change', show); show();
+  $('#svMail').onclick = ()=>{
+    if(!$('#svTo').value.trim()) { toast('Type who the request is going to'); return $('#svTo').focus(); }
+    const m = svRequestEmail(); location.href = `mailto:${encodeURIComponent(m.to).replace(/%40/g,'@')}?subject=${encodeURIComponent(m.subject)}&body=${encodeURIComponent(m.body)}`;
+  };
+  $('#svCopy').onclick = async ()=>{
+    const m = svRequestEmail(), t = 'Subject: ' + m.subject + '\n\n' + m.body;
+    try{ await navigator.clipboard.writeText(t); }catch(_){ const r=document.createRange(); r.selectNodeContents($('#svPrev')); const s=getSelection(); s.removeAllRanges(); s.addRange(r); document.execCommand('copy'); s.removeAllRanges(); }
+    toast('Copied. Paste it into a new email.');
+  };
+}
 
 /* ---------------- Settings ---------------- */
 $('#btnSettings').onclick = ()=>{
@@ -1915,7 +1960,7 @@ const Cloud = {
     $('#pick').classList.add('open');
     $('#invDone').onclick = ()=>$('#pick').classList.remove('open');
     $('#invFrom').oninput = e=>{ try{ localStorage.setItem('apInviteFrom', e.target.value.trim()); }catch(_){} $('#invPrev').innerHTML = this.inviteHTML(em, role, temp); };
-    $('#invMail').onclick = ()=>{ location.href = `mailto:${encodeURIComponent(em)}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(this.inviteText(em, role, temp))}`; };
+    $('#invMail').onclick = ()=>{ location.href = `mailto:${encodeURIComponent(em).replace(/%40/g,'@')}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(this.inviteText(em, role, temp))}`; };
     $('#invCopy').onclick = async ()=>{
       const html = this.inviteHTML(em, role, temp), text = this.inviteText(em, role, temp);
       try{ await navigator.clipboard.write([new ClipboardItem({'text/html': new Blob([html],{type:'text/html'}), 'text/plain': new Blob([text],{type:'text/plain'})})]); toast('Copied. Paste it into a new Outlook email.'); }
