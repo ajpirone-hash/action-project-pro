@@ -324,7 +324,7 @@ header .btn:not(#btnAccount),header input{order:3}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.13 (branded invites)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.14 (invites never send reset emails)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -1829,7 +1829,7 @@ const Cloud = {
         <td><button class="btn sm" data-plink="${esc(m.id)}">Email reset link</button> <button class="btn sm danger" data-pdel="${esc(m.id)}">Remove</button></td></tr>`).join('')
         : `<tr><td class="note">Nobody else yet.</td></tr>`;
       $('#pplRows').querySelectorAll('[data-prole]').forEach(s=>s.onchange=async ()=>{ await this.db.collection('members').doc(s.dataset.prole).set({role:s.value}, {merge:true}); toast('Access updated'); });
-      $('#pplRows').querySelectorAll('[data-plink]').forEach(b=>b.onclick=()=>this.sendLink(b.dataset.plink));
+      $('#pplRows').querySelectorAll('[data-plink]').forEach(b=>b.onclick=async ()=>{ if(await askSure('Send a reset email?', `Firebase will email ${b.dataset.plink} a link to set a new password. It comes from Firebase's address, so tell them to check Junk.`, 'Send it')) this.sendLink(b.dataset.plink); });
       $('#pplRows').querySelectorAll('[data-pdel]').forEach(b=>b.onclick=async ()=>{
         if(!await askSure('Remove this person?', `${b.dataset.pdel} won't be able to see the jobs anymore.`, 'Remove')) return;
         await this.db.collection('members').doc(b.dataset.pdel).delete(); load(); toast('Removed');
@@ -1844,7 +1844,7 @@ const Cloud = {
         await this.db.collection('members').doc(em).set({role, addedBy:this.email, addedAt:new Date().toISOString(), mustChange:isNew});
         $('#pEmail').value=''; load();
         if(isNew) this.inviteCard(em, role, temp);
-        else { await this.sendLink(em); toast(`${em} already had a login, so they were emailed a link to set a new password`); }
+        else this.inviteCard(em, role, null);
       }catch(e){ toast('Could not add them: '+(e.message||e)); }
     };
     load().catch(e=>{ $('#pplRows').innerHTML = `<tr><td class="note">Could not load: ${esc(e.message)}</td></tr>`; });
@@ -1885,25 +1885,25 @@ const Cloud = {
  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f7;border-radius:10px;border:1px solid #e2e5ea">
   <tr><td style="padding:14px 18px;font-size:13px;color:#68717d;text-transform:uppercase;letter-spacing:.5px;font-weight:700">Your sign-in</td></tr>
   <tr><td style="padding:0 18px 6px;font-size:15px;color:#1d232b">Email: <b>${esc(em)}</b></td></tr>
-  <tr><td style="padding:0 18px 16px;font-size:15px;color:#1d232b">Temporary password: <b style="font-family:Consolas,Menlo,monospace;font-size:16px;background:#fff;border:1px solid #e2e5ea;border-radius:6px;padding:2px 8px">${esc(temp)}</b></td></tr>
+  ${temp ? `<tr><td style="padding:0 18px 16px;font-size:15px;color:#1d232b">Temporary password: <b style="font-family:Consolas,Menlo,monospace;font-size:16px;background:#fff;border:1px solid #e2e5ea;border-radius:6px;padding:2px 8px">${esc(temp)}</b></td></tr>` : `<tr><td style="padding:0 18px 16px;font-size:15px;color:#1d232b">Password: <b>the one you already use</b>. Forgot it? Tap <b>Forgot your password</b> on the sign-in page.</td></tr>`}
  </table>
 </td></tr>
 <tr><td align="center" style="padding:22px 28px 8px">
  <a href="${url}" style="display:inline-block;background:#e8a317;color:#0d1b2e;font-weight:800;font-size:16px;text-decoration:none;padding:14px 34px;border-radius:10px">Open Action Project PRO</a>
 </td></tr>
 <tr><td style="padding:14px 28px 26px;font-size:14px;line-height:1.6;color:#3b4552">
- <b>Getting started</b><br>1. Open the link and sign in with the email and temporary password above.<br>2. Choose your own password when asked.<br>3. On iPhone: open the link in Safari, tap Share, then <b>Add to Home Screen</b>.
+ <b>Getting started</b><br>${temp ? '1. Open the link and sign in with the email and temporary password above.<br>2. Choose your own password when asked.<br>' : '1. Open the link and sign in with the email above.<br>2. '}${temp ? '3. ' : ''}On iPhone: open the link in Safari, tap Share, then <b>Add to Home Screen</b>.
 </td></tr>
 <tr><td style="background:#f4f5f7;padding:16px 28px;font-size:12px;color:#8a929c;border-top:1px solid #e2e5ea">Action Electrical &amp; Mechanical Contractors · 2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551</td></tr>
 </table></td></tr></table>`;
   },
   inviteText(em, role, temp){
-    return `You've been invited to Action Project PRO\n\n${this.inviteFrom()} added you so you can ${role==='editor'?'view and edit':'view'} our bids and jobs. Everything updates live, on your computer or your phone.\n\nOpen: ${this.appUrl()}\nEmail: ${em}\nTemporary password: ${temp}\n\n1. Open the link and sign in with the email and temporary password above.\n2. Choose your own password when asked.\n3. On iPhone: open the link in Safari, tap Share, then Add to Home Screen.\n\nAction Electrical & Mechanical Contractors`;
+    return `You've been invited to Action Project PRO\n\n${this.inviteFrom()} added you so you can ${role==='editor'?'view and edit':'view'} our bids and jobs. Everything updates live, on your computer or your phone.\n\nOpen: ${this.appUrl()}\nEmail: ${em}\n${temp ? `Temporary password: ${temp}\n\n1. Open the link and sign in with the email and temporary password above.\n2. Choose your own password when asked.\n3. ` : `Password: the one you already use (forgot it? tap Forgot your password on the sign-in page)\n\n1. Open the link and sign in.\n2. `}On iPhone: open the link in Safari, tap Share, then Add to Home Screen.\n\nAction Electrical & Mechanical Contractors`;
   },
   inviteCard(em, role, temp){
     const subj = "You've been invited to Action Project PRO";
     $('#pickBox').innerHTML = `<h3>Invite ready for ${esc(em)}</h3>
-      <div class="note">Send it from <b>your own email</b>, so it arrives from someone they know instead of landing in junk. The temporary password is only shown here; they'll choose their own the first time they sign in.</div>
+      <div class="note">Send it from <b>your own email</b>, so it arrives from someone they know instead of landing in junk. ${temp ? "The temporary password is only shown here; they'll choose their own the first time they sign in." : 'They already have a login, so this invite has no temporary password.'}</div>
       <div class="form" style="margin-top:10px"><div class="f wide"><label>Your name, as it shows in the invite</label><input id="invFrom" placeholder="e.g. Austin Pirone" value="${esc(localStorage.getItem('apInviteFrom')||'')}"></div></div>
       <div class="invite-prev" id="invPrev">${this.inviteHTML(em, role, temp)}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
