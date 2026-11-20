@@ -334,7 +334,7 @@ header .btn:not(#btnAccount),header input{order:3}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.19 (labor rates per local)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.20 (recaps in Documents)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -1044,6 +1044,8 @@ function renderDrawer(){
       </div>
     </div>
 
+    ${recapsCard(j)}
+
     ${bidBuilderCard(j)}
 
     <div class="lockwrap ${awarded?'':'locked'}">
@@ -1082,6 +1084,11 @@ function renderDrawer(){
   $('#drawer .db').scrollTop = keepScroll;
 
   $('#dClose').onclick = closeJob;
+  document.querySelectorAll('#drawer [data-copypath]').forEach(b=>b.onclick = async ()=>{
+    const t = b.dataset.copypath;
+    try{ await navigator.clipboard.writeText(t); toast('Path copied. Paste it into File Explorer.'); }
+    catch(_){ toast(t); }
+  });
   if($('#fConnect')) $('#fConnect').onclick = async ()=>{ if(await FileLayer.connect()){ toast('Action Projects folder connected'); await Intake.sync(); renderDrawer(); } };
   if($('#fCreate')) $('#fCreate').onclick = async ()=>{ await FileLayer.ensureJobFolder(j); Store.save(); renderDrawer(); toast(j.folder.status==='created'?'Job folder created':'Could not create folder'); };
   $('#dStatus').onchange = e=>setStatus(j.id, e.target.value);
@@ -1753,6 +1760,21 @@ const Intake = {
   }
 };
 
+/* Recaps in Documents: read-only links to the recap workbooks Claude found in the
+   user's Documents job folders (j.recaps = [{label,file,folder,path,total,date,note}]).
+   The app never opens or changes those files; it shows where they are. */
+function recapsCard(j){
+  const R = j.recaps||[]; if(!R.length) return '';
+  const rows = R.map(r=>{ const full = r.path || (r.folder + '\\' + r.file);
+    return `<tr><td>${esc(r.label||'Recap')}${r.note?`<div style="font-size:11px;color:var(--muted)">${esc(r.note)}</div>`:''}</td>
+      <td style="word-break:break-word">${esc(r.file)}<div style="font-size:11px;color:var(--muted)">Documents\\${esc(r.folder)}</div></td>
+      <td>${r.date?esc(r.date):''}</td><td style="text-align:right">${r.total!=null?money(r.total,2):'—'}</td>
+      <td><button class="btn sm" data-copypath="${esc(full)}" title="${esc(full)}">Copy path</button></td></tr>`; }).join('');
+  return `<div class="card"><h4>Recaps in Documents</h4>
+    <table><thead><tr><th>Recap</th><th>File</th><th>Saved</th><th style="text-align:right">Total w/ bond</th><th></th></tr></thead><tbody>${rows}</tbody></table>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px">Read only. These are your original recap files; the app does not change them.</div></div>`;
+}
+
 /* _system\job-imports.json: jobs Claude built from a job's existing folder
    (proposal, takeoff, material list). Each import is applied once: a new job is
    added, or an existing job (same SV #) gets its empty fields and new items filled. */
@@ -1764,6 +1786,7 @@ async function importJobs(){
     if(!imp.importId || Store.intake.imported.includes(imp.importId)) continue;
     const src = imp.job || {};
     let j = src.sv ? Store.jobs.find(x=>normKey(x.sv)===normKey(src.sv)) : null;
+    if(!j && imp.onlyExisting){ Store.intake.imported.push(imp.importId); continue; }
     if(!j){ j = normalizeJob(Object.assign({id: src.sv || ('job-'+Date.now())}, structuredClone(src))); Store.jobs.unshift(j); }
     else {
       for(const [k,v] of Object.entries(src)){
@@ -1771,6 +1794,9 @@ async function importJobs(){
         else if(v!=='' && v!=null && (j[k]==='' || j[k]==null || j[k]===0)) j[k] = v;
       }
     }
+    if(imp.set) for(const [k,v] of Object.entries(imp.set)) j[k] = structuredClone(v);
+    if(imp.appendNote && !(j.notes||'').includes(imp.appendNote)) j.notes = ((j.notes||'').trim() ? j.notes.trim()+'\n' : '') + imp.appendNote;
+    if(imp.recaps){ j.recaps = j.recaps||[]; for(const r of imp.recaps) if(!j.recaps.some(x=>x.folder===r.folder && x.file===r.file)) j.recaps.push(structuredClone(r)); }
     j.materialItems = j.materialItems || [];
     for(const it of imp.materialItems||[]){ if(!j.materialItems.some(x=>x.key===it.key)) j.materialItems.push(Object.assign({recv:0, notes:''}, it)); }
     await FileLayer.ensureJobFolder(j);
