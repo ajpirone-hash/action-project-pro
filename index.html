@@ -329,7 +329,7 @@ header .btn:not(#btnAccount),header input{order:3}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.15 (SV # request email)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.16 (SV # request email)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -1096,9 +1096,7 @@ $('#btnNew').onclick = ()=>{
       <div class="form">
         <div class="f"><label>Send to (name)</label><input id="svTo" placeholder="e.g. Sarah"></div>
         <div class="f"><label>Their email (optional)</label><input id="svToEmail" type="email" placeholder="name@actioncontractors.com"></div>
-        <div class="f"><label>Customer</label><input id="svCust" placeholder="e.g. PepsiCo"></div>
-        <div class="f"><label>Job location</label><input id="svLoc" placeholder="City, State"></div>
-        <div class="f wide"><label>Notes (optional)</label><input id="svNote" placeholder="Scope, bid due date, contact…"></div>
+        <div class="f wide"><label>Short description of the job</label><textarea id="svDesc" rows="2" placeholder="e.g. Replace restroom fixtures and add 2 floor drains"></textarea></div>
         <div class="f wide"><label>Your name</label><input id="svFrom" placeholder="Your name"></div>
       </div>
       <div class="svprev" id="svPrev"></div>
@@ -1123,10 +1121,8 @@ $('#newBid').onclick = e=>{ if(e.target.id==='newBid') $('#newBid').classList.re
 /* "Need an SV #?" in the New bid box: a simple request email built from what's typed in. */
 function svRequestEmail(){
   const v = id => ($('#'+id) ? $('#'+id).value.trim() : '');
-  const fed = document.querySelector('input[name=nFed]:checked');
   const job = v('nName') || '(job name)';
-  const lines = [['Job name', job], ['Customer', v('svCust')], ['Location', v('svLoc')], ['Federal job', fed ? (fed.value==='yes'?'Yes':'No') : ''], ['Priority', v('nPri')], ['Notes', v('svNote')]]
-    .filter(([,x])=>x).map(([k,x])=>`${k}: ${x}`).join('\n');
+  const lines = `Job name: ${job}\nDescription: ${v('svDesc') || '(short description)'}`;
   const subject = `SV # request: ${job}`;
   const body = `Hi ${v('svTo') || '(name)'},\n\nCould you please set up an SV number for a new bid?\n\n${lines}\n\nPlease reply with the SV number when it's ready.\n\nThanks,\n${v('svFrom') || '(your name)'}`;
   return {subject, body, to: v('svToEmail')};
