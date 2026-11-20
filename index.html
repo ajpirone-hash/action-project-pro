@@ -2,7 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d1b2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Action PRO">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/favicon.png">
 <title>Action Project PRO</title>
 <style>
 :root{
@@ -190,6 +198,32 @@ select.inl{border:1px solid var(--line);border-radius:5px;padding:2px 4px;backgr
 .iconn.ok{background:#eef8f1;border-color:#cbe8d5}
 .iconn code,.folder code{background:#f3f4f6;padding:1px 5px;border-radius:4px;font-size:12px}
 
+
+/* ---- phones and tablets (iPhone / iPad) ---- */
+header{padding-top:max(18px, env(safe-area-inset-top));padding-left:max(28px, env(safe-area-inset-left));padding-right:max(28px, env(safe-area-inset-right))}
+.dh{padding-top:max(14px, env(safe-area-inset-top))}
+.db{padding-bottom:max(40px, calc(20px + env(safe-area-inset-bottom)))}
+.toast{bottom:max(20px, calc(12px + env(safe-area-inset-bottom)))}
+.nofs #btnIntake{display:none!important}
+@media (pointer:coarse){ input,select,textarea{font-size:16px} .chip,.btn,.tab{min-height:34px} }
+@media (max-width:640px){
+  header{gap:8px;padding:max(10px, env(safe-area-inset-top)) 12px 10px}
+  .brand{gap:10px;width:100%} .brand img{height:34px} .wm{font-size:18px;gap:8px} .wm .pro{font-size:11px;padding:3px 7px 2px} .tag{display:none}
+  header .sp{display:none} header .btn{padding:6px 10px;font-size:13px}
+  main{padding:12px 10px 40px}
+  .kpis{grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+  .bar{gap:6px} .chip{padding:4px 10px;font-size:12.5px}
+  .search{order:-2;flex:1 1 calc(100% - 150px);min-width:0;margin-left:0} .sort{order:-1;width:140px;flex:none}
+  .grid{grid-template-columns:1fr;gap:10px}
+  .dh{flex-wrap:wrap;padding:max(10px, env(safe-area-inset-top)) 12px 10px;gap:8px} .dh h2{font-size:18px} .dh>div:first-child{flex:1 1 100%} .dh .status-sel{flex:1}
+  .db{padding:10px 8px 40px;gap:10px} .card{padding:12px 12px}
+  .jtabs{flex-wrap:nowrap;overflow-x:auto;padding:6px 10px}
+  .form{grid-template-columns:1fr 1fr;gap:8px 10px}
+  .tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none} .tabs::-webkit-scrollbar{display:none} .tab{white-space:nowrap;flex:none}
+  #drawer table,.modal table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  #drawer th,.modal th{white-space:nowrap} #drawer td{min-width:72px}
+  .modal .box{width:96%;max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));padding:16px 14px}
+}
 /* ---- shared web app ---- */
 .syncpill{font-size:12px;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.14);color:#fff;white-space:nowrap}
 .syncpill::before{content:"●";margin-right:6px}
@@ -197,7 +231,7 @@ select.inl{border:1px solid var(--line);border-radius:5px;padding:2px 4px;backgr
 #login{background:linear-gradient(135deg,#0d1b2e,#1f4e79);z-index:40}
 #login .box{width:min(400px,94%);padding:26px 26px 20px}
 #login h2{margin:0 0 2px;font-size:22px}#login .sub{color:var(--muted);margin:0 0 16px}
-#login input{width:100%;box-sizing:border-box;margin-bottom:10px}
+#login input{width:100%;box-sizing:border-box;margin-bottom:10px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:#fff}
 #lMsg{min-height:18px;color:var(--lost);margin:4px 0 10px;font-size:13px}
 .cloudbanner[hidden]{display:none}
 .cloudbanner{background:#fff8e6;border:1px solid #f0d58a;border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
@@ -213,7 +247,7 @@ select.inl{border:1px solid var(--line);border-radius:5px;padding:2px 4px;backgr
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span style="opacity:.6;font-weight:400">· v0.9 (shared web app)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span style="opacity:.6;font-weight:400">· v0.10 (works on iPhone)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -1019,7 +1053,7 @@ function folderCard(j){
   const pill = made ? `<span class="pill ok">Created ${fdate(f.at)}</span>` : f.status==='error' ? `<span class="pill warn">Error</span>` : `<span class="pill">${awarded?'Not created yet':'Created on award'}</span>`;
   let msg;
   if(made) msg = `Supplier PDFs for this job are filed in <b>04 Material Quotes &amp; POs</b>, with a <b>Material List.csv</b> you can open in Excel.`;
-  else if(!FileLayer.connected) msg = `${FileLayer.state==='unsupported'?'Open this file in Edge or Chrome to create folders.':'Connect your Action Projects folder and this folder is made automatically when the job is Awarded.'} ${FileLayer.state!=='unsupported'?`<button class="btn sm primary" id="fConnect">${FileLayer.state==='needs-permission'?'Allow folder access':'Connect Action Projects folder'}</button>`:''}`;
+  else if(!FileLayer.connected) msg = `${FileLayer.state==='unsupported'?'Job folders are made from your PC in Chrome. Phones and tablets can\'t reach them.':'Connect your Action Projects folder and this folder is made automatically when the job is Awarded.'} ${FileLayer.state!=='unsupported'?`<button class="btn sm primary" id="fConnect">${FileLayer.state==='needs-permission'?'Allow folder access':'Connect Action Projects folder'}</button>`:''}`;
   else if(awarded) msg = `${f.status==='error'?esc(f.msg)+' ':''}<button class="btn sm primary" id="fCreate">Create folder now</button>`;
   else msg = `This folder is created automatically when the job is marked Awarded.`;
   return `<div class="card"><h4>Job folder ${pill}</h4>
@@ -1048,6 +1082,7 @@ const IDB = {
   async set(k,v){ const db=await this.open(); return new Promise((res,rej)=>{ const t=db.transaction('h','readwrite'); t.objectStore('h').put(v,k); t.oncomplete=()=>res(); t.onerror=()=>rej(t.error); }); }
 };
 const safeName = s => String(s||'').replace(/[<>:"/\\|?*\x00-\x1f]/g,'-').replace(/\s+/g,' ').trim().replace(/[. ]+$/,'') || 'Unnamed job';
+if(typeof window.showDirectoryPicker !== 'function') document.documentElement.classList.add('nofs');
 const FileLayer = {
   connected: false, root: null, state: 'off',   // off | unsupported | needs-permission | on
   INTAKE: '_Intake', SYS: '_system', MAT_SUB: '04 Material Quotes & POs',
@@ -1395,7 +1430,7 @@ function renderIntakeBtn(){
 function connectBlock(){
   const s = FileLayer.state;
   if(s==='on') return `<div class="iconn ok">✓ Connected to <code>${esc(FileLayer.root.name==='Action Projects'?'Documents\\Action Projects':FileLayer.root.name)}</code>. Drop supplier PDFs in <code>Action Projects\\_Intake</code>. <button class="btn sm" id="iChange">Change folder</button></div>`;
-  if(s==='unsupported') return `<div class="iconn">This window can't reach folders. Open <b>Action Bid Tracker.html</b> straight from File Explorer in <b>Edge</b> or <b>Chrome</b>.</div>`;
+  if(s==='unsupported') return `<div class="iconn">PDF intake runs on your PC in <b>Chrome</b>, because it needs your <b>Documents\\Action Projects</b> folder. Phones and tablets can't reach that folder.</div>`;
   if(s==='needs-permission') return `<div class="iconn">The browser needs your OK again to use <code>Documents\\Action Projects</code>. <button class="btn primary sm" id="iConnect">Allow</button></div>`;
   return `<div class="iconn">Connect your <b>Documents\\Action Projects</b> folder once (Chrome and Edge won't allow Documents itself). Job folders and the <code>_Intake</code> drop folder live inside it. <button class="btn primary sm" id="iConnect">Connect Action Projects folder</button></div>`;
 }
