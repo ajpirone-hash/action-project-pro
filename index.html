@@ -228,11 +228,58 @@ header{padding-top:max(18px, env(safe-area-inset-top));padding-left:max(28px, en
 .syncpill{font-size:12px;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.14);color:#fff;white-space:nowrap}
 .syncpill::before{content:"●";margin-right:6px}
 .syncpill.ok::before{color:#5fd38d}.syncpill.busy::before{color:#e8a317}.syncpill.off::before{color:#ff8a7a}
-#login{background:linear-gradient(135deg,#0d1b2e,#1f4e79);z-index:40}
-#login .box{width:min(400px,94%);padding:26px 26px 20px}
-#login h2{margin:0 0 2px;font-size:22px}#login .sub{color:var(--muted);margin:0 0 16px}
-#login input{width:100%;box-sizing:border-box;margin-bottom:10px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:#fff}
-#lMsg{min-height:18px;color:var(--lost);margin:4px 0 10px;font-size:13px}
+/* sign-in screen */
+#login{display:none;position:fixed;inset:0;z-index:40;background:#f4f5f7;overflow:auto}
+#login.open{display:flex}
+.lg-hero{position:relative;overflow:hidden;flex:1.15;color:#fff;display:flex;flex-direction:column;justify-content:space-between;
+  padding:max(44px, env(safe-area-inset-top)) 56px 36px;background:linear-gradient(120deg,#0d1b2e 0%,#13294a 45%,#1b3a66 100%);border-right:5px solid #e8a317}
+.lg-hero::before{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(115deg,transparent 0 46px,rgba(255,255,255,.035) 46px 48px)}
+.lg-hero::after{content:"";position:absolute;top:0;bottom:0;right:-80px;width:55%;pointer-events:none;
+  background:linear-gradient(115deg,transparent 0 22%,rgba(232,163,23,.12) 22% 24.5%,transparent 24.5% 31%,rgba(255,255,255,.05) 31% 100%)}
+.lg-hero>*{position:relative;z-index:1}
+.lg-top{display:flex;align-items:center;gap:18px}
+.lg-top img{height:70px;filter:drop-shadow(0 3px 8px rgba(0,0,0,.4))}
+.lg-top .div{width:2px;align-self:stretch;background:linear-gradient(#e8a317,rgba(232,163,23,0))}
+.lg-hero .wm{font-size:34px}
+.lg-hero .tag{margin-top:8px}
+.lg-pitch h1{font:800 40px/1.12 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;margin:0 0 14px;max-width:520px;letter-spacing:-.5px}
+.lg-pitch h1 em{font-style:normal;color:#e8a317}
+.lg-pitch p{color:#c9d6e8;font-size:16px;max-width:480px;margin:0 0 22px}
+.lg-feats{display:grid;grid-template-columns:1fr 1fr;gap:10px 22px;max-width:520px;padding:0;margin:0;list-style:none}
+.lg-feats li{display:flex;gap:10px;align-items:center;font-weight:600;font-size:14px;color:#e6edf6}
+.lg-feats li i{font-style:normal;width:30px;height:30px;flex:none;display:grid;place-items:center;border-radius:8px;background:rgba(232,163,23,.16);border:1px solid rgba(232,163,23,.4)}
+.lg-foot{font-size:12px;color:#8fa3bd;letter-spacing:.3px}
+.lg-side{flex:1;display:flex;align-items:center;justify-content:center;padding:32px 24px max(32px, env(safe-area-inset-bottom))}
+.lg-card{width:min(400px,100%)}
+.lg-card h2{font:800 28px/1.15 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;margin:0 0 6px;letter-spacing:-.3px}
+.lg-card .sub{color:var(--muted);margin:0 0 26px;font-size:15px}
+.lg-field{margin-bottom:14px}
+.lg-field label{display:block;font-size:12px;font-weight:700;color:#3b4552;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.lg-in{position:relative}
+.lg-in input{width:100%;font-size:16px;border:1.5px solid #d5dae1;border-radius:10px;padding:12px 44px 12px 14px;background:#fff;transition:border-color .15s, box-shadow .15s}
+.lg-in input:focus{outline:none;border-color:#2c6aa3;box-shadow:0 0 0 4px rgba(44,106,163,.15)}
+.lg-eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:none;background:none;cursor:pointer;color:var(--muted);font-size:13px;font-weight:600;padding:8px}
+#lGo{width:100%;margin-top:6px;border:none;border-radius:10px;padding:14px;font-size:16px;font-weight:800;letter-spacing:.3px;cursor:pointer;
+  background:#e8a317;color:#0d1b2e;box-shadow:0 6px 18px rgba(232,163,23,.35);transition:transform .08s, background .15s}
+#lGo:hover{background:#f2b53a}#lGo:active{transform:translateY(1px)}
+.lg-link{display:block;text-align:center;margin-top:16px;color:#2c6aa3;font-weight:600;text-decoration:none}
+.lg-link:hover{text-decoration:underline}
+#lMsg{min-height:20px;margin:0 0 16px;font-size:14px;border-radius:9px}
+#lMsg:empty{display:none}
+#lMsg.err{background:#fdecea;color:#a12a1e;padding:10px 12px}
+#lMsg.ok{background:#e8f6ee;color:#17693b;padding:10px 12px}
+#lMsg.busy{color:var(--muted);display:flex;align-items:center;gap:10px;justify-content:center;padding:20px 0}
+#lMsg.busy::before{content:"";width:18px;height:18px;border-radius:50%;border:3px solid #d5dae1;border-top-color:#e8a317;animation:lgspin .8s linear infinite}
+@keyframes lgspin{to{transform:rotate(360deg)}}
+.lg-secure{margin-top:28px;padding-top:18px;border-top:1px solid #e2e5ea;color:var(--muted);font-size:12.5px;display:flex;gap:8px;align-items:flex-start}
+@media (max-width:860px){
+  #login.open{flex-direction:column}
+  .lg-hero{flex:none;border-right:none;border-bottom:4px solid #e8a317;padding:max(22px, env(safe-area-inset-top)) 20px 22px}
+  .lg-top img{height:44px} .lg-top{gap:12px} .lg-hero .wm{font-size:21px} .lg-hero .tag{font-size:9.5px;letter-spacing:1.4px}
+  .lg-pitch{margin-top:16px!important} .lg-pitch h1{font-size:22px;margin:0} .lg-pitch p{display:none} .lg-feats,.lg-foot{display:none}
+  .lg-side{align-items:flex-start;padding:26px 20px max(26px, env(safe-area-inset-bottom))}
+  .lg-card h2{font-size:24px} .lg-card .sub{margin-bottom:20px}
+}
 .cloudbanner[hidden]{display:none}
 .cloudbanner{background:#fff8e6;border:1px solid #f0d58a;border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .viewonly #btnNew,.viewonly #btnImport,.viewonly #btnIntake,.viewonly #sReset,.viewonly .btn.danger{display:none!important}
@@ -247,7 +294,7 @@ header{padding-top:max(18px, env(safe-area-inset-top));padding-left:max(28px, en
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span style="opacity:.6;font-weight:400">· v0.10 (works on iPhone)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span style="opacity:.6;font-weight:400">· v0.11 (new sign-in)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -280,13 +327,35 @@ header{padding-top:max(18px, env(safe-area-inset-top));padding-left:max(28px, en
   <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn" id="askNo">Cancel</button><button class="btn danger" id="askYes">Delete</button></div>
 </div></div>
 <div class="modal" id="intake"><div class="box" style="width:min(980px,96%)" id="intakeBox"></div></div>
-<div class="modal" id="login"><div class="box">
-  <h2>Action Project <span style="color:#e8a317">PRO</span></h2><p class="sub">Action Electrical &amp; Mechanical · sign in</p>
-  <div id="lForm"><input id="lEmail" type="email" placeholder="Email" autocomplete="username"><input id="lPass" type="password" placeholder="Password" autocomplete="current-password">
-  <button class="btn primary" id="lGo" style="width:100%">Sign in</button>
-  <p style="margin:12px 0 0;text-align:center"><a href="#" id="lReset">Forgot password / first time? Email me a link</a></p></div>
-  <div id="lMsg"></div>
-</div></div>
+<div id="login" role="dialog" aria-label="Sign in">
+  <section class="lg-hero">
+    <div>
+      <div class="lg-top"><img class="lgLogo" alt="Action Electrical &amp; Mechanical"><div class="div"></div>
+        <div><div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
+        <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors</div></div></div>
+      <div class="lg-pitch" style="margin-top:56px">
+        <h1>Every bid and every job, <em>in one place.</em></h1>
+        <p>Bids, revisions, change orders and job costs, kept in sync for the whole team, live.</p>
+        <ul class="lg-feats">
+          <li><i>📋</i>Bid builder &amp; revisions</li><li><i>🔁</i>Change orders</li>
+          <li><i>🧾</i>Material, labor &amp; travel</li><li><i>⚡</i>Live updates for the team</li>
+        </ul>
+      </div>
+    </div>
+    <div class="lg-foot">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
+  </section>
+  <section class="lg-side"><div class="lg-card">
+    <h2>Welcome back</h2><p class="sub">Sign in to see your jobs.</p>
+    <div id="lMsg"></div>
+    <div id="lForm">
+      <div class="lg-field"><label for="lEmail">Email</label><div class="lg-in"><input id="lEmail" type="email" placeholder="you@actioncontractors.com" autocomplete="username" autocapitalize="off" spellcheck="false"></div></div>
+      <div class="lg-field"><label for="lPass">Password</label><div class="lg-in"><input id="lPass" type="password" placeholder="Your password" autocomplete="current-password"><button type="button" class="lg-eye" id="lEye">Show</button></div></div>
+      <button id="lGo">Sign in</button>
+      <a href="#" class="lg-link" id="lReset">Forgot your password, or first time here?</a>
+    </div>
+    <div class="lg-secure"><span>🔒</span><span>Private to Action E&amp;M. Only people the owner has invited can sign in.</span></div>
+  </div></section>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1520,20 +1589,21 @@ const Cloud = {
   },
 
   /* ---------- sign-in screen ---------- */
-  login(msg='', busy=false){
+  login(msg='', busy=false, kind='err'){
     $('#login').classList.add('open');
-    $('#lMsg').textContent = msg; $('#lForm').style.display = busy ? 'none' : '';
+    $('#lMsg').textContent = msg; $('#lMsg').className = msg ? (busy ? 'busy' : kind) : '';
+    $('#lForm').style.display = busy ? 'none' : '';
   },
   async doSignIn(){
     const em = $('#lEmail').value.trim(), pw = $('#lPass').value;
     if(!em || !pw) return this.login('Enter your email and password.');
     this.login('Signing in…', true);
     try{ await this.auth.signInWithEmailAndPassword(em, pw); }
-    catch(e){ this.login(/wrong-password|invalid-credential|user-not-found|invalid-login/.test(e.code||e.message) ? 'That email and password don\'t match. Try again, or use "Forgot password".' : 'Could not sign in: '+(e.message||e)); }
+    catch(e){ this.login(/wrong-password|invalid-credential|user-not-found|invalid-login/.test(e.code||e.message) ? 'That email and password don\'t match. Try again, or tap "Forgot your password" below.' : 'Could not sign in: '+(e.message||e)); }
   },
   async doReset(){
-    const em = $('#lEmail').value.trim(); if(!em) return this.login('Type your email first, then click "Forgot password".');
-    try{ await this.auth.sendPasswordResetEmail(em); this.login('Check your email for a link to set a new password.'); }
+    const em = $('#lEmail').value.trim(); if(!em) return this.login('Type your email first, then tap "Forgot your password" again.');
+    try{ await this.auth.sendPasswordResetEmail(em); this.login('Check your email for a link to set your password. It can take a minute, and may land in spam.', false, 'ok'); }
     catch(e){ this.login('Could not send the email: '+(e.message||e)); }
   },
 
@@ -1714,6 +1784,9 @@ if(Cloud.on){
   new MutationObserver(()=>{ if(Cloud.ready && !Cloud.canEdit()) document.querySelectorAll('#drawer input,#drawer select,#drawer textarea,#grid select,#settingsBox input,#settingsBox select').forEach(el=>{ if(!el.disabled) el.disabled = true; }); })
     .observe(document.body, {childList:true, subtree:true});
   $('#lGo').onclick = ()=>Cloud.doSignIn();
+  document.querySelectorAll('#login .lgLogo').forEach(im=>im.src = document.querySelector('header .brand img').src);
+  $('#lEye').onclick = ()=>{ const p=$('#lPass'), show = p.type==='password'; p.type = show ? 'text' : 'password'; $('#lEye').textContent = show ? 'Hide' : 'Show'; };
+  $('#lEmail').onkeydown = e=>{ if(e.key==='Enter') $('#lPass').focus(); };
   $('#lPass').onkeydown = e=>{ if(e.key==='Enter') Cloud.doSignIn(); };
   $('#lReset').onclick = e=>{ e.preventDefault(); Cloud.doReset(); };
   $('#btnAccount').onclick = async ()=>{ if(await askSure('Sign out?', `You're signed in as ${Cloud.email}.`, 'Sign out')) Cloud.auth.signOut(); };
