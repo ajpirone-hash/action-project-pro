@@ -1,0 +1,1693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Action Project PRO</title>
+<style>
+:root{
+  --bg:#f4f5f7;--panel:#fff;--ink:#1d232b;--muted:#68717d;--line:#e2e5ea;
+  --brand:#1f4e79;--brand-2:#2c6aa3;
+  --est:#7a5af5;--sent:#d98a00;--won:#1f9d55;--lost:#c0392b;--nobid:#8a929c;
+  --hi:#c0392b;--norm:#2c6aa3;--low:#8a929c;
+  --r:10px;
+}
+*{box-sizing:border-box}
+body{margin:0;font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+button,input,select,textarea{font:inherit;color:inherit}
+header{position:relative;overflow:hidden;color:#fff;padding:18px 28px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  background:linear-gradient(100deg,#0d1b2e 0%,#13294a 45%,#1b3a66 100%);border-bottom:4px solid #e8a317}
+header::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(115deg,transparent 0 46px,rgba(255,255,255,.035) 46px 48px)}
+header::after{content:"";position:absolute;top:0;bottom:0;right:-60px;width:42%;pointer-events:none;
+  background:linear-gradient(115deg,transparent 0 22%,rgba(232,163,23,.10) 22% 24%,transparent 24% 30%,rgba(255,255,255,.05) 30% 100%)}
+header>*{position:relative;z-index:1}
+.brand{display:flex;align-items:center;gap:16px}
+.brand img{height:58px;width:auto;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))}
+.brand .div{width:2px;align-self:stretch;background:linear-gradient(#e8a317,rgba(232,163,23,0));margin:2px 2px}
+.wm{font-family:"Arial Black","Segoe UI Black",Impact,system-ui,sans-serif;font-style:italic;font-weight:900;font-size:28px;line-height:1;letter-spacing:.5px;text-transform:uppercase;display:flex;align-items:center;gap:10px}
+.wm .pro{font-style:normal;font-size:15px;letter-spacing:2px;background:#e8a317;color:#0d1b2e;padding:4px 9px 3px;border-radius:4px;transform:skewX(-12deg);box-shadow:0 2px 8px rgba(232,163,23,.35)}
+.wm .pro span{display:inline-block;transform:skewX(12deg)}
+.tag{margin-top:6px;font-size:11.5px;letter-spacing:2.2px;text-transform:uppercase;color:#c9d6e8;font-weight:600}
+.tag b{color:#fff;font-weight:700}
+.addr{margin-top:3px;font-size:11px;color:#8ea3bf;letter-spacing:.3px}
+header .sp{flex:1}
+@media(max-width:760px){.brand img{height:44px}.wm{font-size:21px}.addr{display:none}}
+.btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 12px;cursor:pointer;font-weight:550}
+.btn:hover{border-color:#b9c0c9}
+.btn.primary{background:var(--brand-2);border-color:var(--brand-2);color:#fff}
+.btn.primary:hover{background:#245a8c}
+header .btn{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.25);color:#fff}
+header .btn.primary{background:#e8a317;color:#0d1b2e;border-color:#e8a317;font-weight:700}
+header .btn.primary:hover{background:#f2b53a}
+.btn.sm{padding:4px 9px;font-size:12.5px}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+.btn.ghost:hover{color:var(--lost)}
+main{padding:20px 24px 60px;max-width:1500px;margin:0 auto}
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,260px));gap:12px;margin-bottom:18px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.kpi .l{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.kpi .v{font-size:24px;font-weight:650;margin-top:2px;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:12px;color:var(--muted)}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 12px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:6px}
+.chip .n{background:#eef0f3;border-radius:999px;padding:0 7px;font-size:12px;color:var(--muted)}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.chip.on .n{background:rgba(255,255,255,.2);color:#fff}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.search{margin-left:auto;border:1px solid var(--line);border-radius:8px;padding:7px 11px;min-width:240px;background:#fff}
+.sort{border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(285px,1fr));gap:14px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px 14px 12px;border-top:4px solid var(--c,#ccc);cursor:pointer;display:flex;flex-direction:column;gap:8px;transition:box-shadow .15s,transform .15s}
+.tile:hover{box-shadow:0 4px 16px rgba(20,30,50,.09);transform:translateY(-1px)}
+.tile .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sv{font-size:12px;color:var(--muted);font-weight:600;font-variant-numeric:tabular-nums}
+.pri{font-size:11px;font-weight:650;padding:1px 7px;border-radius:999px;border:1px solid currentColor}
+.tile h3{margin:0;font-size:15px;line-height:1.3;font-weight:650}
+.money{font-size:20px;font-weight:650;font-variant-numeric:tabular-nums}
+.meta{display:flex;gap:12px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.status-sel{border:1px solid var(--line);border-radius:7px;padding:5px 8px;font-weight:600;background:#fff;color:var(--c);width:100%;cursor:pointer}
+.prog{height:5px;border-radius:3px;background:#eceef2;overflow:hidden}
+.prog>i{display:block;height:100%;background:var(--c)}
+.awardrow{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;background:#f3faf6;border:1px solid #d5eedf;border-radius:8px;padding:8px}
+.awardrow b{display:block;font-size:14px;font-variant-numeric:tabular-nums}
+.locked-hint{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.empty{padding:40px;text-align:center;color:var(--muted);grid-column:1/-1}
+
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(15,20,30,.35);display:none;z-index:10}
+.scrim.open{display:block}
+.drawer{position:fixed;top:0;right:0;height:100%;width:min(1240px,100%);background:var(--bg);z-index:11;transform:translateX(100%);transition:transform .2s;display:flex;flex-direction:column;box-shadow:-8px 0 30px rgba(0,0,0,.12)}
+.drawer.open{transform:none}
+.dh{background:#fff;border-bottom:1px solid var(--line);padding:14px 20px;display:flex;align-items:center;gap:12px;border-top:5px solid var(--c)}
+.dh h2{margin:0;font-size:18px;flex:1}
+.db{overflow:auto;padding:16px 20px 40px;display:flex;flex-direction:column;gap:14px}
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;position:relative}
+.card h4{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);display:flex;align-items:center;gap:8px}
+.form{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px 14px}
+.f label{display:block;font-size:11.5px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px}
+.f input,.f select,.f textarea{width:100%;border:1px solid var(--line);border-radius:7px;padding:6px 9px;background:#fff}
+.f input:focus,.f select:focus,.f textarea:focus{outline:2px solid #bcd6ef;border-color:var(--brand-2)}
+.f.wide{grid-column:1/-1}
+.f .ro{padding:6px 0;font-weight:650;font-variant-numeric:tabular-nums}
+.lockwrap{position:relative}
+.lockwrap.locked .lockbody{filter:blur(1.5px) grayscale(.6);opacity:.45;pointer-events:none;user-select:none}
+.lockover{display:none;position:absolute;inset:0;align-items:flex-start;justify-content:center;padding-top:60px;z-index:2}
+.lockwrap.locked .lockover{display:flex}
+.lockbox{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 22px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.1);max-width:380px}
+.lockbox .ic{font-size:26px}
+.lockbox p{margin:6px 0 12px;color:var(--muted)}
+.fin{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.fin div{background:#f7f8fa;border-radius:8px;padding:8px 10px}
+.fin span{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+.fin b{font-size:16px;font-variant-numeric:tabular-nums}
+.fin .rem{background:#eef7f1}
+.fin .rem.neg{background:#fdeeee}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:4px 0 10px}
+.tab{padding:7px 12px;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);font-weight:600}
+.tab.on{color:var(--ink);border-bottom-color:var(--brand-2)}
+.tab .n{font-size:11px;background:#eef0f3;border-radius:999px;padding:0 6px;margin-left:4px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;font-weight:650;padding:6px;border-bottom:1px solid var(--line)}
+td{padding:6px;border-bottom:1px solid #f0f1f4;vertical-align:top}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.tscroll{overflow-x:auto}
+.addform{margin-top:10px;background:#f7f9fc;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.addhead{font-size:12px;font-weight:700;color:var(--brand);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+.addgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px 12px;align-items:end}
+.addgrid input,.addgrid select{width:100%;border:1px solid var(--line);border-radius:7px;padding:6px 8px;background:#fff}
+.addbtn button{width:100%}
+select.inl{width:auto;max-width:none}
+td:has(select.inl){white-space:nowrap}
+tfoot td{font-weight:650;border-top:1px solid var(--line)}
+.folder{display:flex;gap:12px;align-items:flex-start}
+.folder code{background:#f3f4f6;padding:2px 6px;border-radius:5px;font-size:12.5px}
+.folder ul{margin:6px 0 0;padding-left:18px;color:var(--muted);font-size:12.5px;columns:2}
+.pill{font-size:11px;font-weight:650;border-radius:999px;padding:2px 8px;background:#fff4d6;color:#8a6100}
+.pill.ok{background:#e3f5ea;color:#17703c}
+.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:20;background:rgba(15,20,30,.35)}
+.modal.open{display:flex}
+.modal .box{background:#fff;border-radius:12px;width:min(640px,94%);max-height:90vh;overflow:auto;padding:18px 20px}
+.modal h3{margin:0 0 12px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:9px 16px;border-radius:8px;opacity:0;transition:opacity .2s;z-index:30;pointer-events:none}
+.toast.show{opacity:1}
+.note{font-size:12px;color:var(--muted)}
+.trashchip{margin-left:6px}
+.tile.trash{cursor:default}
+.tile.trash:hover{transform:none}
+.pill.warn{background:#fdeeee;color:var(--lost)}
+.trashnote{grid-column:1/-1;font-size:13px;color:var(--muted);background:#fff;border:1px dashed var(--line);border-radius:8px;padding:8px 12px}
+.pill.co{background:#fff1d6;color:#8a5a00}
+tr.linked td{background:#fffaf0}
+.jtabs{display:flex;gap:6px;flex-wrap:wrap;align-items:center;background:#fff;border-bottom:1px solid var(--line);padding:8px 20px}
+.jtab{display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:#f7f8fa;border-radius:8px 8px 0 0;padding:6px 12px;cursor:pointer;font-weight:600;font-size:13px;border-bottom:3px solid transparent}
+.jtab.on{background:#fff;border-bottom-color:var(--c);box-shadow:0 2px 6px rgba(0,0,0,.06)}
+.jtab .amt{font-weight:500;color:var(--muted);font-size:12px}
+.jsum{margin-left:auto;font-size:12.5px;color:var(--muted);font-weight:600}
+.pklist{max-height:320px;overflow:auto;margin-top:10px;display:flex;flex-direction:column;gap:4px}
+.pkitem{display:flex;align-items:center;gap:8px;text-align:left;border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 10px;cursor:pointer}
+.pkitem .note{margin-left:auto}
+.pkitem.on{border-color:var(--brand-2);background:#eef4fb}
+.revbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:#f3f6fb;border:1px solid #d6e2f1;border-radius:8px;padding:8px 12px;margin-bottom:8px}
+.revcur{font-weight:800;color:var(--brand);font-size:14px}
+.revtag{color:var(--brand);font-weight:700}
+.revlist{display:flex;flex-direction:column;gap:10px;max-height:62vh;overflow:auto}
+.revitem{border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.revitem .rh{display:flex;gap:8px;align-items:center}
+.revitem .rt{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums}
+.revitem .rn{font-size:13px;margin:4px 0 6px;color:#3b4552}
+.up{color:var(--lost);font-size:12px}.down{color:var(--won);font-size:12px}
+table.rc{font-size:12px}table.rc td,table.rc th{padding:3px 6px}
+.btn.danger{background:var(--lost);border-color:var(--lost);color:#fff}
+.btn.danger:hover{background:#a5301f}
+#ask{z-index:40}
+.pill.fed{background:#e6eefb;color:#1f4e79}
+.bb{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
+@media(max-width:1100px){.bb{grid-template-columns:1fr}}
+.bb>div:first-child{min-width:0}
+
+.bb table{font-size:12.5px}
+.sum{background:#f7f8fa;border-radius:10px;padding:12px 14px;position:sticky;top:0}
+.sum .r{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0;font-size:13px}
+.sum .r b{font-variant-numeric:tabular-nums}
+.sum .r.t{border-top:1px solid var(--line);margin-top:4px;padding-top:7px}
+.sum .r.big{border-top:2px solid var(--ink);margin-top:6px;padding-top:8px;font-size:15px}
+.sum .r.big b{font-size:19px}
+.sum .pct{width:52px;border:1px solid var(--line);border-radius:5px;padding:1px 4px;text-align:right;margin-left:4px}
+.sum .sh{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--brand);margin:10px 0 2px}
+.sum .sh:first-child{margin-top:0}
+.fedbox{margin-top:10px;background:#e9f0fa;border:1px solid #cfdcef;border-radius:8px;padding:9px 10px;font-size:12px;line-height:1.4}
+.fedbox .r{font-size:12.5px}
+.bondd{font-size:11.5px;color:var(--muted);padding:0 0 4px 10px}
+.bondd div{display:flex;justify-content:space-between}
+select.inl{border:1px solid var(--line);border-radius:5px;padding:2px 4px;background:#fff;font-size:12.5px}
+.fedq{margin-top:14px;background:#f3f6fb;border:1px solid #d6e2f1;border-radius:10px;padding:12px 14px}
+.yn{display:flex;gap:18px;margin-top:8px}
+.yn label{display:flex;gap:6px;align-items:center;cursor:pointer;font-weight:600}
+.ibadge{background:#eef0f3;color:#1f2937;border-radius:999px;padding:0 7px;font-size:12px;margin-left:2px}
+.ibadge.need{background:#e8a317;color:#fff}
+.iconn{background:#f3f6fb;border:1px solid #d6e2f1;border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.6}
+.iconn.ok{background:#eef8f1;border-color:#cbe8d5}
+.iconn code,.folder code{background:#f3f4f6;padding:1px 5px;border-radius:4px;font-size:12px}
+
+/* ---- shared web app ---- */
+.syncpill{font-size:12px;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.14);color:#fff;white-space:nowrap}
+.syncpill::before{content:"●";margin-right:6px}
+.syncpill.ok::before{color:#5fd38d}.syncpill.busy::before{color:#e8a317}.syncpill.off::before{color:#ff8a7a}
+#login{background:linear-gradient(135deg,#0d1b2e,#1f4e79);z-index:40}
+#login .box{width:min(400px,94%);padding:26px 26px 20px}
+#login h2{margin:0 0 2px;font-size:22px}#login .sub{color:var(--muted);margin:0 0 16px}
+#login input{width:100%;box-sizing:border-box;margin-bottom:10px}
+#lMsg{min-height:18px;color:var(--lost);margin:4px 0 10px;font-size:13px}
+.cloudbanner[hidden]{display:none}
+.cloudbanner{background:#fff8e6;border:1px solid #f0d58a;border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.viewonly #btnNew,.viewonly #btnImport,.viewonly #btnIntake,.viewonly #sReset,.viewonly .btn.danger{display:none!important}
+.cloud #sReset{display:none!important}
+.viewonly #drawer .btn.primary{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <img src="data:image/png;base64,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" alt="Action Electrical &amp; Mechanical Contractors">
+    <div class="div"></div>
+    <div>
+      <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span style="opacity:.6;font-weight:400">· v0.9 (shared web app)</span></div>
+      <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
+    </div>
+  </div>
+  <div class="sp"></div>
+  <span id="syncPill" class="syncpill" hidden></span>
+  <button class="btn" id="btnAccount" hidden></button>
+  <button class="btn" id="btnIntake">📥 PDF intake</button>
+  <button class="btn" id="btnSettings">Rates &amp; settings</button>
+  <button class="btn" id="btnExport">Export backup</button>
+  <button class="btn" id="btnImport">Import backup</button>
+  <input type="file" id="fileImport" accept="application/json" hidden>
+  <button class="btn primary" id="btnNew">+ New bid</button>
+</header>
+
+<main>
+  <div class="cloudbanner" id="cloudBanner" hidden><b>Your shared workspace is empty.</b> <span>In your old copy of Action Project PRO click <b>Export backup</b>, then come back here and load that file.</span> <button class="btn primary sm" id="cbImport">Import backup</button></div>
+  <section class="kpis" id="kpis"></section>
+  <div class="bar" id="bar"></div>
+  <section class="grid" id="grid"></section>
+</main>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true"></aside>
+
+<div class="modal" id="newBid"><div class="box" id="newBox"></div></div>
+<div class="modal" id="settings"><div class="box" id="settingsBox"></div></div>
+<div class="modal" id="pick"><div class="box" style="width:min(520px,94%)" id="pickBox"></div></div>
+<div class="modal" id="ask"><div class="box" style="width:min(420px,94%)">
+  <h3 id="askTitle">Are you sure?</h3><p id="askMsg" style="margin:0 0 18px;color:var(--muted)"></p>
+  <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn" id="askNo">Cancel</button><button class="btn danger" id="askYes">Delete</button></div>
+</div></div>
+<div class="modal" id="intake"><div class="box" style="width:min(980px,96%)" id="intakeBox"></div></div>
+<div class="modal" id="login"><div class="box">
+  <h2>Action Project <span style="color:#e8a317">PRO</span></h2><p class="sub">Action Electrical &amp; Mechanical · sign in</p>
+  <div id="lForm"><input id="lEmail" type="email" placeholder="Email" autocomplete="username"><input id="lPass" type="password" placeholder="Password" autocomplete="current-password">
+  <button class="btn primary" id="lGo" style="width:100%">Sign in</button>
+  <p style="margin:12px 0 0;text-align:center"><a href="#" id="lReset">Forgot password / first time? Email me a link</a></p></div>
+  <div id="lMsg"></div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ==========================================================================
+   DATA LAYER
+   Everything the UI reads or writes goes through `Store`, and Store persists
+   through a pluggable adapter. Today: LocalAdapter (browser storage).
+   Later: swap in a GoogleDriveAdapter or LocalFolderAdapter with the same
+   load()/save() shape. No UI code has to change.
+   ========================================================================== */
+const SEED = [];
+
+const DEFAULT_SETTINGS = {
+  otMultiplier: 1.5,
+  insuranceTaxes: 0.27,      // added on top of wages
+  hotelRate: 200,
+  perDiem: 75,
+  rootFolder: 'Documents/Action Projects',
+  // Recap defaults (from the 2026 RECAP template). Each bid can override them.
+  recap: { consumablesPerMH: 3, salesTax: 8.9, matOP: 20, labOP: 20, subOP: 20, cleanup: 0, toolTruckPerDay: 100 },
+  laborRates: [
+    {cls:'Project Manager / Supervision', st:131.60, hw:17.51},
+    {cls:'General Foreman',  st:46.73, hw:17.51},
+    {cls:'Foreman',          st:45.48, hw:17.51},
+    {cls:'Journeyman',       st:43.23, hw:17.51},
+    {cls:'Helper',           st:16.00, hw:2.70},
+    {cls:'1st Yr Apprentice',st:null, pctJ:0.50, hw:11.55},
+    {cls:'2nd Yr Apprentice',st:null, pctJ:0.55, hw:11.55},
+    {cls:'3rd Yr Apprentice',st:null, pctJ:0.60, hw:11.55},
+    {cls:'4th Yr Apprentice',st:null, pctJ:0.70, hw:11.55},
+    {cls:'5th Yr Apprentice',st:null, pctJ:0.80, hw:11.55},
+  ]
+};
+
+const LocalAdapter = {
+  key: 'actionem.bidtracker.v1',
+  mem: null,
+  load(){
+    try{ const s = localStorage.getItem(this.key); return s ? JSON.parse(s) : null; }
+    catch(e){ return this.mem; }
+  },
+  save(data){
+    try{ localStorage.setItem(this.key, JSON.stringify(data)); }
+    catch(e){ this.mem = data; }
+  }
+};
+
+/* Fills in any field a job is missing, so older saved data and backups keep working. */
+function normalizeJob(j){
+  const s = (typeof Store!=='undefined' && Store.settings) || DEFAULT_SETTINGS;
+  return Object.assign({sv:'', name:'', priority:'Normal', estStatus:'Not Started', startDate:'', sentDate:'', pct:0, notes:'',
+    bidTotal:0, bidStatus:'Estimating', awardDate:'', federal:false, parentId:null, revisions:[], bidBond:{req:'No', pct:20},
+    changeOrders:[], materials:[], materialItems:[], labor:[], travel:[],
+    quotes:[], subs:[], rentals:[], estLabor:[], estOther:[],
+    markup:{}}, j, {markup: Object.assign({}, s.recap, j.markup||{})});
+}
+const Store = {
+  jobs: [], settings: null, trash: [],
+  init(saved = LocalAdapter.load()){
+    if(saved){ this.jobs = saved.jobs; this.settings = Object.assign(structuredClone(DEFAULT_SETTINGS), saved.settings); }
+    else { this.jobs = structuredClone(SEED); this.settings = structuredClone(DEFAULT_SETTINGS); }
+    this.trash = (saved && saved.trash) || [];
+    this.intake = Object.assign({assign:{}, filed:[]}, saved && saved.intake);
+    this.jobs = this.jobs.map(normalizeJob); this.purgeTrash(); this.save();
+  },
+  intake: {assign:{}, filed:[]},
+  save(){ if(typeof Cloud!=='undefined' && Cloud.on) Cloud.save(); else LocalAdapter.save({version:1, savedAt:new Date().toISOString(), jobs:this.jobs, settings:this.settings, trash:this.trash, intake:this.intake}); if(typeof FileLayer!=='undefined') FileLayer.scheduleIndex(); },
+  /* Recently deleted: items stay 30 days, then are removed for good. */
+  TRASH_DAYS: 30,
+  trashJob(j){ this.jobs.forEach(x=>{ if(x.parentId===j.id) x.parentId=null; }); this.jobs = this.jobs.filter(x=>x.id!==j.id); this.trash.unshift({tid:'t'+Date.now()+Math.random().toString(36).slice(2,6), kind:'job', deletedAt:Date.now(), job:j}); this.save(); },
+  trashLine(j, L, idx){ const row = j[L.key].splice(idx,1)[0]; this.trash.unshift({tid:'t'+Date.now()+Math.random().toString(36).slice(2,6), kind:'line', deletedAt:Date.now(), jobId:j.id, jobName:j.name, sv:j.sv, key:L.key, label:L.label, row}); this.save(); },
+  daysLeft(it){ return Math.max(0, Math.ceil(this.TRASH_DAYS - (Date.now()-it.deletedAt)/864e5)); },
+  purgeTrash(){ const cut = Date.now() - this.TRASH_DAYS*864e5; this.trash = this.trash.filter(it=>it.deletedAt > cut); },
+  restore(tid){
+    const it = this.trash.find(x=>x.tid===tid); if(!it) return 'gone';
+    if(it.kind==='job'){ if(this.get(it.job.id)) it.job.id += '-restored'; this.jobs.unshift(normalizeJob(it.job)); }
+    else { const j = this.get(it.jobId); if(!j) return 'nojob'; j[it.key].push(it.row); }
+    this.trash = this.trash.filter(x=>x.tid!==tid); this.save(); return 'ok';
+  },
+  forget(tid){ this.trash = this.trash.filter(x=>x.tid!==tid); this.save(); },
+  get(id){ return this.jobs.find(j=>j.id===id); }
+};
+
+/* ==========================================================================
+   CALCULATIONS (mirror the formulas in PLUMBING CONSTRUCTION.xlsm)
+   ========================================================================== */
+function rateFor(cls){
+  const s = Store.settings, r = s.laborRates.find(x=>x.cls===cls);
+  if(!r) return {st:0,ot:0,hw:0};
+  let st = r.st;
+  if(st==null){ const j = s.laborRates.find(x=>x.cls==='Journeyman'); st = (r.pctJ||0)*(j?j.st:0); }
+  return {st, ot: st*s.otMultiplier, hw: r.hw||0};
+}
+function laborLine(l){
+  const r = rateFor(l.cls), wage = l.timeType==='Overtime' ? r.ot : r.st, h = +l.hours||0;
+  return {wage, hw:r.hw, cost: h*wage*(1+Store.settings.insuranceTaxes) + h*r.hw};
+}
+function travelLine(t){
+  const s = Store.settings, hotel=(+t.nights||0)*s.hotelRate, pd=(+t.days||0)*s.perDiem;
+  return {hotel, pd, total: hotel+pd};
+}
+/* Payment & performance bond – same formula as the CALCULATION sheet in the
+   2026 RECAP workbook:
+     2.5% on the first $100k, 1.5% from $100k to $500k, 1.0% above $500k,
+     each tier grossed up by its own rate (x1.025 / x1.015 / x1.01).
+   $200,000 -> 2,500 + 1,560 + 0 = 4,060                                      */
+const MILLER_ACT = 150000;   // federal bonds (and the premium) only apply above this
+const bondApplies = (j, amount) => j.federal && amount > MILLER_ACT;
+function bondFor(B){
+  B = +B||0; if(B<=0) return {lines:[], total:0};
+  const t1 = B<=100000 ? 0.025*B*1.025 : 2500;
+  const t2 = B<=100000 ? 0 : (B<=500000 ? (B-100000)*0.015*1.015 + 2500*0.015 : 6000);
+  const t3 = B>500000 ? (B-500000)*0.01*1.01 + 8500*0.01 : 0;
+  const lines = [{label:'Amount at 2.5%', amt:t1},{label:'Amount at 1.5%', amt:t2},{label:'Amount at 1.0%', amt:t3}];
+  return {lines, total:t1+t2+t3};
+}
+
+/* Bid build-up – follows the Install Recap sheet:
+   I.   Material: supplier quotes + consumables ($/MH) + sales tax, then O&P
+   II.  Labor: hours x rate, H&W, insurance & taxes, clean-up
+   III. Job expenses: tool & truck ($/day per foreman) + other expenses
+        (labor + expenses) get O&P
+   IV.  Subcontracts: Action depts at cost, outside subs + O&P
+   Total less bond -> + bond (federal) -> total with bond                     */
+function rentalLine(r){ return (+r.qty||1)*(+r.rate||0)*(+r.dur||0) + (+r.freight||0); }
+const FOREMAN = new Set(['General Foreman','Foreman']);
+function bidBuild(j){
+  const m = j.markup, s = Store.settings;
+  const q = j.quotes.filter(x=>x.use!=='No');
+  const equip = q.filter(x=>x.cat==='Equipment').reduce((a,x)=>a+(+x.amount||0),0);
+  const pvf   = q.filter(x=>x.cat!=='Equipment').reduce((a,x)=>a+(+x.amount||0),0);
+  const hwHours = j.estLabor.filter(l=>l.cls!=='Helper').reduce((a,l)=>a+(+l.hours||0),0);
+  const consumables = (+m.consumablesPerMH||0) * hwHours;
+  const matSub = equip + pvf + consumables, tax = matSub*(+m.salesTax||0)/100;
+  const matCost = matSub + tax, matOP = matCost*(+m.matOP||0)/100, matPrice = matCost + matOP;
+
+  const hours = j.estLabor.reduce((a,l)=>a+(+l.hours||0),0);
+  const labBase = j.estLabor.reduce((a,l)=>a+laborLine(l).cost,0);
+  const cleanup = labBase*(+m.cleanup||0)/100, labCost = labBase + cleanup;
+
+  const fmHours = j.estLabor.filter(l=>FOREMAN.has(l.cls)).reduce((a,l)=>a+(+l.hours||0),0);
+  const toolTruck = fmHours/8*(+m.toolTruckPerDay||0);
+  const otherExp = j.estOther.reduce((a,o)=>a+(+o.amount||0),0);
+  const expenses = toolTruck + otherExp;
+  const labExpOP = (labCost+expenses)*(+m.labOP||0)/100;
+  const labExpPrice = labCost + expenses + labExpOP;
+
+  const sel = j.subs.filter(x=>x.status==='Selected');
+  const actionDepts = sel.filter(x=>x.type==='Action dept').reduce((a,x)=>a+(+x.amount||0),0);
+  const outside = sel.filter(x=>x.type!=='Action dept').reduce((a,x)=>a+(+x.amount||0),0);
+  const rentals = j.rentals.filter(x=>x.use!=='No').reduce((a,x)=>a+rentalLine(x),0);
+  const subOP = (outside+rentals)*(+m.subOP||0)/100, subPrice = actionDepts + outside + rentals + subOP;
+
+  const price = matPrice + labExpPrice + subPrice;
+  const bond = bondApplies(j, price) ? bondFor(price) : {lines:[], total:0};
+  return {equip, pvf, consumables, tax, matCost, matOP, matPrice, hours, labCost, cleanup, toolTruck, otherExp, expenses, labExpOP, labExpPrice,
+          actionDepts, outside, rentals, subOP, subPrice, price, bond, suggested: price + bond.total,
+          // simple rollups used by the tab footers
+          mat: equip+pvf, subs: actionDepts+outside, lab: labCost, other: expenses};
+}
+/* Linked change orders: a job can be attached to another job as a change
+   order (job.parentId). It keeps its own bid builder; its bid total rolls into
+   the parent's CO total, with its status mapped to a CO status.             */
+const childrenOf = id => Store.jobs.filter(x=>x.parentId===id);
+const parentOf = j => j.parentId ? Store.get(j.parentId) : null;
+const isChild = j => !!parentOf(j);
+const topJobs = () => Store.jobs.filter(j=>!isChild(j));
+const coStatus = k => k==='Awarded' ? 'Approved' : (k==='Lost'||k==='No Bid') ? 'Rejected' : 'Pending';
+function totals(j){
+  const co   = j.changeOrders.filter(c=>c.status!=='Rejected').reduce((a,c)=>a+(+c.amount||0),0)
+             + childrenOf(j.id).filter(c=>coStatus(c.bidStatus)!=='Rejected').reduce((a,c)=>a+(+c.bidTotal||0),0);
+  const mat  = j.materials.reduce((a,m)=>a+(+m.cost||0),0);
+  const lh   = j.labor.reduce((a,l)=>a+(+l.hours||0),0);
+  const lab  = j.labor.reduce((a,l)=>a+laborLine(l).cost,0);
+  const trav = j.travel.reduce((a,t)=>a+travelLine(t).total,0);
+  const revised = (+j.bidTotal||0) + co;
+  // federal jobs: the bond premium is a real cost against the contract
+  const bond = bondApplies(j, revised) ? bondFor(revised).total : 0;
+  return {co, revised, mat, lh, lab, trav, bond, remaining: revised-mat-lab-trav-bond};
+}
+
+/* ==========================================================================
+   UI
+   ========================================================================== */
+const STATUSES = [
+  {k:'Estimating', c:'var(--est)',  d:'Working up the number'},
+  {k:'Bid Sent',   c:'var(--sent)', d:'Submitted, waiting to hear back'},
+  {k:'Awarded',    c:'var(--won)',  d:'Approved – job tracking unlocked'},
+  {k:'Lost',       c:'var(--lost)', d:'Went to someone else'},
+  {k:'No Bid',     c:'var(--nobid)',d:'Declined / deferred'},
+];
+const sColor = k => (STATUSES.find(s=>s.k===k)||{}).c || '#999';
+const PRI = {High:'var(--hi)',Normal:'var(--norm)',Low:'var(--low)'};
+const $ = s => document.querySelector(s);
+const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money = (n,dec=0) => (n<0?'-':'') + '$' + Math.abs(+n||0).toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec});
+const fdate = s => s ? new Date(s+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—';
+const today = () => new Date().toISOString().slice(0,10);
+/* In-page "Are you sure?" box (browser confirm() pop-ups can be blocked). */
+function askSure(title, msg, yesLabel='Delete'){
+  return new Promise(res=>{
+    $('#askTitle').textContent = title; $('#askMsg').textContent = msg; $('#askYes').textContent = yesLabel;
+    const m = $('#ask'); m.classList.add('open'); setTimeout(()=>$('#askNo').focus(),30);
+    const done = v=>{ m.classList.remove('open'); m.onclick=null; document.removeEventListener('keydown',key,true); res(v); };
+    const key = e=>{ if(e.key==='Escape'){ e.stopPropagation(); done(false); } };
+    document.addEventListener('keydown',key,true);
+    $('#askYes').onclick = ()=>done(true); $('#askNo').onclick = ()=>done(false);
+    m.onclick = e=>{ if(e.target===m) done(false); };
+  });
+}
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2200); }
+
+let filter = 'Active', query = '', sortBy = 'recent', openId = null, openTab = 'co';
+
+function renderKPIs(){
+  const J = topJobs();
+  const by = k => J.filter(j=>j.bidStatus===k);
+  const sum = a => a.reduce((x,j)=>x+(+j.bidTotal||0),0);
+  const won = by('Awarded'), lost = by('Lost'), sent = by('Bid Sent');
+  const decided = won.length + lost.length;
+  const backlog = won.reduce((a,j)=>a+totals(j).remaining,0);
+  $('#kpis').innerHTML = [
+    ['Estimating', by('Estimating').length, 'bids being worked up'],
+  ].map(([l,v,s])=>`<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${s}</div></div>`).join('');
+}
+
+function renderBar(){
+  const J = topJobs(), cnt = k => J.filter(j=>j.bidStatus===k).length;
+  const active = J.filter(j=>['Estimating','Bid Sent','Awarded'].includes(j.bidStatus)).length;
+  const chips = [['Active',null,active],['All',null,J.length],...STATUSES.map(s=>[s.k,s.c,cnt(s.k)])];
+  $('#bar').innerHTML = chips.map(([k,c,n])=>`<button class="chip ${filter===k?'on':''}" data-f="${k}">${c?`<span class="dot" style="background:${c}"></span>`:''}${k}<span class="n">${n}</span></button>`).join('')
+    + `<button class="chip trashchip ${filter==='Trash'?'on':''}" data-f="Trash">🗑 Recently deleted<span class="n">${Store.trash.length}</span></button>`
+    + `<input class="search" id="q" placeholder="Search job name or SV #" value="${esc(query)}">`
+    + `<select class="sort" id="sort"><option value="recent">Newest first</option><option value="value">Bid value</option><option value="name">Job name</option><option value="priority">Priority</option></select>`;
+  $('#sort').value = sortBy;
+  $('#bar').querySelectorAll('.chip').forEach(b=>b.onclick=()=>{filter=b.dataset.f; render();});
+  $('#q').oninput = e=>{query=e.target.value; renderGrid();};
+  $('#sort').onchange = e=>{sortBy=e.target.value; renderGrid();};
+}
+
+function visibleJobs(){
+  let J = (query.trim() ? Store.jobs : topJobs()).slice();
+  if(filter==='Active') J = J.filter(j=>['Estimating','Bid Sent','Awarded'].includes(j.bidStatus));
+  else if(filter!=='All') J = J.filter(j=>j.bidStatus===filter);
+  const q = query.trim().toLowerCase();
+  if(q) J = J.filter(j=>(j.name+' '+j.sv).toLowerCase().includes(q));
+  const pr = {High:0,Normal:1,Low:2};
+  const cmp = {
+    recent:(a,b)=>(b.startDate||'').localeCompare(a.startDate||''),
+    value:(a,b)=>(+b.bidTotal||0)-(+a.bidTotal||0),
+    name:(a,b)=>a.name.localeCompare(b.name),
+    priority:(a,b)=>(pr[a.priority]??1)-(pr[b.priority]??1),
+  }[sortBy];
+  return J.sort(cmp);
+}
+
+function tileHTML(j){
+  const c = sColor(j.bidStatus), t = totals(j), awarded = j.bidStatus==='Awarded';
+  return `<article class="tile" style="--c:${c}" data-id="${esc(j.id)}">
+    <div class="top"><span class="sv">${esc(j.sv)||'No SV # yet'}${j.revisions.length?` · <span class="revtag">${revName(j.revisions.length-1)}</span>`:''}</span>
+      <span style="display:flex;gap:4px">${j.federal?'<span class="pill fed">Federal</span>':''}<span class="pri" style="color:${PRI[j.priority]||'#888'}">${esc(j.priority)}</span></span></div>
+    <h3>${esc(j.name)}</h3>
+    ${childrenOf(j.id).length?`<div><span class="pill co">+${childrenOf(j.id).length} change order${childrenOf(j.id).length>1?'s':''}</span></div>`:''}
+    ${isChild(j)?`<div><span class="pill co">Change order of ${esc(parentOf(j).name)}</span></div>`:''}
+    <div class="money">${j.bidTotal?money(j.bidTotal):'<span class="note">No bid total yet</span>'}</div>
+    <div class="meta"><span>Started ${fdate(j.startDate)}</span><span>Sent ${fdate(j.sentDate)}</span></div>
+    ${j.bidStatus==='Estimating' ? `<div><div class="meta" style="justify-content:space-between"><span>Estimate</span><span>${j.pct||0}%</span></div><div class="prog"><i style="width:${j.pct||0}%"></i></div></div>`:''}
+    ${awarded ? `<div class="awardrow"><div>Revised total<b>${money(t.revised)}</b></div><div>Remaining<b style="color:${t.remaining<0?'var(--lost)':'var(--won)'}">${money(t.remaining)}</b></div></div>`
+              : `<div class="locked-hint">🔒 Job tracking unlocks when Awarded</div>`}
+    <select class="status-sel" data-status="${esc(j.id)}" title="Bid status">
+      ${STATUSES.map(s=>`<option ${s.k===j.bidStatus?'selected':''}>${s.k}</option>`).join('')}
+    </select>
+  </article>`;
+}
+
+function trashHTML(){
+  if(!Store.trash.length) return `<div class="empty">Nothing here. Deleted jobs and lines stay here for ${Store.TRASH_DAYS} days so you can restore them.</div>`;
+  return `<div class="trashnote">Deleted items stay here for ${Store.TRASH_DAYS} days, then they are removed for good.</div>` + Store.trash.map(it=>{
+    const d = Store.daysLeft(it), when = new Date(it.deletedAt).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+    const title = it.kind==='job' ? esc(it.job.name) : esc(it.label.replace(/s$/,'')) + ' line';
+    const sub = it.kind==='job' ? `${esc(it.job.sv)||'No SV #'} · ${esc(it.job.bidStatus)} · ${it.job.bidTotal?money(it.job.bidTotal):'no bid total'}`
+      : `From ${esc(it.jobName)}${it.sv?' ('+esc(it.sv)+')':''} · ${esc(Object.values(it.row).filter(v=>v!==''&&v!=null).slice(0,3).join(' · '))}`;
+    return `<article class="tile trash" style="--c:var(--nobid)">
+      <div class="top"><span class="sv">${it.kind==='job'?'Job':'Line item'} · deleted ${when}</span><span class="pill ${d<=5?'warn':''}">${d} day${d===1?'':'s'} left</span></div>
+      <h3>${title}</h3><div class="meta">${sub}</div>
+      <div style="display:flex;gap:8px;margin-top:4px"><button class="btn primary sm" data-restore="${it.tid}">Restore</button><button class="btn sm" data-forget="${it.tid}" style="color:var(--lost)">Delete forever</button></div>
+    </article>`;}).join('');
+}
+function renderGrid(){
+  if(filter==='Trash'){
+    $('#grid').innerHTML = trashHTML();
+    $('#grid').querySelectorAll('[data-restore]').forEach(b=>b.onclick=()=>{
+      const r = Store.restore(b.dataset.restore);
+      if(r==='nojob'){ toast('The job this line came from was deleted. Restore the job first.'); return; }
+      render(); toast('Restored');
+    });
+    $('#grid').querySelectorAll('[data-forget]').forEach(b=>b.onclick=async ()=>{
+      if(!await askSure('Delete forever?','This item will be removed for good and cannot be restored.','Delete forever')) return;
+      Store.forget(b.dataset.forget); render(); toast('Deleted forever');
+    });
+    return;
+  }
+  const J = visibleJobs();
+  $('#grid').innerHTML = J.length ? J.map(tileHTML).join('') : `<div class="empty">No jobs match this view.</div>`;
+  $('#grid').querySelectorAll('.tile').forEach(el=>el.onclick=e=>{ if(e.target.closest('select')) return; openJob(el.dataset.id); });
+  $('#grid').querySelectorAll('[data-status]').forEach(sel=>sel.onchange=e=>setStatus(sel.dataset.status, e.target.value));
+}
+
+function render(){ renderKPIs(); renderBar(); renderGrid(); }
+
+async function setStatus(id, status){
+  const j = Store.get(id), was = j.bidStatus;
+  if(status==='Bid Sent' && !(+j.bidTotal>0)){
+    toast('Enter the bid amount first. A job can\'t be marked Bid Sent without a bid total.');
+    render(); openJob(id);
+    setTimeout(()=>{ const el=document.querySelector('#drawer [data-k="bidTotal"]'); if(el){ el.scrollIntoView({block:'center'}); el.focus(); } },80);
+    return;
+  }
+  j.bidStatus = status;
+  if(status==='Bid Sent' && !j.sentDate) j.sentDate = today();
+  if(status==='Awarded' && was!=='Awarded'){
+    if(!j.awardDate) j.awardDate = today();
+    await FileLayer.ensureJobFolder(j);
+    toast(FileLayer.connected ? `${j.name} awarded – job folder created` : `${j.name} awarded – connect your Action Projects folder (PDF intake) to create its folder`);
+    if(FileLayer.connected) setTimeout(()=>Intake.sync(),50);
+  }
+  Store.save(); render();
+  if(openId===id) renderDrawer();
+  else if(status==='Awarded' && was!=='Awarded') openJob(id);
+}
+
+/* ---------------- Drawer ---------------- */
+function openJob(id){ openId=id; renderDrawer(); $('#drawer').classList.add('open'); $('#scrim').classList.add('open'); }
+function closeJob(){ openId=null; $('#drawer').classList.remove('open'); $('#scrim').classList.remove('open'); }
+$('#scrim').onclick = closeJob;
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeJob(); $('#settings').classList.remove('open'); $('#newBid').classList.remove('open'); $('#pick').classList.remove('open'); $('#intake').classList.remove('open'); }});
+
+const fld = (label,key,val,type='text',extra='') => `<div class="f ${type==='textarea'?'wide':''}"><label>${label}</label>${
+  type==='textarea' ? `<textarea rows="2" data-k="${key}">${esc(val)}</textarea>`
+  : type==='select' ? `<select data-k="${key}">${extra}</select>`
+  : `<input type="${type}" data-k="${key}" value="${esc(val)}" ${type==='number'?'step="any"':''}>`}</div>`;
+const opts = (list,v) => list.map(o=>`<option ${o===v?'selected':''}>${o}</option>`).join('');
+
+/* ---------------- Logs (generic editable tables) ----------------
+   cols: [label, key, type, options]   type: text|date|number|money|select
+   extra(r): computed cells appended after the editable columns          */
+const SUB_STATUS = ['Invited','Quoted','Selected','Declined'];
+const LOGS = {
+  // job-tracking logs (unlock when Awarded)
+  co:{label:'Change Orders', key:'changeOrders',
+    cols:[['CO #','no'],['Date','date','date'],['Description','desc'],['Status','status','select',['Pending','Approved','Rejected']],['Amount','amount','money'],['Notes','notes']],
+    total:j=>totals(j).co, totalLabel:'Approved + pending'},
+  mat:{label:'Material Orders', key:'materials',
+    cols:[['Quote / PO #','quote'],['Date ordered','date','date'],['Description','desc'],['Supplier','supplier'],['Cost','cost','money'],['Notes','notes']],
+    total:j=>totals(j).mat, totalLabel:'Material cost'},
+  items:{label:'Material on Job', key:'materialItems', editNum:true,
+    cols:[['Part #','pn'],['Description','desc'],['Qty','qty','number'],['Received','recv','number'],['Unit','unit'],['Unit price','price','money'],['Supplier','supplier'],['Doc #','doc'],['Status','status','select','ITEMST'],['Notes','notes']],
+    extraHead:['Ext'], extra:r=>[money(+r.ext || (+r.qty||0)*(+r.price||0),2)],
+    total:j=>(j.materialItems||[]).reduce((a,r)=>a+(+r.ext || (+r.qty||0)*(+r.price||0)),0), totalLabel:'Material on job (value)'},
+  lab:{label:'Labor Hours', key:'labor',
+    cols:[['Date','date','date'],['Classification','cls','select','CLS'],['Employee','employee'],['Time type','timeType','select',['Straight Time','Overtime']],['Hours','hours','number'],['Notes','notes']],
+    extraHead:['Wage','H&W','Labor cost'], extra:r=>{const c=laborLine(r); return [money(c.wage,2),money(c.hw,2),money(c.cost,2)];},
+    total:j=>totals(j).lab, totalLabel:'Labor cost'},
+  trav:{label:'Hotel & Per Diem', key:'travel',
+    cols:[['Date','date','date'],['Employee','employee'],['Hotel nights','nights','number'],['Per diem days','days','number'],['Notes','notes']],
+    extraHead:['Hotel cost','Per diem','Total'], extra:r=>{const c=travelLine(r); return [money(c.hotel),money(c.pd),money(c.total)];},
+    total:j=>totals(j).trav, totalLabel:'Travel cost'},
+  // bid-building logs (always open)
+  bq:{label:'Supplier Quotes', key:'quotes',
+    cols:[['Supplier','supplier'],['Quote #','quote'],['Scope / items','desc'],['Recap line','cat','select',['Pipe, Valves, Fittings','Equipment']],['Date','date','date'],['Amount','amount','money'],['Use in bid','use','select',['Yes','No']]],
+    total:j=>bidBuild(j).mat, totalLabel:'Quotes used in bid'},
+  bs:{label:'Subcontractors', key:'subs',
+    cols:[['Company','company'],['Trade / scope','trade','select','TRADES'],['Type','type','select',['Outside sub','Action dept']],['Contact','contact'],['Phone / email','phone'],['Quote #','quote'],['Quote','amount','money'],['Status','status','select',SUB_STATUS]],
+    total:j=>bidBuild(j).subs, totalLabel:'Selected subs'},
+  br:{label:'Equipment Rentals', key:'rentals',
+    cols:[['Vendor','vendor','select',['Sunbelt','United Rentals','H&E','Herc Rentals','Yancey / CAT Rental','Accurate','Other']],['Equipment','equip'],['Quote #','quote'],['Qty','qty','number'],['Rate per','per','select',['Day','Week','Month']],['Rate','rate','money'],['How many','dur','number'],['Freight in/out','freight','money'],['Use in bid','use','select',['Yes','No']]],
+    extraHead:['Total'], extra:r=>[money(rentalLine(r),2)],
+    total:j=>bidBuild(j).rentals, totalLabel:'Rentals used in bid'},
+  bl:{label:'Labor Estimate', key:'estLabor',
+    cols:[['Classification','cls','select','CLS'],['Time type','timeType','select',['Straight Time','Overtime']],['Hours','hours','number'],['Notes','notes']],
+    extraHead:['Wage','Cost'], extra:r=>{const c=laborLine(r); return [money(c.wage,2),money(c.cost,2)];},
+    total:j=>bidBuild(j).lab, totalLabel:'Estimated labor'},
+  bo:{label:'Job Expenses', key:'estOther',
+    cols:[['Expense','desc','select','EXPENSES'],['Details','notes'],['Amount','amount','money']],
+    total:j=>bidBuild(j).other, totalLabel:'Other costs'},
+};
+const NUMT = new Set(['number','money']);
+// Lists taken from the RECAP template
+const TRADES = ['Insulation','Concrete coring/cutting','Electrical','Sheet metal','Civil','Millwright','Service','Pipe fab shop','Pipe support fab','Temperature controls','Air/water balancing','Hot tap','Backfill','Trench drain','Operator','Badges','Plumbing','Other'];
+const EXPENSES = ['Hotel','Per diem','Travel time','Inter office expenses','As-built drawings','Ditching / backfill','Engineering','Field office','Pipe ID','Safety meeting','Welding machine rental','Temporary water / power','Valve tag / pipe identification','Warranty reserve','Permits','Other'];
+const colOpts = o => o==='ITEMST' ? ITEM_STATUS : o==='CLS' ? Store.settings.laborRates.map(r=>r.cls) : o==='TRADES' ? TRADES : o==='EXPENSES' ? EXPENSES : o;
+
+function logTable(j, tabKey){
+  const L = LOGS[tabKey], rows = j[L.key];
+  const heads = L.cols.map(c=>[c[0], NUMT.has(c[2])]).concat((L.extraHead||[]).map(h=>[h,true]));
+  const cell = (r,ri,[_,k,t,o]) => {
+    if(t==='select') return `<td><select class="inl" data-edit="${ri}" data-ek="${k}">${opts(colOpts(o), r[k])}</select></td>`;
+    if(t==='money') return `<td class="num">${money(r[k],2)}</td>`;
+    if(t==='date') return `<td>${fdate(r[k])}</td>`;
+    if(t==='number' && L.editNum) return `<td class="num"><input class="inl" type="number" step="any" style="width:64px;text-align:right" data-edit="${ri}" data-ek="${k}" value="${r[k]??''}"></td>`;
+    if(t==='number') return `<td class="num">${r[k]??''}</td>`;
+    return `<td>${esc(r[k])}</td>`;
+  };
+  const linked = tabKey==='co' ? childrenOf(j.id) : [];
+  const linkedRows = linked.map(c=>`<tr class="linked"><td>${esc(c.sv)||'—'}</td><td>${fdate(c.sentDate||c.startDate)}</td><td>${esc(c.name)} <span class="pill co">linked job</span></td><td>${coStatus(c.bidStatus)}</td><td class="num">${money(c.bidTotal,2)}</td><td class="note">From its own bid</td><td><button class="btn sm" data-openjob="${esc(c.id)}">Open</button></td></tr>`).join('');
+  const body = (rows.length||linked.length) ? linkedRows + rows.map((r,ri)=>`<tr>${L.cols.map(c=>cell(r,ri,c)).join('')}${L.extra?L.extra(r).map(v=>`<td class="num">${v}</td>`).join(''):''}<td><button class="btn ghost sm" data-del="${ri}" title="Remove">✕</button></td></tr>`).join('')
+    : `<tr><td colspan="${heads.length+1}" class="note">Nothing entered yet.</td></tr>`;
+  const add = L.cols.map(([label,k,t,o])=>`<div class="f"><label>${label}</label>${t==='select'
+      ? `<select data-add="${k}">${opts(colOpts(o),'')}</select>`
+      : `<input data-add="${k}" type="${NUMT.has(t)?'number':(t||'text')}" ${NUMT.has(t)?'step="any"':''} ${t==='date'?`value="${today()}"`:''}>`}</div>`).join('');
+  return `<div data-log="${tabKey}"><div class="tscroll"><table><thead><tr>${heads.map(([h,n])=>`<th class="${n?'num':''}">${h}</th>`).join('')}<th></th></tr></thead>
+    <tbody>${body}</tbody>
+    <tfoot><tr><td colspan="${heads.length-1}" style="text-align:right">${L.totalLabel}</td><td class="num">${money(L.total(j),2)}</td><td></td></tr></tfoot></table></div>
+    <div class="addform"><div class="addhead">Add ${L.label.replace(/s$/,'').toLowerCase()}</div><div class="addgrid">${add}<div class="f addbtn"><button class="btn primary" data-addrow>+ Add</button></div></div></div></div>`;
+}
+
+function bindLog(j, wrap){
+  const L = LOGS[wrap.dataset.log];
+  wrap.querySelectorAll('[data-del]').forEach(b=>b.onclick=async ()=>{
+    if(!await askSure('Remove this line?', `This ${L.label.replace(/s$/,'').toLowerCase()} entry will move to Recently deleted. You can restore it for ${Store.TRASH_DAYS} days.`, 'Remove')) return;
+    Store.trashLine(j, L, +b.dataset.del); changed(); toast('Moved to Recently deleted');
+  });
+  wrap.querySelectorAll('[data-edit]').forEach(s=>s.onchange=()=>{ j[L.key][+s.dataset.edit][s.dataset.ek] = s.type==='number' ? +s.value : s.value; changed(); if(L.key==='materialItems') writeMaterialList(j).catch(()=>{}); });
+  wrap.querySelector('[data-addrow]').onclick = ()=>{
+    const row = {}; let filled = false;
+    wrap.querySelectorAll('[data-add]').forEach(el=>{
+      const k=el.dataset.add, col=L.cols.find(c=>c[1]===k), t=col[2];
+      row[k] = NUMT.has(t) ? (el.value===''?0:+el.value) : el.value;
+      if(t!=='date' && t!=='select' && el.value!=='') filled = true;
+    });
+    if(!filled){ toast('Fill in the row first'); return; }
+    j[L.key].push(row); changed(); toast(L.label+' entry added');
+  };
+}
+function changed(){ Store.save(); render(); renderDrawer(); }
+
+let bidTab = 'bq';
+/* Federal bonding requirements (Miller Act / FAR Part 28) – informational.
+   The premium above is what the surety charges; these are the bonds the
+   government will require at this contract size.                           */
+function fedBox(j,b){
+  const P = b.suggested, bb = j.bidBond;
+  let req;
+  if(P > 150000) req = `<b>Miller Act applies (over $150,000).</b> Performance bond and payment bond, each 100% of the contract (${money(P)}).`;
+  else if(P >= 35000) req = `<b>$35,000–$150,000:</b> no Miller Act bonds, so no bond premium is added. FAR 28 still requires payment protection (payment bond, irrevocable letter of credit, etc.).`;
+  else req = `<b>Under $35,000:</b> no bonds required, so no bond premium is added.`;
+  const guar = P*(+bb.pct||0)/100;
+  return `<div class="fedbox"><div class="sh" style="margin-top:0">Federal bonding</div><div>${req}</div>
+    <div class="r" style="margin-top:6px"><span>Bid bond required? <select class="inl" data-bb="req">${opts(['No','Yes'],bb.req)}</select></span></div>
+    ${bb.req==='Yes'?`<div class="r"><span>Bid guarantee <input class="pct" data-bb="pct" type="number" step="any" value="${bb.pct}">% of bid</span><b>${money(Math.min(guar,3000000))}</b></div>
+    <div class="note">Usually 20% (max $3,000,000). Submitted with the bid, not added to the price.</div>`:''}
+  </div>`;
+}
+/* ---------------- Bid revisions ----------------
+   Saving a revision freezes a copy of everything in "Build the bid" plus the
+   bid total. The working copy is always the next revision number.           */
+const SNAP_KEYS = ['quotes','subs','rentals','estLabor','estOther','markup','federal','bidBond','bidTotal'];
+const revName = n => n===0 ? 'Original' : 'Rev ' + n;
+function snapOf(j){ const s={}; SNAP_KEYS.forEach(k=>s[k]=structuredClone(j[k])); return s; }
+function buildOfSnap(j, snap){ return bidBuild(normalizeJob(Object.assign({}, structuredClone(j), structuredClone(snap)))); }
+function revBar(j){
+  const R = j.revisions, cur = R.length;
+  const last = R[R.length-1];
+  return `<div class="revbar">
+    <div><span class="revcur">${revName(cur)}</span> <span class="note">working copy${last?` · last saved ${revName(last.n)} on ${fdate(last.date)}`:' · not saved yet'}</span></div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn sm primary" id="revSave">💾 Save as ${revName(cur)}</button>
+      ${R.length?`<button class="btn sm" id="revOpen">Revision history (${R.length})</button>`:''}
+    </div></div>`;
+}
+function saveRevision(j){
+  const n = j.revisions.length;
+  $('#pickBox').innerHTML = `<h3>Save ${revName(n)}</h3>
+    <p class="note" style="margin:0 0 10px">Freezes a copy of this bid as it is now (${money(bidBuild(j).suggested)}). You keep working on ${revName(n+1)} after this.</p>
+    <div class="f"><label>What changed / why</label><textarea id="revNote" rows="3" placeholder="${n===0?'e.g. First pricing sent to GC':'e.g. Added 40\' of 4&quot; per walk-through, new Ferguson quote'}"></textarea></div>
+    <div class="f" style="margin-top:8px"><label><input type="checkbox" id="revSent"> This revision was sent to the customer</label></div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px"><button class="btn" id="rvCancel">Cancel</button><button class="btn primary" id="rvOk">Save ${revName(n)}</button></div>`;
+  $('#pick').classList.add('open'); setTimeout(()=>$('#revNote').focus(),30);
+  $('#pick').onclick = e=>{ if(e.target.id==='pick') $('#pick').classList.remove('open'); };
+  $('#rvCancel').onclick = ()=>$('#pick').classList.remove('open');
+  $('#rvOk').onclick = ()=>{
+    const sent = $('#revSent').checked;
+    j.revisions.push({n, date: today(), savedAt: Date.now(), note: $('#revNote').value.trim(), sent, total: bidBuild(j).suggested, snap: snapOf(j)});
+    if(sent && !j.sentDate) j.sentDate = today();
+    $('#pick').classList.remove('open'); changed(); toast(`${revName(n)} saved`);
+  };
+}
+function revHistory(j){
+  const now = bidBuild(j);
+  const rows = [['Material price','matPrice'],['Labor & expenses','labExpPrice'],['Subcontracts & rentals','subPrice'],['Bond','bondT'],['Total','suggested']];
+  const val = (b,k) => k==='bondT' ? b.bond.total : b[k];
+  const R = j.revisions.slice().reverse();
+  $('#pickBox').innerHTML = `<h3>Revision history · ${esc(j.name)}</h3>
+    <div class="revlist">${R.map(r=>{ const b = buildOfSnap(j, r.snap), prev = j.revisions[r.n-1], pb = prev ? buildOfSnap(j, prev.snap) : null;
+      const d = pb ? b.suggested - pb.suggested : 0;
+      return `<div class="revitem"><div class="rh"><b>${revName(r.n)}</b>${r.sent?' <span class="pill ok">Sent</span>':''}<span class="note">${fdate(r.date)}</span><span class="rt">${money(b.suggested)}${pb&&Math.abs(d)>=1?` <span class="${d>0?'up':'down'}">${d>0?'▲':'▼'} ${money(Math.abs(d))}</span>`:''}</span></div>
+        ${r.note?`<div class="rn">${esc(r.note)}</div>`:''}
+        <table class="rc"><tr><th></th><th class="num">${revName(r.n)}</th><th class="num">Working (${revName(j.revisions.length)})</th></tr>
+          ${rows.map(([l,k])=>`<tr><td>${l}</td><td class="num">${money(val(b,k))}</td><td class="num">${money(val(now,k))}</td></tr>`).join('')}</table>
+        <div style="display:flex;gap:6px;justify-content:flex-end;margin-top:6px">
+          ${!r.sent?`<button class="btn sm" data-rsent="${r.n}">Mark as sent</button>`:''}
+          <button class="btn sm" data-rrestore="${r.n}">Restore into working copy</button></div></div>`; }).join('')}</div>
+    <div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn" id="rvClose">Close</button></div>`;
+  $('#pick').classList.add('open');
+  $('#pick').onclick = e=>{ if(e.target.id==='pick') $('#pick').classList.remove('open'); };
+  $('#rvClose').onclick = ()=>$('#pick').classList.remove('open');
+  $('#pickBox').querySelectorAll('[data-rsent]').forEach(b=>b.onclick=()=>{ j.revisions[+b.dataset.rsent].sent = true; if(!j.sentDate) j.sentDate = j.revisions[+b.dataset.rsent].date; changed(); revHistory(j); });
+  $('#pickBox').querySelectorAll('[data-rrestore]').forEach(b=>b.onclick=async ()=>{
+    const r = j.revisions[+b.dataset.rrestore];
+    $('#pick').classList.remove('open');
+    if(!await askSure(`Restore ${revName(r.n)}?`, `The working copy (${revName(j.revisions.length)}) will be replaced with ${revName(r.n)}'s quotes, subs, rentals, labor, expenses and markups. Save the working copy as a revision first if you want to keep it.`, 'Restore')) return;
+    Object.assign(j, structuredClone(r.snap)); changed(); toast(`${revName(r.n)} restored into working copy`);
+  });
+}
+const pin = (k,j) => `<input class="pct" data-mk="${k}" type="number" step="any" value="${j.markup[k]}">`;
+function bidBuilderCard(j){
+  const b = bidBuild(j), s = Store.settings;
+  const diff = (+j.bidTotal||0) - b.suggested;
+  return `<div class="card"><h4>Build the bid ${j.federal?'<span class="pill fed">Federal – bond applies</span>':''}</h4>
+    ${revBar(j)}
+    <div class="bb">
+      <div>
+        <div class="tabs">${['bq','bs','br','bl','bo'].map(k=>`<button class="tab ${k===bidTab?'on':''}" data-btab="${k}">${LOGS[k].label}<span class="n">${j[LOGS[k].key].length}</span></button>`).join('')}</div>
+        ${logTable(j,bidTab)}
+      </div>
+      <div class="sum">
+        <div class="sh">I. Material</div>
+        <div class="r"><span>Pipe, valves, fittings</span><b>${money(b.pvf)}</b></div>
+        <div class="r"><span>Equipment</span><b>${money(b.equip)}</b></div>
+        <div class="r"><span>Consumables ${pin('consumablesPerMH',j)} $/MH</span><b>${money(b.consumables)}</b></div>
+        <div class="r"><span>Sales tax ${pin('salesTax',j)}%</span><b>${money(b.tax)}</b></div>
+        <div class="r"><span>O&amp;P ${pin('matOP',j)}%</span><b>${money(b.matOP)}</b></div>
+        <div class="r t"><span>Material price</span><b>${money(b.matPrice)}</b></div>
+        <div class="sh">II–III. Labor &amp; job expenses</div>
+        <div class="r"><span>Labor (${b.hours.toLocaleString()} MH, H&amp;W, ins.)</span><b>${money(b.labCost-b.cleanup)}</b></div>
+        <div class="r"><span>Clean-up ${pin('cleanup',j)}%</span><b>${money(b.cleanup)}</b></div>
+        <div class="r"><span>Tool &amp; truck ${pin('toolTruckPerDay',j)} $/day</span><b>${money(b.toolTruck)}</b></div>
+        <div class="r"><span>Job expenses</span><b>${money(b.otherExp)}</b></div>
+        <div class="r"><span>O&amp;P ${pin('labOP',j)}%</span><b>${money(b.labExpOP)}</b></div>
+        <div class="r t"><span>Labor &amp; expense price</span><b>${money(b.labExpPrice)}</b></div>
+        <div class="sh">IV. Subcontracts</div>
+        <div class="r"><span>Action depts</span><b>${money(b.actionDepts)}</b></div>
+        <div class="r"><span>Outside subs</span><b>${money(b.outside)}</b></div>
+        <div class="r"><span>Equipment rentals</span><b>${money(b.rentals)}</b></div>
+        <div class="r"><span>O&amp;P on subs &amp; rentals ${pin('subOP',j)}%</span><b>${money(b.subOP)}</b></div>
+        <div class="r t"><span>Subcontract price</span><b>${money(b.subPrice)}</b></div>
+        <div class="r t"><span><b>Total price less bond</b></span><b>${money(b.price)}</b></div>
+        ${bondApplies(j,b.price) ? `<div class="r"><span>Payment &amp; performance bond</span><b>${money(b.bond.total)}</b></div>
+          <div class="bondd">${b.bond.lines.map(l=>`<div><span>${l.label}</span><span>${money(l.amt,2)}</span></div>`).join('')}</div>`
+        : `<div class="r note"><span>No bond (${j.federal?'federal, $150,000 or less':'not a federal job'})</span><b>—</b></div>`}
+        <div class="r big"><span>Total price with bond</span><b>${money(b.suggested)}</b></div>
+        ${j.federal ? fedBox(j,b) : ''}
+        <button class="btn primary" id="useBid\" style="width:100%;margin-top:8px">Use as bid total</button>
+        ${j.bidTotal? `<div class="note" style="margin-top:6px;text-align:center">Current bid total ${money(j.bidTotal)}${b.suggested>0 && Math.abs(diff)>=1?` (${diff>0?'+':''}${money(diff)} vs suggested)`:''}</div>`:''}
+      </div>
+    </div></div>`;
+}
+
+function familyTabs(j){
+  const P = parentOf(j) || j, kids = childrenOf(P.id);
+  if(!kids.length) return '';
+  const tab = (x,label) => `<button class="jtab ${x.id===j.id?'on':''}" data-view="${esc(x.id)}" style="--c:${sColor(x.bidStatus)}"><span class="dot" style="background:${sColor(x.bidStatus)}"></span>${label}<span class="amt">${x.bidTotal?money(x.bidTotal):''}</span></button>`;
+  return `<div class="jtabs">${tab(P,'Main job')}${kids.map((k,i)=>tab(k,`CO ${i+1}: ${esc(k.name)}`)).join('')}
+    <span class="jsum">Revised total ${money(totals(P).revised)}</span></div>`;
+}
+function renderDrawer(){
+  const j = Store.get(openId); if(!j) return closeJob();
+  const c = sColor(j.bidStatus), t = totals(j), awarded = j.bidStatus==='Awarded';
+  const folder = FileLayer.folderPath(j);
+  const keepScroll = $('#drawer .db') ? $('#drawer .db').scrollTop : 0;
+  $('#drawer').style.setProperty('--c', c);
+  $('#drawer').innerHTML = `
+  <div class="dh"><div><div class="sv">${esc(j.sv)||'No SV # yet'} ${j.federal?'<span class="pill fed">Federal</span>':''}</div><h2>${esc(j.name)}</h2></div>
+    <select class="status-sel" style="--c:${c};width:auto" id="dStatus">${STATUSES.map(s=>`<option ${s.k===j.bidStatus?'selected':''}>${s.k}</option>`).join('')}</select>
+    <button class="btn" id="dClose">Close</button></div>
+  ${familyTabs(j)}
+  <div class="db">
+    <div class="card"><h4>Bid information</h4>
+      <div class="form" id="bidForm">
+        ${fld('SV number','sv',j.sv)}
+        ${fld('Job name','name',j.name)}
+        ${fld('Federal job?','federal',null,'select',`<option value="no" ${!j.federal?'selected':''}>No</option><option value="yes" ${j.federal?'selected':''}>Yes – apply bond</option>`)}
+        ${fld('Priority','priority',null,'select',opts(['Low','Normal','High'],j.priority))}
+        ${fld('Estimate status','estStatus',null,'select',opts(['Not Started','In Progress','Deferred','Complete'],j.estStatus))}
+        ${fld('Start date','startDate',j.startDate,'date')}
+        ${fld('Sent date','sentDate',j.sentDate,'date')}
+        ${fld('% complete','pct',null,'select',[0,25,50,75,100].map(p=>`<option value="${p}" ${+j.pct===p?'selected':''}>${p}%</option>`).join(''))}
+        ${fld('Bid total ($)','bidTotal',j.bidTotal,'number')}
+        ${fld('Notes','notes',j.notes,'textarea')}
+      </div>
+    </div>
+
+    ${bidBuilderCard(j)}
+
+    <div class="lockwrap ${awarded?'':'locked'}">
+      <div class="lockover"><div class="lockbox"><div class="ic">🔒</div><b>Job tracking is locked</b>
+        <p>Change orders, material, labor and travel open up once this bid is marked <b>Awarded</b>.</p>
+        <button class="btn primary" id="unlock">Mark as Awarded</button></div></div>
+      <div class="lockbody" style="display:flex;flex-direction:column;gap:14px">
+        <div class="card"><h4>Job financials ${awarded&&j.awardDate?`<span class="pill ok">Awarded ${fdate(j.awardDate)}</span>`:''}</h4>
+          <div class="fin">
+            <div><span>Bid total</span><b>${money(j.bidTotal)}</b></div>
+            <div><span>CO total</span><b>${money(t.co)}</b></div>
+            <div><span>Revised total</span><b>${money(t.revised)}</b></div>
+            <div><span>Material cost</span><b>${money(t.mat)}</b></div>
+            <div><span>Labor hours</span><b>${t.lh.toLocaleString()}</b></div>
+            <div><span>Labor cost</span><b>${money(t.lab)}</b></div>
+            <div><span>Travel cost</span><b>${money(t.trav)}</b></div>
+            ${t.bond?`<div><span>Bond cost</span><b>${money(t.bond)}</b></div>`:''}
+            <div class="rem ${t.remaining<0?'neg':''}"><span>Remaining</span><b>${money(t.remaining)}</b></div>
+          </div>
+          <div class="form" style="margin-top:12px">${fld('Award date','awardDate',j.awardDate,'date')}</div>
+        </div>
+        <div class="card">
+          <div class="tabs">${['co','mat','items','lab','trav'].map(k=>`<button class="tab ${k===openTab?'on':''}" data-tab="${k}">${LOGS[k].label}<span class="n">${j[LOGS[k].key].length + (k==='co'?childrenOf(j.id).length:0)}</span></button>`).join('')}</div>
+          ${logTable(j,openTab)}
+        </div>
+      </div>
+    </div>
+
+    ${folderCard(j)}
+    <div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap">
+      ${isChild(j) ? `<button class="btn" id="dDetach">↩ Make this its own job again</button>`
+        : childrenOf(j.id).length ? `<span class="note" style="align-self:center">This job has change orders, so it can't become a change order itself.</span>`
+        : `<button class="btn" id="dMakeCO">↪ Add as change order to another job</button>`}
+      <button class="btn" id="dDelete" style="color:var(--lost);border-color:#efc4bf">🗑 Delete this job</button></div>
+  </div>`;
+  $('#drawer .db').scrollTop = keepScroll;
+
+  $('#dClose').onclick = closeJob;
+  if($('#fConnect')) $('#fConnect').onclick = async ()=>{ if(await FileLayer.connect()){ toast('Action Projects folder connected'); await Intake.sync(); renderDrawer(); } };
+  if($('#fCreate')) $('#fCreate').onclick = async ()=>{ await FileLayer.ensureJobFolder(j); Store.save(); renderDrawer(); toast(j.folder.status==='created'?'Job folder created':'Could not create folder'); };
+  $('#dStatus').onchange = e=>setStatus(j.id, e.target.value);
+  $('#unlock').onclick = ()=>setStatus(j.id,'Awarded');
+  $('#drawer').querySelectorAll('[data-view],[data-openjob]').forEach(b=>b.onclick=()=>{ openId = b.dataset.view||b.dataset.openjob; renderDrawer(); $('#drawer .db').scrollTop=0; });
+  if($('#dMakeCO')) $('#dMakeCO').onclick = ()=>pickParent(j);
+  if($('#dDetach')) $('#dDetach').onclick = async ()=>{
+    const P = parentOf(j);
+    if(!await askSure('Make this its own job again?', `${j.name} will no longer be a change order of ${P.name}. Its amount comes off ${P.name}'s change order total.`, 'Detach')) return;
+    j.parentId = null; changed(); toast('Now its own job');
+  };
+  $('#dDelete').onclick = async ()=>{
+    if(!await askSure('Delete this job?', `${j.name}${j.sv?' ('+j.sv+')':''} will move to Recently deleted. You can restore it for ${Store.TRASH_DAYS} days, then it is removed for good.`, 'Delete job')) return;
+    Store.trashJob(j); closeJob(); render(); toast('Moved to Recently deleted');
+  };
+  $('#revSave').onclick = ()=>saveRevision(j);
+  if($('#revOpen')) $('#revOpen').onclick = ()=>revHistory(j);
+  $('#useBid').onclick = ()=>{ j.bidTotal = Math.round(bidBuild(j).suggested*100)/100; changed(); toast('Bid total updated'); };
+
+  $('#drawer').querySelectorAll('[data-k]').forEach(el=>el.onchange=()=>{
+    const k = el.dataset.k; let v = el.value;
+    if(k==='bidTotal'||k==='pct') v = v===''?0:+v;
+    if(k==='federal') v = v==='yes';
+    if(k==='sv') v = v.trim();
+    j[k] = v; Store.save(); render();
+    if(['bidTotal','name','sv','federal'].includes(k)) renderDrawer();
+  });
+  $('#drawer').querySelectorAll('[data-bb]').forEach(el=>el.onchange=()=>{ j.bidBond[el.dataset.bb] = el.dataset.bb==='pct' ? (+el.value||0) : el.value; changed(); });
+  $('#drawer').querySelectorAll('[data-mk]').forEach(el=>el.onchange=()=>{ j.markup[el.dataset.mk] = +el.value||0; changed(); });
+  $('#drawer').querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{ openTab=b.dataset.tab; renderDrawer(); });
+  $('#drawer').querySelectorAll('[data-btab]').forEach(b=>b.onclick=()=>{ bidTab=b.dataset.btab; renderDrawer(); });
+  $('#drawer').querySelectorAll('[data-log]').forEach(w=>bindLog(j,w));
+}
+
+/* ---------------- Make a job a change order of another ---------------- */
+function pickParent(j){
+  const cands = topJobs().filter(x=>x.id!==j.id).sort((a,b)=>(b.sv||'').localeCompare(a.sv||'')||a.name.localeCompare(b.name));
+  $('#pickBox').innerHTML = `<h3>Add as a change order</h3>
+    <p class="note" style="margin:0 0 12px">${esc(j.name)} will become a change order on the job you pick. It keeps its own bid, and its bid total (${money(j.bidTotal)}) is added to that job's change order total.</p>
+    <div class="f"><label>Search</label><input id="pkQ" placeholder="Job name or SV #"></div>
+    <div class="pklist" id="pkList"></div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px"><button class="btn" id="pkCancel">Cancel</button><button class="btn primary" id="pkOk" disabled>Add as change order</button></div>`;
+  let chosen = null;
+  const draw = ()=>{ const q=$('#pkQ').value.trim().toLowerCase();
+    $('#pkList').innerHTML = cands.filter(x=>(x.name+' '+x.sv).toLowerCase().includes(q)).map(x=>`<button class="pkitem ${chosen===x.id?'on':''}" data-pk="${esc(x.id)}"><span class="dot" style="background:${sColor(x.bidStatus)}"></span><b>${esc(x.name)}</b><span class="note">${esc(x.sv)||'No SV #'} · ${esc(x.bidStatus)}${childrenOf(x.id).length?` · ${childrenOf(x.id).length} CO`:''}</span></button>`).join('') || '<div class="note">No matching jobs.</div>';
+    $('#pkList').querySelectorAll('[data-pk]').forEach(b=>b.onclick=()=>{ chosen=b.dataset.pk; $('#pkOk').disabled=false; draw(); });
+  };
+  $('#pick').classList.add('open'); draw(); $('#pkQ').oninput = draw; setTimeout(()=>$('#pkQ').focus(),30);
+  $('#pkCancel').onclick = ()=>$('#pick').classList.remove('open');
+  $('#pick').onclick = e=>{ if(e.target.id==='pick') $('#pick').classList.remove('open'); };
+  $('#pkOk').onclick = ()=>{ const P = Store.get(chosen); j.parentId = P.id; $('#pick').classList.remove('open'); changed(); toast(`Added as a change order to ${P.name}`); };
+}
+
+/* ---------------- New bid (asks: federal job?) ---------------- */
+$('#btnNew').onclick = ()=>{
+  $('#newBox').innerHTML = `<h3>New bid</h3>
+    <div class="form">
+      <div class="f"><label>Job name</label><input id="nName" placeholder="e.g. VA HOSPITAL RESTROOMS"></div>
+      <div class="f"><label>SV number</label><input id="nSv" placeholder="SV26-____"></div>
+      <div class="f"><label>Priority</label><select id="nPri">${opts(['Low','Normal','High'],'Normal')}</select></div>
+    </div>
+    <div class="fedq"><b>Is this a federal job?</b>
+      <div class="note">Federal jobs get the payment &amp; performance bond added to the bid automatically (same formula as your recap).</div>
+      <div class="yn"><label><input type="radio" name="nFed" value="yes"> Yes, federal</label><label><input type="radio" name="nFed" value="no"> No</label></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+      <button class="btn" id="nCancel">Cancel</button><button class="btn primary" id="nCreate">Create bid</button></div>`;
+  $('#newBid').classList.add('open'); setTimeout(()=>$('#nName').focus(),50);
+  $('#nCancel').onclick = ()=>$('#newBid').classList.remove('open');
+  $('#nCreate').onclick = ()=>{
+    const name = $('#nName').value.trim(), fed = document.querySelector('input[name=nFed]:checked');
+    if(!name){ toast('Enter a job name'); return; }
+    if(!fed){ toast('Answer: is this a federal job?'); return; }
+    const j = normalizeJob({id:'job-'+Date.now(), sv:$('#nSv').value.trim(), name, priority:$('#nPri').value, estStatus:'In Progress', startDate:today(), bidStatus:'Estimating', federal: fed.value==='yes'});
+    Store.jobs.unshift(j); Store.save(); FileLayer.ensureJobFolder(j);
+    $('#newBid').classList.remove('open'); filter='Active'; bidTab='bq'; render(); openJob(j.id);
+  };
+};
+$('#newBid').onclick = e=>{ if(e.target.id==='newBid') $('#newBid').classList.remove('open'); };
+
+/* ---------------- Settings ---------------- */
+$('#btnSettings').onclick = ()=>{
+  const s = Store.settings;
+  $('#settingsBox').innerHTML = `<h3>Rates &amp; settings</h3>
+    <div class="form" id="sForm">
+      <div class="f"><label>OT multiplier</label><input data-s="otMultiplier" type="number" step="any" value="${s.otMultiplier}"></div>
+      <div class="f"><label>Insurance &amp; taxes (%)</label><input data-s="insuranceTaxes" data-pct type="number" step="any" value="${(s.insuranceTaxes*100).toFixed(1)}"></div>
+      <div class="f"><label>Hotel rate / night</label><input data-s="hotelRate" type="number" step="any" value="${s.hotelRate}"></div>
+      <div class="f"><label>Per diem / day</label><input data-s="perDiem" type="number" step="any" value="${s.perDiem}"></div>
+      <div class="f wide"><label>Job folder location (for later)</label><input data-s="rootFolder" value="${esc(s.rootFolder)}"></div>
+    </div>
+    <h4 style="margin:16px 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase">Payment &amp; performance bond (federal jobs)</h4>
+    <div class="note">Same formula as the CALCULATION sheet in your 2026 RECAP: 2.5% on the first $100,000, 1.5% from $100,000 to $500,000, 1.0% above $500,000. Only added on federal jobs over $150,000, and figured from each bid's own total.</div>
+    <h4 style="margin:16px 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase">Labor rates</h4>
+    <table><thead><tr><th>Classification</th><th class="num">ST rate</th><th class="num">OT rate</th><th class="num">H&amp;W</th></tr></thead><tbody>
+    ${s.laborRates.map((r,i)=>{const x=rateFor(r.cls); return `<tr><td>${esc(r.cls)}${r.pctJ?` <span class="note">(${r.pctJ*100}% of Journeyman)</span>`:''}</td>
+      <td class="num">${r.pctJ?money(x.st,2):`<input data-r="${i}" data-rk="st" type="number" step="any" value="${r.st}" style="width:90px;text-align:right">`}</td>
+      <td class="num">${money(x.ot,2)}</td>
+      <td class="num"><input data-r="${i}" data-rk="hw" type="number" step="any" value="${r.hw}" style="width:80px;text-align:right"></td></tr>`;}).join('')}
+    </tbody></table>
+    <div style="display:flex;justify-content:space-between;margin-top:16px">
+      <button class="btn ghost" id="sReset">Reset demo data</button>
+      <button class="btn primary" id="sDone">Done</button></div>`;
+  $('#settings').classList.add('open');
+  $('#settingsBox').querySelectorAll('[data-s]').forEach(el=>el.onchange=()=>{
+    const k=el.dataset.s; s[k] = k==='rootFolder' ? el.value : (+el.value)/(el.dataset.pct!==undefined?100:1);
+    Store.save(); render(); if(openId) renderDrawer(); $('#btnSettings').onclick();
+  });
+  $('#settingsBox').querySelectorAll('[data-r]').forEach(el=>el.onchange=()=>{
+    s.laborRates[+el.dataset.r][el.dataset.rk] = +el.value; Store.save(); render(); if(openId) renderDrawer(); $('#btnSettings').onclick();
+  });
+  $('#sDone').onclick = ()=>$('#settings').classList.remove('open');
+  $('#sReset').onclick = async ()=>{ if(await askSure('Reset all data?','Every job and change will be replaced with the original data from the spreadsheet, and Recently deleted will be emptied. This cannot be undone.','Reset')){ Store.settings=structuredClone(DEFAULT_SETTINGS); Store.jobs=structuredClone(SEED).map(normalizeJob); Store.trash=[]; Store.save(); $('#settings').classList.remove('open'); closeJob(); render(); toast('Demo data restored'); } };
+};
+$('#settings').onclick = e=>{ if(e.target.id==='settings') $('#settings').classList.remove('open'); };
+
+/* ---------------- Backup ---------------- */
+$('#btnExport').onclick = ()=>{
+  const blob = new Blob([JSON.stringify({version:1, exportedAt:new Date().toISOString(), jobs:Store.jobs, settings:Store.settings, trash:Store.trash},null,2)],{type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `bid-tracker-backup-${today()}.json`; a.click();
+};
+$('#btnImport').onclick = ()=>$('#fileImport').click();
+$('#fileImport').onchange = async e=>{
+  const f = e.target.files[0]; if(!f) return;
+  if(typeof Cloud!=='undefined' && Cloud.on && Store.jobs.length && !await askSure('Replace the shared jobs?','Everything in the shared workspace will be replaced with this backup, for everyone who signs in. Jobs that are not in the backup are removed.','Replace')){ e.target.value=''; return; }
+  try{ const d = JSON.parse(await f.text()); if(!Array.isArray(d.jobs)) throw 0;
+    Store.settings = Object.assign(structuredClone(DEFAULT_SETTINGS), d.settings); Store.jobs = d.jobs.map(normalizeJob); Store.trash = d.trash||[]; Store.purgeTrash(); Store.save(); render(); toast(`Loaded ${d.jobs.length} jobs`); }
+  catch(_){ toast('That file is not a tracker backup'); }
+  e.target.value='';
+};
+
+function folderCard(j){
+  const f = j.folder||{}, made = f.status==='created', awarded = j.bidStatus==='Awarded';
+  const pill = made ? `<span class="pill ok">Created ${fdate(f.at)}</span>` : f.status==='error' ? `<span class="pill warn">Error</span>` : `<span class="pill">${awarded?'Not created yet':'Created on award'}</span>`;
+  let msg;
+  if(made) msg = `Supplier PDFs for this job are filed in <b>04 Material Quotes &amp; POs</b>, with a <b>Material List.csv</b> you can open in Excel.`;
+  else if(!FileLayer.connected) msg = `${FileLayer.state==='unsupported'?'Open this file in Edge or Chrome to create folders.':'Connect your Action Projects folder and this folder is made automatically when the job is Awarded.'} ${FileLayer.state!=='unsupported'?`<button class="btn sm primary" id="fConnect">${FileLayer.state==='needs-permission'?'Allow folder access':'Connect Action Projects folder'}</button>`:''}`;
+  else if(awarded) msg = `${f.status==='error'?esc(f.msg)+' ':''}<button class="btn sm primary" id="fCreate">Create folder now</button>`;
+  else msg = `This folder is created automatically when the job is marked Awarded.`;
+  return `<div class="card"><h4>Job folder ${pill}</h4>
+      <div class="folder"><div style="font-size:26px">📁</div><div>
+        <div><code>${esc(FileLayer.folderPath(j))}</code></div>
+        <div class="note" style="margin-top:4px">${msg}</div>
+        <ul>${FileLayer.subfolders.map(s=>`<li>${esc(s)}</li>`).join('')}</ul>
+      </div></div>
+    </div>`;
+}
+/* ==========================================================================
+   FILE LAYER  (Documents\Action Projects on this computer)
+   Uses the browser's folder access (Edge / Chrome, file opened directly).
+   You pick your Documents folder once; the dashboard remembers it.
+     Action Projects\
+       _Intake\            <- drop supplier PDFs here (email PDFs land here too)
+       _system\            jobs.json (written here), intake-log.json (written by
+                           Claude after reading the PDFs), filed-log.json
+       SV# - JOB NAME\     created when a job is Awarded, with 8 subfolders
+   The dashboard only creates new folders/files and moves PDFs out of _Intake.
+   It never touches anything else in Documents.
+   ========================================================================== */
+const IDB = {
+  open(){ return new Promise((res,rej)=>{ const r=indexedDB.open('actionem.files',1); r.onupgradeneeded=()=>r.result.createObjectStore('h'); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); },
+  async get(k){ const db=await this.open(); return new Promise((res,rej)=>{ const q=db.transaction('h').objectStore('h').get(k); q.onsuccess=()=>res(q.result); q.onerror=()=>rej(q.error); }); },
+  async set(k,v){ const db=await this.open(); return new Promise((res,rej)=>{ const t=db.transaction('h','readwrite'); t.objectStore('h').put(v,k); t.oncomplete=()=>res(); t.onerror=()=>rej(t.error); }); }
+};
+const safeName = s => String(s||'').replace(/[<>:"/\\|?*\x00-\x1f]/g,'-').replace(/\s+/g,' ').trim().replace(/[. ]+$/,'') || 'Unnamed job';
+const FileLayer = {
+  connected: false, root: null, state: 'off',   // off | unsupported | needs-permission | on
+  INTAKE: '_Intake', SYS: '_system', MAT_SUB: '04 Material Quotes & POs',
+  subfolders: ['01 Bid Documents','02 Drawings & Specs','03 Change Orders','04 Material Quotes & POs','05 Labor & Timesheets','06 Travel & Receipts','07 Photos','08 Closeout'],
+  folderName(job){ return (job.folder && job.folder.name) || safeName((job.sv ? job.sv + ' - ' : '') + job.name); },
+  folderPath(job){ return Store.settings.rootFolder + '/' + this.folderName(job); },
+  supported(){ return typeof window.showDirectoryPicker === 'function'; },
+  async init(){
+    if(!this.supported()){ this.state='unsupported'; return; }
+    try{
+      const h = await IDB.get('root'); if(!h){ this.state='off'; return; }
+      this.root = h;
+      if(await h.queryPermission({mode:'readwrite'}) === 'granted') await this._on(); else this.state='needs-permission';
+    }catch(e){ this.state='off'; }
+  },
+  /* Must run from a button click. */
+  async changeFolder(){ this.state='off'; this.root=null; this.connected=false; return this.connect(); },
+  async connect(){
+    if(!this.supported()){ toast('Open this file in Edge or Chrome to connect folders'); return false; }
+    try{
+      if(this.root && this.state==='needs-permission'){
+        if(await this.root.requestPermission({mode:'readwrite'}) === 'granted'){ await this._on(); return true; }
+        return false;
+      }
+      let h = await window.showDirectoryPicker({id:'actionprojects', mode:'readwrite', startIn:'documents'});
+      if(/^(_intake|_system)$/i.test(h.name) || /^SV\d/i.test(h.name) || /^0\d /.test(h.name)){
+        toast(`That's the "${h.name}" folder. Pick the Action Projects folder (inside Documents) instead.`); return false;
+      }
+      if(h.name !== 'Action Projects') h = await h.getDirectoryHandle('Action Projects', {create:true});
+      this.root = h; await IDB.set('root', h).catch(()=>{}); await this._on(); return true;
+    }catch(e){ if(e && e.name!=='AbortError') toast('Could not connect: '+(e.message||e)); return false; }
+  },
+  async useRoot(h){ this.root = h; await this._on(); },          // used by tests
+  async _on(){
+    await this.root.getDirectoryHandle(this.INTAKE, {create:true});
+    await this.root.getDirectoryHandle(this.SYS, {create:true});
+    this.connected = true; this.state = 'on';
+    await this.cleanupNested().catch(()=>{});
+    for(const j of Store.jobs) if(j.bidStatus==='Awarded' && (!j.folder || j.folder.status!=='created')) await this.ensureJobFolder(j);
+    Store.save();
+  },
+  /* If the folder was once connected to _Intake by mistake, the dashboard made an empty
+     "Action Projects" inside it. Remove it, but only if it holds nothing except what the
+     dashboard itself writes (empty job folders and its .json files). */
+  async cleanupNested(){
+    const intake = await this.root.getDirectoryHandle(this.INTAKE);
+    let nested; try{ nested = await intake.getDirectoryHandle('Action Projects'); }catch(_){ return; }
+    const ours = /^(job|jobs|intake-log|filed-log)\.json$/i;
+    const onlyOurs = async d => { for await (const [n,x] of d.entries()){ if(x.kind==='file'){ if(!ours.test(n)) return false; } else if(!await onlyOurs(x)) return false; } return true; };
+    if(await onlyOurs(nested)) await intake.removeEntry('Action Projects', {recursive:true});
+  },
+  async dir(path, create=true){ let d=this.root; for(const p of path) d = await d.getDirectoryHandle(p, {create}); return d; },
+  async exists(d, name){ try{ await d.getFileHandle(name); return true; }catch(e){ return false; } },
+  async readJSON(path){
+    try{ const d = await this.dir(path.slice(0,-1), false); const f = await (await d.getFileHandle(path.at(-1))).getFile(); return JSON.parse(await f.text()); }
+    catch(e){ return null; }
+  },
+  async writeFile(path, data){
+    const d = await this.dir(path.slice(0,-1)); const fh = await d.getFileHandle(path.at(-1), {create:true});
+    const w = await fh.createWritable(); await w.write(data); await w.close();
+  },
+  /* Creates <SV# - JOB NAME>\ and its subfolders, only once the job is Awarded. */
+  async ensureJobFolder(job){
+    job.folder = job.folder || {status:'planned'};
+    if(!this.connected || job.bidStatus!=='Awarded') return job.folder;
+    try{
+      const name = job.folder.status==='created' && job.folder.name ? job.folder.name : safeName((job.sv ? job.sv + ' - ' : '') + job.name);
+      const d = await this.dir([name]);
+      for(const s of this.subfolders) await d.getDirectoryHandle(s, {create:true});
+      if(!await this.exists(d,'job.json')) await this.writeFile([name,'job.json'], JSON.stringify({id:job.id, sv:job.sv, name:job.name, awardDate:job.awardDate, createdBy:'Action Project PRO', createdAt:new Date().toISOString()}, null, 2));
+      job.folder = {status:'created', name, at: job.folder.at || today()};
+    }catch(e){ job.folder = {status:'error', msg:String(e.message||e)}; }
+    return job.folder;
+  },
+  /* _system\jobs.json tells Claude which jobs exist, so PDFs can be matched. */
+  _t: null,
+  scheduleIndex(){ if(!this.connected) return; clearTimeout(this._t); this._t = setTimeout(()=>this.writeIndex().catch(()=>{}), 800); },
+  async writeIndex(){
+    const jobs = Store.jobs.map(j=>({id:j.id, sv:j.sv, name:j.name, status:j.bidStatus, awardDate:j.awardDate||'', folder: j.folder&&j.folder.status==='created' ? j.folder.name : '',
+      quoteNos: [...j.materials.map(m=>m.quote), ...(j.quotes||[]).map(q=>q.quote)].filter(Boolean)}));
+    await this.writeFile([this.SYS,'jobs.json'], JSON.stringify({updatedAt:new Date().toISOString(), jobs}, null, 2));
+  }
+};
+
+/* ==========================================================================
+   INTAKE  (supplier PDFs -> job folder + Material Orders + Material on Job)
+   Claude reads each PDF in _Intake and writes _system\intake-log.json:
+     {entries:[{file, size, supplier, docType, docNo, relatesTo, docDate,
+       summary, total, jobRef:{sv, name, confidence, reason}, items:[{pn, desc,
+       qty, unit, unitPrice, ext}]}]}
+   The dashboard then files every PDF whose job is Awarded.
+   ========================================================================== */
+const ITEM_STATUS = ['Needed','Quoted','Ordered','Shipped','Partial','Delivered','Returned'];
+const RANK = {Needed:0.5, Quoted:1, Ordered:2, Shipped:3, Partial:3.5, Delivered:4, Returned:5};
+const normKey = s => String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+const isMaterialDoc = e => +e.total>0 || (e.items||[]).length>0;
+const docStatus = t => /pack|deliver|ticket|receiv/i.test(t) ? 'Delivered' : /ship/i.test(t) ? 'Shipped' : /order|po\b|purchase|ack|confirm|invoice/i.test(t) ? 'Ordered' : 'Quoted';
+const Intake = {
+  log: {entries:[]}, rows: [], busy: false,
+  entryFor(f){ return (this.log.entries||[]).filter(e=>e.file===f.name && (!e.size || !f.size || +e.size===+f.size)).at(-1); },
+  matchJob(e){
+    const r = e.jobRef||{};
+    if(r.id && Store.get(r.id)) return Store.get(r.id);
+    if(r.sv){ const j = Store.jobs.find(j=>normKey(j.sv)===normKey(r.sv)); if(j) return j; }
+    if(r.name){ const j = Store.jobs.find(j=>normKey(j.name)===normKey(r.name)); if(j) return j; }
+    const keys = [e.docNo, e.relatesTo].filter(Boolean).map(normKey);
+    if(keys.length){ const j = Store.jobs.find(j=>j.materials.some(m=>keys.includes(normKey(m.quote)))); if(j) return j; }
+    return null;
+  },
+  classify(f){
+    const e = this.entryFor(f), pick = Store.intake.assign[f.name];
+    const job = pick ? Store.get(pick) : (e ? this.matchJob(e) : null);
+    let status;
+    if(pick==='__undo') return {name:f.name, size:f.size, entry:e, job:null, status:'nomatch', picked:false};
+    if(pick==='__skip' || (!pick && e && e.ignore)) return {name:f.name, size:f.size, entry:e, job:null, status:'ignored', picked:true};
+    if(!e) status = 'unread';
+    else if(!job) status = 'nomatch';
+    else if(!pick && (e.jobRef||{}).confidence==='low') status = 'confirm';
+    else if(job.bidStatus!=='Awarded') status = 'waiting';
+    else status = 'ready';
+    return {name:f.name, size:f.size, entry:e, job, status, picked:!!pick};
+  },
+  async scan(){
+    const d = await FileLayer.dir([FileLayer.INTAKE]), files = [];
+    for await (const [name,h] of d.entries()) if(h.kind==='file' && /\.pdf$/i.test(name)){ const f = await h.getFile(); files.push({name, size:f.size}); }
+    this.log = await FileLayer.readJSON([FileLayer.SYS,'intake-log.json']) || {entries:[]};
+    this.rows = files.map(f=>this.classify(f)).sort((a,b)=>a.name.localeCompare(b.name));
+  },
+  async sync(){
+    if(!FileLayer.connected || this.busy) return;
+    this.busy = true; let n = 0;
+    try{
+      await importJobs().catch(e=>console.warn('import failed', e));
+      await purgeCleared().catch(e=>console.warn('purge failed', e));
+      await this.scan();
+      for(const r of this.rows.filter(r=>r.status==='ready')){
+        try{ await this.fileOne(r); n++; }catch(e){ console.warn('file failed', r.name, e); toast(`Could not file ${r.name}: ${e.message||e}`); }
+      }
+      if(n){ Store.save(); render(); if(openId) renderDrawer(); toast(`Filed ${n} PDF${n>1?'s':''} to job folders`); }
+      await this.scan();
+      await FileLayer.writeIndex().catch(()=>{});
+    }finally{ this.busy = false; renderIntakeBtn(); if($('#intake').classList.contains('open')) renderIntake(); }
+  },
+  /* Copy into <job>\04 Material Quotes & POs, check the copy, then remove it from _Intake. */
+  async fileOne(r){
+    const j = r.job, e = r.entry;
+    await FileLayer.ensureJobFolder(j);
+    if(!j.folder || j.folder.status!=='created') throw new Error('job folder could not be created');
+    const src = await FileLayer.dir([FileLayer.INTAKE]);
+    const file = await (await src.getFileHandle(r.name)).getFile();
+    const sub = FileLayer.subfolders.includes(e.fileTo) ? e.fileTo : FileLayer.MAT_SUB;
+    const dst = await FileLayer.dir([FileLayer.folderName(j), sub]);
+    let saveAs = r.name, i = 2;
+    while(await FileLayer.exists(dst, saveAs)) saveAs = r.name.replace(/(\.pdf)$/i, ` (${i++})$1`);
+    const w = await (await dst.getFileHandle(saveAs, {create:true})).createWritable(); await w.write(file); await w.close();
+    const copy = await (await dst.getFileHandle(saveAs)).getFile();
+    if(copy.size !== file.size) throw new Error('copy did not match, left in _Intake');
+    await src.removeEntry(r.name);
+    try{ // the sender/subject note saved by Get Email PDFs travels with its PDF
+      const note = await (await src.getFileHandle(r.name + '.email.txt')).getFile();
+      const nw = await (await dst.getFileHandle(saveAs + '.email.txt', {create:true})).createWritable(); await nw.write(note); await nw.close();
+      await src.removeEntry(r.name + '.email.txt');
+    }catch(_){}
+    const snap = {materials: structuredClone(j.materials), materialItems: structuredClone(j.materialItems||[])};
+    applyDocToJob(j, e, saveAs);
+    delete Store.intake.assign[r.name];
+    Store.intake.filed.forEach(f=>delete f.undo);      // only the latest filing can be undone
+    Store.intake.filed.unshift({file:r.name, savedAs:saveAs, sub, jobId:j.id, sv:j.sv, job:j.name, folder:FileLayer.folderName(j), at:new Date().toISOString(), docNo:e.docNo||'', supplier:e.supplier||'', docType:e.docType||'', undo:snap});
+    Store.intake.filed = Store.intake.filed.slice(0,500);
+    Store.save();
+    await writeMaterialList(j);
+    await FileLayer.writeFile([FileLayer.SYS,'filed-log.json'], JSON.stringify(Store.intake.filed, null, 2));
+  }
+};
+
+/* _system\job-imports.json: jobs Claude built from a job's existing folder
+   (proposal, takeoff, material list). Each import is applied once: a new job is
+   added, or an existing job (same SV #) gets its empty fields and new items filled. */
+async function importJobs(){
+  const f = await FileLayer.readJSON([FileLayer.SYS,'job-imports.json']); if(!f || !Array.isArray(f.imports)) return;
+  Store.intake.imported = Store.intake.imported || [];
+  let n = 0;
+  for(const imp of f.imports){
+    if(!imp.importId || Store.intake.imported.includes(imp.importId)) continue;
+    const src = imp.job || {};
+    let j = src.sv ? Store.jobs.find(x=>normKey(x.sv)===normKey(src.sv)) : null;
+    if(!j){ j = normalizeJob(Object.assign({id: src.sv || ('job-'+Date.now())}, structuredClone(src))); Store.jobs.unshift(j); }
+    else {
+      for(const [k,v] of Object.entries(src)){
+        if(Array.isArray(v)) j[k] = (j[k]||[]).concat(structuredClone(v));
+        else if(v!=='' && v!=null && (j[k]==='' || j[k]==null || j[k]===0)) j[k] = v;
+      }
+    }
+    j.materialItems = j.materialItems || [];
+    for(const it of imp.materialItems||[]){ if(!j.materialItems.some(x=>x.key===it.key)) j.materialItems.push(Object.assign({recv:0, notes:''}, it)); }
+    await FileLayer.ensureJobFolder(j);
+    await writeMaterialList(j).catch(()=>{});
+    Store.intake.imported.push(imp.importId); n++;
+  }
+  if(n){ Store.save(); render(); if(openId) renderDrawer(); toast(`Added ${n} job${n>1?'s':''} from job folders`); }
+}
+
+/* Clear _Intake: moves every PDF in _Intake (and its .email.txt note) into
+   _system\Cleared from Intake\<date time>. Nothing outside _Intake is touched.
+   Each clear can be restored for 30 days, then that batch folder is deleted. */
+const CLEARED = 'Cleared from Intake';
+async function clearIntake(){
+  const src = await FileLayer.dir([FileLayer.INTAKE]);
+  const d = new Date(), pad = n=>String(n).padStart(2,'0');
+  const batch = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+  const names = [];
+  for await (const [name,h] of src.entries()) if(h.kind==='file' && (/\.pdf$/i.test(name) || /\.pdf\.email\.txt$/i.test(name))) names.push(name);
+  if(!names.length) return 0;
+  const dst = await FileLayer.dir([FileLayer.SYS, CLEARED, batch], true);
+  for(const name of names){
+    const file = await (await src.getFileHandle(name)).getFile();
+    const w = await (await dst.getFileHandle(name, {create:true})).createWritable(); await w.write(file); await w.close();
+    if((await (await dst.getFileHandle(name)).getFile()).size !== file.size) throw new Error('copy check failed for '+name);
+    await src.removeEntry(name);
+  }
+  (Store.intake.cleared = Store.intake.cleared || []).unshift({batch, at: Date.now(), n: names.filter(n=>/\.pdf$/i.test(n)).length});
+  Store.save();
+  return names.filter(n=>/\.pdf$/i.test(n)).length;
+}
+async function restoreCleared(batch){
+  const src = await FileLayer.dir([FileLayer.SYS, CLEARED, batch]), dst = await FileLayer.dir([FileLayer.INTAKE]);
+  let n = 0;
+  for await (const [name,h] of src.entries()){ if(h.kind!=='file') continue;
+    let to = name, i = 2; while(await FileLayer.exists(dst, to)) to = name.replace(/(\.pdf)((\.email\.txt)?)$/i, ` (${i++})$1$2`);
+    const file = await h.getFile(); const w = await (await dst.getFileHandle(to, {create:true})).createWritable(); await w.write(file); await w.close();
+    if(/\.pdf$/i.test(name)) n++;
+  }
+  await (await FileLayer.dir([FileLayer.SYS, CLEARED])).removeEntry(batch, {recursive:true});
+  Store.intake.cleared = (Store.intake.cleared||[]).filter(c=>c.batch!==batch); Store.save();
+  return n;
+}
+async function purgeCleared(){
+  const cut = Date.now() - Store.TRASH_DAYS*864e5, old = (Store.intake.cleared||[]).filter(c=>c.at < cut);
+  if(!old.length) return;
+  const root = await FileLayer.dir([FileLayer.SYS, CLEARED], true);
+  for(const c of old){ try{ await root.removeEntry(c.batch, {recursive:true}); }catch(_){} }
+  Store.intake.cleared = Store.intake.cleared.filter(c=>c.at >= cut); Store.save();
+}
+
+/* Undo the most recent filing: move the PDF (and its email note) back to _Intake,
+   put the job's Material Orders and Material on Job back the way they were, and
+   hold the PDF in _Intake until a job is picked again. */
+async function undoLastFiling(){
+  const f = Store.intake.filed[0]; if(!f) return;
+  const j = Store.get(f.jobId);
+  const sub = f.sub || FileLayer.MAT_SUB;
+  const src = await FileLayer.dir([f.folder, sub]), dst = await FileLayer.dir([FileLayer.INTAKE]);
+  const move = async (from, to) => {
+    const file = await (await src.getFileHandle(from)).getFile();
+    let name = to, i = 2; while(await FileLayer.exists(dst, name)) name = to.replace(/(\.[^.]+)$/, ` (${i++})$1`);
+    const w = await (await dst.getFileHandle(name, {create:true})).createWritable(); await w.write(file); await w.close();
+    await src.removeEntry(from); return name;
+  };
+  const back = await move(f.savedAs, f.file);
+  try{ await move(f.savedAs + '.email.txt', back + '.email.txt'); }catch(_){}
+  if(j){
+    if(f.undo){ j.materials = f.undo.materials; j.materialItems = f.undo.materialItems; }
+    else {   // filed before undo existed: take out what this PDF added
+      j.materials = j.materials.filter(m=>{ if(!(m.files||[]).includes(f.savedAs)) return true; m.files = m.files.filter(x=>x!==f.savedAs); return !(m.auto && !m.files.length); });
+      if(f.docNo) j.materialItems = (j.materialItems||[]).filter(r=>{ const d = String(r.doc).split(', ').filter(x=>x && x!==f.docNo); if(d.length===String(r.doc).split(', ').filter(Boolean).length) return true; r.doc = d.join(', '); return d.length>0; });
+    }
+    await writeMaterialList(j).catch(()=>{});
+  }
+  Store.intake.assign[back] = '__undo';
+  Store.intake.filed.shift();
+  Store.save();
+  await FileLayer.writeFile([FileLayer.SYS,'filed-log.json'], JSON.stringify(Store.intake.filed, null, 2)).catch(()=>{});
+  render(); if(openId) renderDrawer();
+  toast(`Undone: ${back} is back in _Intake`);
+  await Intake.sync();
+}
+
+/* Adds/updates the Material Orders row and merges line items into Material on Job. */
+function applyDocToJob(j, e, savedAs){
+  const st = docStatus(e.docType||''), keys = [e.docNo, e.relatesTo].filter(Boolean).map(normKey);
+  const label = {Quoted:'QUOTED', Ordered:'BEING SENT TO JOB', Shipped:'BEING SENT TO JOB', Delivered:'SENT TO JOB'}[st];
+  const mo = keys.length ? j.materials.find(m=>keys.includes(normKey(m.quote))) : null;
+  if(mo){
+    if(+e.total>0 && (st==='Ordered' || !+mo.cost)) mo.cost = +e.total;
+    const was = mo.stage || (/^SENT/i.test(mo.notes||'') ? 'Delivered' : /SENT|ORDER/i.test(mo.notes||'') ? 'Ordered' : 'Quoted');
+    if(RANK[st] >= RANK[was]){ mo.notes = label; mo.stage = st; } else mo.stage = was;
+    mo.files = [...new Set([...(mo.files||[]), savedAs])];
+  } else if(isMaterialDoc(e) && (+e.total>0 || st!=='Delivered')){
+    j.materials.push({quote:e.docNo||'', date:e.docDate||today(), desc:e.summary||'', supplier:e.supplier||'', cost:+e.total||0, notes:label, stage:st, files:[savedAs], auto:true});
+  }
+  j.materialItems = j.materialItems || [];
+  // the same part can show up on several lines of one PDF (different areas): add those up first
+  const merged = new Map();
+  for(const it of e.items||[]){
+    const key = normKey(e.supplier) + '|' + (normKey(it.pn) || normKey(it.desc));
+    const q = +it.qty||0, price = +it.unitPrice||0, ext = +it.ext || q*price, m = merged.get(key);
+    if(m){ m.q += q; m.ext += ext; } else merged.set(key, {key, it, q, price, ext});
+  }
+  for(const {key, it, q, price, ext} of merged.values()){
+    let row = j.materialItems.find(x=>x.key===key);
+    if(!row){
+      row = {key, pn:it.pn||'', desc:it.desc||'', qty:q, recv: st==='Delivered'?q:0, unit:it.unit||'', price, ext, supplier:e.supplier||'', doc:e.docNo||'', status:st, notes:''};
+      j.materialItems.push(row); continue;
+    }
+    if(st==='Delivered'){ row.recv = (+row.recv||0) + q; row.status = row.recv >= row.qty ? 'Delivered' : 'Partial'; }
+    else if(!String(row.doc).split(', ').map(normKey).some(d=>keys.includes(d) || d===normKey(e.docNo))){
+      row.qty = (+row.qty||0) + q; row.ext = (+row.ext||0) + ext; if(price) row.price = price;   // a separate order for more of the same part
+      if(RANK[st] > RANK[row.status]) row.status = st;
+    }
+    else {
+      row.qty = Math.max(+row.qty||0, q); if(price) row.price = price; if(ext) row.ext = ext;
+      if(RANK[st] > RANK[row.status]) row.status = st;
+    }
+    if(e.docNo && !String(row.doc).split(', ').includes(e.docNo)) row.doc = row.doc ? row.doc + ', ' + e.docNo : e.docNo;
+    row.ext = Math.round((+row.ext||0)*100)/100;
+  }
+  // a packing slip that only covers part of an order marks the order PARTIAL DELIVERY
+  const order = mo || j.materials.at(-1);
+  if(st==='Delivered' && order && order.quote){
+    const mine = j.materialItems.filter(r=>String(r.doc).split(', ').some(d=>normKey(d)===normKey(order.quote)));
+    if(mine.length) order.notes = mine.every(r=>r.status==='Delivered') ? 'SENT TO JOB' : 'PARTIAL DELIVERY';
+  }
+}
+const csvCell = v => { const s = String(v??''); return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; };
+async function writeMaterialList(j){
+  if(!FileLayer.connected || !j.folder || j.folder.status!=='created') return;
+  const rows = [['Part #','Description','Qty','Received','Unit','Unit Price','Ext','Supplier','Doc #','Status','Notes']]
+    .concat((j.materialItems||[]).map(r=>[r.pn,r.desc,r.qty,r.recv,r.unit,r.price,r.ext,r.supplier,r.doc,r.status,r.notes]));
+  await FileLayer.writeFile([FileLayer.folderName(j), FileLayer.MAT_SUB, 'Material List.csv'], '﻿' + rows.map(r=>r.map(csvCell).join(',')).join('\r\n'));
+}
+
+/* ---------------- Intake window ---------------- */
+const INTAKE_TXT = {
+  unread:  ['','Waiting for Claude to read it'],
+  nomatch: ['warn','No job found. Pick one'],
+  confirm: ['co','Check the job, then confirm'],
+  waiting: ['','Files when the job is Awarded'],
+  ignored: ['','Ignored (stays in _Intake)'],
+  ready:   ['ok','Filing now']
+};
+function renderIntakeBtn(){
+  const n = Intake.rows.filter(r=>r.status==='nomatch'||r.status==='confirm').length;
+  $('#btnIntake').innerHTML = `📥 PDF intake${Intake.rows.length?` <span class="ibadge ${n?'need':''}">${Intake.rows.length}</span>`:''}`;
+}
+function connectBlock(){
+  const s = FileLayer.state;
+  if(s==='on') return `<div class="iconn ok">✓ Connected to <code>${esc(FileLayer.root.name==='Action Projects'?'Documents\\Action Projects':FileLayer.root.name)}</code>. Drop supplier PDFs in <code>Action Projects\\_Intake</code>. <button class="btn sm" id="iChange">Change folder</button></div>`;
+  if(s==='unsupported') return `<div class="iconn">This window can't reach folders. Open <b>Action Bid Tracker.html</b> straight from File Explorer in <b>Edge</b> or <b>Chrome</b>.</div>`;
+  if(s==='needs-permission') return `<div class="iconn">The browser needs your OK again to use <code>Documents\\Action Projects</code>. <button class="btn primary sm" id="iConnect">Allow</button></div>`;
+  return `<div class="iconn">Connect your <b>Documents\\Action Projects</b> folder once (Chrome and Edge won't allow Documents itself). Job folders and the <code>_Intake</code> drop folder live inside it. <button class="btn primary sm" id="iConnect">Connect Action Projects folder</button></div>`;
+}
+function renderIntake(){
+  const jobOpts = sel => `<option value="">Pick a job…</option><option value="__skip" ${sel==='__skip'?'selected':''}>Not for a job – ignore</option>` + Store.jobs.filter(j=>!['Lost','No Bid'].includes(j.bidStatus)).map(j=>`<option value="${esc(j.id)}" ${sel===j.id?'selected':''}>${esc(j.sv||'—')} · ${esc(j.name)} (${esc(j.bidStatus)})</option>`).join('');
+  const rows = Intake.rows.map((r,i)=>{ const e = r.entry||{}, [cls,txt] = INTAKE_TXT[r.status];
+    const why = r.picked ? 'You picked this job' : (e.jobRef&&e.jobRef.reason) || '';
+    return `<tr><td><b>${esc(r.name)}</b>${e.summary?`<div class="note">${esc(e.summary)}</div>`:''}</td>
+      <td>${esc(e.supplier||'')}${e.docNo?`<div class="note">${esc(e.docType||'Doc')} ${esc(e.docNo)}</div>`:''}</td>
+      <td class="num">${e.total?money(e.total,2):''}${e.items?`<div class="note">${e.items.length} items</div>`:''}</td>
+      <td>${r.status==='unread'?'<span class="note">—</span>':`<select class="inl" data-ijob="${i}" style="max-width:230px">${jobOpts(r.status==='ignored'?'__skip':r.job?r.job.id:'')}</select>${why?`<div class="note">${esc(why)}</div>`:''}`}</td>
+      <td><span class="pill ${cls}">${txt}</span>${r.status==='confirm'?` <button class="btn sm" data-iok="${i}">Confirm</button>`:''}</td></tr>`; }).join('');
+  const filed = Store.intake.filed.slice(0,8).map(f=>`<tr><td>${esc(f.savedAs)}</td><td>${esc(f.supplier)} ${esc(f.docNo)}</td><td>${esc(f.sv||'')} ${esc(f.job)}</td><td class="note">${fdate(f.at.slice(0,10))}</td></tr>`).join('');
+  const last = FileLayer.connected && Store.intake.filed[0];
+  $('#intakeBox').innerHTML = `<h3>PDF intake</h3>${connectBlock()}
+    ${last?`<div class="iconn" style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;gap:10px"><span>Last filed: <b>${esc(last.savedAs)}</b> → ${esc(last.sv||'')} ${esc(last.job)} <span class="note">(${new Date(last.at).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})})</span></span><button class="btn sm" id="iUndo">↶ Undo</button></div>`:''}
+    ${FileLayer.connected?`<div class="tscroll" style="margin-top:12px"><table><thead><tr><th>PDF in _Intake</th><th>Supplier / doc</th><th class="num">Total</th><th>Job</th><th>Status</th></tr></thead>
+      <tbody>${rows || `<tr><td colspan="5" class="note">The drop folder is empty.</td></tr>`}</tbody></table></div>
+      <p class="note" style="margin:8px 0 0">New PDFs show “Waiting for Claude to read it” until you ask Claude to read your intake. PDFs for an awarded job move to that job's <b>04 Material Quotes &amp; POs</b> folder and fill Material Orders and Material on Job.</p>
+      ${filed?`<h4 style="margin:16px 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase;display:flex;justify-content:space-between;align-items:center">Recently filed</h4><div class="tscroll"><table><tbody>${filed}</tbody></table></div>`:''}`:''}
+    ${FileLayer.connected && (Store.intake.cleared||[]).length?`<h4 style="margin:16px 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase">Cleared from intake</h4>${Store.intake.cleared.map(c=>`<div class="note" style="display:flex;justify-content:space-between;align-items:center;padding:4px 0">${new Date(c.at).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}: ${c.n} PDF${c.n===1?'':'s'} · ${Store.daysLeft({deletedAt:c.at})} days left to restore <button class="btn sm" data-restore="${esc(c.batch)}">Restore</button></div>`).join('')}`:''}
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">${FileLayer.connected && Intake.rows.length?`<button class="btn danger" id="iClear" style="margin-right:auto">🗑 Clear intake (${Intake.rows.length} PDF${Intake.rows.length>1?'s':''})</button>`:''}${FileLayer.connected?`<button class="btn" id="iSync">↻ Check folder now</button>`:''}<button class="btn primary" id="iDone">Done</button></div>`;
+  if($('#iConnect')) $('#iConnect').onclick = async ()=>{ if(await FileLayer.connect()){ toast('Action Projects folder connected'); await Intake.sync(); render(); renderIntake(); } };
+  if($('#iChange')) $('#iChange').onclick = async ()=>{ if(await FileLayer.changeFolder()){ toast('Folder changed'); await Intake.sync(); render(); } renderIntake(); };
+  if($('#iClear')) $('#iClear').onclick = async ()=>{
+    const n = Intake.rows.length, waiting = Intake.rows.filter(r=>r.status==='waiting'||r.status==='confirm').length;
+    if(!await askSure('Clear the intake folder?', `All ${n} PDF${n>1?'s':''} in _Intake (and their email notes) will be removed from _Intake.${waiting?` ${waiting} of them haven't been filed to a job yet.`:''} Job folders aren't touched. You can restore this clear for ${Store.TRASH_DAYS} days from the bottom of this window.`, 'Clear intake')) return;
+    try{ const k = await clearIntake(); await Intake.scan(); renderIntakeBtn(); toast(`Cleared ${k} PDF${k===1?'':'s'} from _Intake`); }catch(e){ toast('Could not clear: '+(e.message||e)); }
+    renderIntake(); };
+  document.querySelectorAll('[data-restore]').forEach(b=>b.onclick = async ()=>{
+    try{ const k = await restoreCleared(b.dataset.restore); toast(`Put ${k} PDF${k===1?'':'s'} back in _Intake`); await Intake.sync(); }catch(e){ toast('Could not restore: '+(e.message||e)); }
+    renderIntakeBtn(); renderIntake(); });
+  if($('#iUndo')) $('#iUndo').onclick = async ()=>{ const f = Store.intake.filed[0];
+    if(!await askSure('Undo the last filing?', `${f.savedAs} goes back to the _Intake folder, and what it added to ${f.sv||''} ${f.job} (Material Orders and Material on Job) is taken back out. Then pick the right job for it.`, 'Undo')) return;
+    try{ await undoLastFiling(); }catch(e){ toast('Could not undo: '+(e.message||e)); } renderIntake(); };
+  if($('#iSync')) $('#iSync').onclick = ()=>Intake.sync();
+  $('#iDone').onclick = ()=>$('#intake').classList.remove('open');
+  $('#intakeBox').querySelectorAll('[data-ijob]').forEach(s=>s.onchange=()=>{ const r = Intake.rows[+s.dataset.ijob]; if(s.value) Store.intake.assign[r.name]=s.value; else delete Store.intake.assign[r.name]; Store.save(); Intake.sync(); });
+  $('#intakeBox').querySelectorAll('[data-iok]').forEach(b=>b.onclick=()=>{ const r = Intake.rows[+b.dataset.iok]; Store.intake.assign[r.name]=r.job.id; Store.save(); Intake.sync(); });
+}
+$('#btnIntake').onclick = async ()=>{ $('#intake').classList.add('open'); renderIntake(); if(FileLayer.connected) Intake.sync(); };
+$('#intake').onclick = e=>{ if(e.target.id==='intake') $('#intake').classList.remove('open'); };
+
+</script>
+<script>
+/* ==========================================================================
+   CLOUD (shared web app)
+   When CLOUD_CONFIG is null this file runs exactly as before: data stays in
+   this browser. The web build (web-app/build.py) fills CLOUD_CONFIG in, and
+   then everyone signs in and shares one Firebase workspace with live updates.
+   Firestore layout: ws/<workspace>/jobs/<job id>, ws/<workspace>/trash/<tid>,
+   ws/<workspace>/meta/{settings,intake}, members/<email> {role}.
+   Each doc holds {json, by, at}. Saves only write what changed.
+   ========================================================================== */
+const CLOUD_CONFIG = {"firebase": {"apiKey": "AIzaSyCGvTCBJVSUc-V6655Ukbqjomnv6d_a9t0", "authDomain": "action-project-pro-d38d9.firebaseapp.com", "projectId": "action-project-pro-d38d9", "storageBucket": "action-project-pro-d38d9.firebasestorage.app", "messagingSenderId": "328180623566", "appId": "1:328180623566:web:7a9595d6477f33fbf4489f"}, "owner": "austinpironeaec1@gmail.com", "workspace": "main"};
+
+const Cloud = {
+  on: !!CLOUD_CONFIG, ready:false, role:null, email:'', db:null, auth:null, ws:null,
+  synced: {jobs:new Map(), trash:new Map(), meta:new Map()},
+  pending: 0, failed: false, holdDrawer: false,
+  enc: id => encodeURIComponent(String(id)).replace(/\./g,'%2E'),
+  canEdit(){ return this.role==='owner' || this.role==='editor'; },
+
+  async loadSDK(){
+    const base = CLOUD_CONFIG.sdkBase || 'https://www.gstatic.com/firebasejs/10.14.1/';
+    for(const n of ['firebase-app-compat.js','firebase-auth-compat.js','firebase-firestore-compat.js'])
+      await new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=base+n; s.onload=res; s.onerror=()=>rej(new Error('Could not load '+n)); document.head.appendChild(s); });
+  },
+
+  async start(){
+    document.body.classList.add('cloud');
+    this.login('Loading…', true);
+    try{ await this.loadSDK(); }
+    catch(e){ return this.login('Could not reach the sign-in service. Check your internet connection and reload the page.', true); }
+    firebase.initializeApp(CLOUD_CONFIG.firebase);
+    this.auth = firebase.auth(); this.db = firebase.firestore();
+    const emu = CLOUD_CONFIG.emulator;
+    if(emu){ this.auth.useEmulator(emu.auth); this.db.useEmulator(emu.host, emu.port); }
+    else { try{ await this.db.enablePersistence({synchronizeTabs:true}); }catch(_){} }
+    let first = true;
+    this.auth.onAuthStateChanged(u=>{
+      if(u) this.signedIn(u).catch(e=>this.login('Something went wrong loading the data: '+(e.message||e)));
+      else if(!first) location.reload();
+      else { const na = sessionStorage.getItem('apNoAccess'); sessionStorage.removeItem('apNoAccess'); this.login(na ? `${na} isn't on the list of people who can open this yet. Ask the owner to add you in Rates & settings.` : ''); }
+      first = false;
+    });
+  },
+
+  /* ---------- sign-in screen ---------- */
+  login(msg='', busy=false){
+    $('#login').classList.add('open');
+    $('#lMsg').textContent = msg; $('#lForm').style.display = busy ? 'none' : '';
+  },
+  async doSignIn(){
+    const em = $('#lEmail').value.trim(), pw = $('#lPass').value;
+    if(!em || !pw) return this.login('Enter your email and password.');
+    this.login('Signing in…', true);
+    try{ await this.auth.signInWithEmailAndPassword(em, pw); }
+    catch(e){ this.login(/wrong-password|invalid-credential|user-not-found|invalid-login/.test(e.code||e.message) ? 'That email and password don\'t match. Try again, or use "Forgot password".' : 'Could not sign in: '+(e.message||e)); }
+  },
+  async doReset(){
+    const em = $('#lEmail').value.trim(); if(!em) return this.login('Type your email first, then click "Forgot password".');
+    try{ await this.auth.sendPasswordResetEmail(em); this.login('Check your email for a link to set a new password.'); }
+    catch(e){ this.login('Could not send the email: '+(e.message||e)); }
+  },
+
+  /* ---------- after sign-in: check access, load everything, then listen ---------- */
+  async signedIn(u){
+    this.email = (u.email||'').toLowerCase();
+    if(this.email === String(CLOUD_CONFIG.owner||'').toLowerCase()) this.role = 'owner';
+    else {
+      let m = null; try{ m = await this.db.collection('members').doc(this.email).get(); }catch(_){}
+      if(!m || !m.exists){ sessionStorage.setItem('apNoAccess', this.email); await this.auth.signOut().catch(()=>{}); return; }
+      this.role = m.data().role === 'editor' ? 'editor' : 'viewer';
+    }
+    this.login('Loading jobs…', true);
+    this.ws = this.db.collection('ws').doc(CLOUD_CONFIG.workspace || 'main');
+    await Promise.all(['jobs','trash','meta'].map(c=>new Promise((res,rej)=>{
+      let done = false; const finish = ()=>{ if(!done){ done=true; res(); } };
+      setTimeout(finish, 8000);                               // offline: go with what's cached
+      this.ws.collection(c).onSnapshot({includeMetadataChanges:true}, snap=>{
+        this.remote(c, snap);
+        if(!snap.metadata.fromCache) finish();
+      }, err=>{ if(!done){ done=true; rej(err); } else toast('Lost the live connection: '+err.message); });
+    })));
+    const meta = k => this.synced.meta.has(k) ? JSON.parse(this.synced.meta.get(k)) : null;
+    Store.init({jobs: [...this.synced.jobs.values()].map(s=>JSON.parse(s)),
+      trash: this.sortTrash([...this.synced.trash.values()].map(s=>JSON.parse(s))),
+      settings: meta('settings') || undefined, intake: meta('intake') || undefined});
+    this.ready = true;
+    if(this.canEdit()) Store.save();                         // writes settings the first time only
+    document.body.classList.toggle('viewonly', !this.canEdit());
+    $('#login').classList.remove('open');
+    this.header(); render(); renderIntakeBtn();
+    if(this.canEdit()) FileLayer.init().then(()=>{ if(FileLayer.connected) Intake.sync(); if(openId) renderDrawer(); });
+    window.addEventListener('online', ()=>this.pill()); window.addEventListener('offline', ()=>this.pill());
+    this.pill();
+  },
+  sortTrash: a => a.sort((x,y)=>y.deletedAt-x.deletedAt),
+
+  /* ---------- incoming changes (from the other person, or a rejected save) ---------- */
+  remote(c, snap){
+    const out = [];
+    snap.docChanges().forEach(ch=>{
+      if(ch.doc.metadata.hasPendingWrites) return;           // our own save, already applied
+      const id = ch.doc.id, map = this.synced[c];
+      if(ch.type==='removed'){ if(map.has(id)){ map.delete(id); out.push({id, del:true}); } return; }
+      const d = ch.doc.data();
+      if(map.get(id) !== d.json){ map.set(id, d.json); out.push({id, json:d.json, by:d.by}); }
+    });
+    if(this.ready && out.length) this.apply(c, out);
+  },
+  apply(c, changes){
+    let who = '', what = '';
+    if(c==='jobs') changes.forEach(ch=>{
+      const i = Store.jobs.findIndex(j=>this.enc(j.id)===ch.id);
+      if(ch.del){ if(i>=0){ what = Store.jobs[i].name; Store.jobs.splice(i,1); } return; }
+      const nj = normalizeJob(JSON.parse(ch.json)); what = nj.name; who = ch.by;
+      if(i>=0){ const o = Store.jobs[i]; Object.keys(o).forEach(k=>delete o[k]); Object.assign(o, nj); }   // same object, so open screens keep working
+      else Store.jobs.unshift(nj);
+    });
+    if(c==='trash') Store.trash = this.sortTrash([...this.synced.trash.values()].map(s=>JSON.parse(s)));
+    if(c==='meta') changes.forEach(ch=>{
+      if(ch.del) return; const v = JSON.parse(ch.json);
+      if(ch.id==='settings'){ const s = Store.settings; Object.keys(s).forEach(k=>delete s[k]); Object.assign(s, structuredClone(DEFAULT_SETTINGS), v); }
+      if(ch.id==='intake'){ const s = Store.intake; Object.keys(s).forEach(k=>delete s[k]); Object.assign(s, {assign:{}, filed:[]}, v); }
+    });
+    render(); renderIntakeBtn();
+    if(openId){ if(!Store.get(openId)) closeJob(); else if(this.typing()) this.holdDrawer = true; else renderDrawer(); }
+    if(c==='jobs' && who && who!==this.email && changes.length===1) toast(`${this.nameOf(who)} updated ${what}`);
+  },
+  typing(){ const a = document.activeElement; return !!(a && a.closest && a.closest('#drawer') && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)); },
+  nameOf: e => String(e||'').split('@')[0],
+
+  /* ---------- outgoing: write only what changed ---------- */
+  save(){
+    if(!this.ready) return;
+    const ops = [];
+    const diff = (c, cur, dels=true)=>{
+      const map = this.synced[c];
+      cur.forEach((json,id)=>{ if(map.get(id)!==json) ops.push({c,id,json}); });
+      if(dels) map.forEach((_,id)=>{ if(!cur.has(id)) ops.push({c,id,json:null}); });
+    };
+    diff('jobs', new Map(Store.jobs.map(j=>[this.enc(j.id), JSON.stringify(j)])));
+    diff('trash', new Map(Store.trash.map(t=>[this.enc(t.tid), JSON.stringify(t)])));
+    diff('meta', new Map([['settings', JSON.stringify(Store.settings)], ['intake', JSON.stringify(Store.intake)]]), false);
+    if(!ops.length) return;
+    if(!this.canEdit()){ this.revert(); toast('You have view-only access, so changes are not saved.'); return; }
+    const big = ops.find(o=>o.json && o.json.length > 900000);
+    if(big){ toast('That job has grown too large to save online. Ask Claude to split it up.'); this.revert(); return; }
+    const by = this.email, at = firebase.firestore.FieldValue.serverTimestamp();
+    for(let i=0;i<ops.length;i+=400){
+      const b = this.db.batch();
+      ops.slice(i,i+400).forEach(o=>{
+        const ref = this.ws.collection(o.c).doc(o.id);
+        if(o.json===null){ b.delete(ref); this.synced[o.c].delete(o.id); }
+        else { b.set(ref, {json:o.json, by, at}); this.synced[o.c].set(o.id, o.json); }
+      });
+      this.pending++; this.pill();
+      b.commit().then(()=>{ this.failed=false; }).catch(e=>{ this.failed=true; toast('Could not save: '+(e.code==='permission-denied'?'your login is not allowed to edit.':e.message)); })
+        .finally(()=>{ this.pending--; this.pill(); });
+    }
+  },
+  revert(){
+    Store.jobs = [...this.synced.jobs.values()].map(s=>normalizeJob(JSON.parse(s)));
+    Store.trash = this.sortTrash([...this.synced.trash.values()].map(s=>JSON.parse(s)));
+    render(); if(openId){ if(Store.get(openId)) renderDrawer(); else closeJob(); }
+  },
+
+  /* ---------- header bits ---------- */
+  pill(){
+    const p = $('#syncPill'); if(!p) return;
+    const [cls, txt] = !navigator.onLine ? ['off','Offline · will sync'] : this.pending ? ['busy','Saving…'] : this.failed ? ['off','Not saved'] : ['ok', this.canEdit()?'Saved · live':'Live · view only'];
+    p.className = 'syncpill '+cls; p.textContent = txt;
+  },
+  header(){
+    $('#syncPill').hidden = false; $('#btnAccount').hidden = false;
+    $('#btnAccount').textContent = '👤 ' + this.nameOf(this.email) + (this.role==='viewer'?' (view only)':'');
+  },
+  banner(){
+    const b = $('#cloudBanner'); if(!b) return;
+    b.hidden = !(this.on && this.ready && this.canEdit() && !Store.jobs.length);
+  },
+
+  /* ---------- People (owner only), shown in Rates & settings ---------- */
+  async people(){
+    if(!(this.on && this.role==='owner')) return;
+    const box = $('#settingsBox'); if(!box || $('#pplCard')) return;
+    const row = box.lastElementChild;
+    const d = document.createElement('div'); d.id = 'pplCard';
+    d.innerHTML = `<h4 style="margin:16px 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase">People who can sign in</h4>
+      <div class="note">You (${esc(this.email)}) are the owner. View only people see every update live but can't change anything.</div>
+      <table><tbody id="pplRows"><tr><td class="note">Loading…</td></tr></tbody></table>
+      <div class="form" style="margin-top:8px"><div class="f"><label>Email</label><input id="pEmail" placeholder="boss@actioncontractors.com"></div>
+        <div class="f"><label>Access</label><select id="pRole"><option value="viewer">View only</option><option value="editor">Can edit</option></select></div></div>
+      <div style="margin-top:8px"><button class="btn primary sm" id="pAdd">Add person and email them a link</button></div>`;
+    box.insertBefore(d, row);
+    const load = async ()=>{
+      const snap = await this.db.collection('members').get();
+      $('#pplRows').innerHTML = snap.docs.length ? snap.docs.map(m=>`<tr><td>${esc(m.id)}</td>
+        <td><select class="inl" data-prole="${esc(m.id)}"><option value="viewer" ${m.data().role!=='editor'?'selected':''}>View only</option><option value="editor" ${m.data().role==='editor'?'selected':''}>Can edit</option></select></td>
+        <td><button class="btn sm" data-plink="${esc(m.id)}">Resend link</button> <button class="btn sm danger" data-pdel="${esc(m.id)}">Remove</button></td></tr>`).join('')
+        : `<tr><td class="note">Nobody else yet.</td></tr>`;
+      $('#pplRows').querySelectorAll('[data-prole]').forEach(s=>s.onchange=async ()=>{ await this.db.collection('members').doc(s.dataset.prole).set({role:s.value}, {merge:true}); toast('Access updated'); });
+      $('#pplRows').querySelectorAll('[data-plink]').forEach(b=>b.onclick=()=>this.sendLink(b.dataset.plink));
+      $('#pplRows').querySelectorAll('[data-pdel]').forEach(b=>b.onclick=async ()=>{
+        if(!await askSure('Remove this person?', `${b.dataset.pdel} won't be able to see the jobs anymore.`, 'Remove')) return;
+        await this.db.collection('members').doc(b.dataset.pdel).delete(); load(); toast('Removed');
+      });
+    };
+    $('#pAdd').onclick = async ()=>{
+      const em = $('#pEmail').value.trim().toLowerCase();
+      if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) return toast('Enter their email address');
+      try{
+        await this.db.collection('members').doc(em).set({role:$('#pRole').value, addedBy:this.email, addedAt:new Date().toISOString()});
+        await this.makeAccount(em); await this.sendLink(em); $('#pEmail').value=''; load();
+      }catch(e){ toast('Could not add them: '+(e.message||e)); }
+    };
+    load().catch(e=>{ $('#pplRows').innerHTML = `<tr><td class="note">Could not load: ${esc(e.message)}</td></tr>`; });
+  },
+  /* Makes their login without signing you out (uses a second, throwaway connection). */
+  async makeAccount(em){
+    const app2 = firebase.apps.find(a=>a.name==='invite') || firebase.initializeApp(CLOUD_CONFIG.firebase, 'invite');
+    const a2 = app2.auth(); if(CLOUD_CONFIG.emulator) try{ a2.useEmulator(CLOUD_CONFIG.emulator.auth); }catch(_){}
+    const pw = crypto.getRandomValues(new Uint32Array(4)).join('-') + 'Aa!';
+    try{ await a2.createUserWithEmailAndPassword(em, pw); await a2.signOut(); }
+    catch(e){ if(e.code!=='auth/email-already-in-use') throw e; }
+  },
+  async sendLink(em){
+    try{ await this.auth.sendPasswordResetEmail(em); toast(`Emailed ${em} a link to set their password`); }
+    catch(e){ toast('Could not send the email: '+(e.message||e)); }
+  }
+};
+
+/* Hooks into the existing screens (kept here so the main code stays as it was). */
+if(Cloud.on){
+  const _render = render; render = function(){ _render(); Cloud.banner(); };
+  const _settings = $('#btnSettings').onclick; $('#btnSettings').onclick = function(){ _settings(); Cloud.people(); };
+  document.addEventListener('focusout', ()=>setTimeout(()=>{ if(Cloud.holdDrawer && !Cloud.typing()){ Cloud.holdDrawer=false; if(openId) renderDrawer(); } }, 0));
+  /* View only: lock the fields so nobody types into something that won't save. */
+  new MutationObserver(()=>{ if(Cloud.ready && !Cloud.canEdit()) document.querySelectorAll('#drawer input,#drawer select,#drawer textarea,#grid select,#settingsBox input,#settingsBox select').forEach(el=>{ if(!el.disabled) el.disabled = true; }); })
+    .observe(document.body, {childList:true, subtree:true});
+  $('#lGo').onclick = ()=>Cloud.doSignIn();
+  $('#lPass').onkeydown = e=>{ if(e.key==='Enter') Cloud.doSignIn(); };
+  $('#lReset').onclick = e=>{ e.preventDefault(); Cloud.doReset(); };
+  $('#btnAccount').onclick = async ()=>{ if(await askSure('Sign out?', `You're signed in as ${Cloud.email}.`, 'Sign out')) Cloud.auth.signOut(); };
+  $('#cbImport').onclick = ()=>$('#fileImport').click();
+  Cloud.start();
+} else {
+  Store.init(); render(); renderIntakeBtn();
+  FileLayer.init().then(()=>{ if(FileLayer.connected){ Intake.sync(); } if(openId) renderDrawer(); });
+}
+</script>
+</body>
+</html>
