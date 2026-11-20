@@ -333,7 +333,7 @@ header .btn:not(#btnAccount),header input{order:3}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.17 (recap sheet)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.18 (recap fills from the job)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -983,6 +983,8 @@ function renderDrawer(){
       <div class="form" id="bidForm">
         ${fld('SV number','sv',j.sv)}
         ${fld('Job name','name',j.name)}
+        ${fld('Job location','recapLocation',j.recapLocation||'')}
+        ${fld('Job description','recapDesc',j.recapDesc||'')}
         ${fld('Federal job?','federal',null,'select',`<option value="no" ${!j.federal?'selected':''}>No</option><option value="yes" ${j.federal?'selected':''}>Yes – apply bond</option>`)}
         ${fld('Priority','priority',null,'select',opts(['Low','Normal','High'],j.priority))}
         ${fld('Estimate status','estStatus',null,'select',opts(['Not Started','In Progress','Deferred','Complete'],j.estStatus))}
@@ -1092,6 +1094,7 @@ $('#btnNew').onclick = ()=>{
     <div class="form">
       <div class="f"><label>Job name</label><input id="nName" placeholder="e.g. VA HOSPITAL RESTROOMS"></div>
       <div class="f"><label>SV number</label><input id="nSv" placeholder="SV26-____"></div>
+      <div class="f"><label>Job location</label><input id="nLoc" placeholder="City, State"></div>
       <div class="f"><label>Priority</label><select id="nPri">${opts(['Low','Normal','High'],'Normal')}</select></div>
     </div>
     <div class="fedq"><b>Is this a federal job?</b>
@@ -1117,7 +1120,8 @@ $('#btnNew').onclick = ()=>{
     const name = $('#nName').value.trim(), fed = document.querySelector('input[name=nFed]:checked');
     if(!name){ toast('Enter a job name'); return; }
     if(!fed){ toast('Answer: is this a federal job?'); return; }
-    const j = normalizeJob({id:'job-'+Date.now(), sv:$('#nSv').value.trim(), name, priority:$('#nPri').value, estStatus:'In Progress', startDate:today(), bidStatus:'Estimating', federal: fed.value==='yes'});
+    const j = normalizeJob({id:'job-'+Date.now(), sv:$('#nSv').value.trim(), name, priority:$('#nPri').value, estStatus:'In Progress', startDate:today(), bidStatus:'Estimating', federal: fed.value==='yes',
+      recapLocation:($('#nLoc').value||'').trim(), recapDesc:($('#svDesc').value||'').trim()});
     Store.jobs.unshift(j); Store.save(); FileLayer.ensureJobFolder(j);
     $('#newBid').classList.remove('open'); filter='Active'; bidTab='bq'; render(); openJob(j.id);
   };
@@ -1336,8 +1340,8 @@ function recapPlan(j){
   // header
   need(j.name.trim(), 'Bid information: enter the job name.');
   need((j.sv||'').trim(), 'Bid information: enter the SV number.');
-  need((j.recapLocation||'').trim(), 'Recap: enter the job location.');
-  need((j.recapDesc||'').trim(), 'Recap: enter the job description.');
+  need((j.recapLocation||'').trim(), 'Bid information: enter the job location.');
+  need((j.recapDesc||'').trim(), 'Bid information: enter the job description.');
   Object.assign(ml, {B1:j.name.trim(), J1:(j.sv||'').trim(), B2:(j.recapLocation||'').trim(), B3:(j.recapDesc||'').trim(), J2:new Date().toLocaleDateString('en-US'), F44:0});
   // I. material
   const used = j.quotes.filter(q=>q.use!=='No');
@@ -1440,21 +1444,26 @@ async function recapBuild(j, plan, tpl){
 }
 
 async function openRecap(j){
-  const tpl = await RecapTpl.get().catch(()=>null);
+  const tpl = await RecapTpl.get().catch(()=>null), par = parentOf(j);
+  let filled = false;   // a change order takes the location/description of its original bid when it has none of its own
+  ['recapLocation','recapDesc'].forEach(k=>{ if(!(j[k]||'').trim() && par && (par[k]||'').trim()){ j[k] = par[k]; filled = true; } });
+  if(filled) Store.save();
+  const syncDrawer = ()=>['recapLocation','recapDesc'].forEach(k=>{ const el = document.querySelector(`#bidForm [data-k="${k}"]`); if(el) el.value = j[k]||''; });
+  syncDrawer();
   const draw = ()=>{
     const p = recapPlan(j); if(!tpl) p.issues.unshift('Upload your blank recap form once in Rates & settings.');
     const ok = !p.issues.length;
     $('#pickBox').innerHTML = `<h3>Recap sheet</h3>
-      <div class="note">Fills your recap form from this bid builder. It's a gross sum for the bid only and doesn't change the job.</div>
+      <div class="note">Filled from this job: <b>${esc(j.sv||'no SV #')} · ${esc(j.name)}</b>, dated ${new Date().toLocaleDateString('en-US')}, with every line from its bid builder. It's a gross sum for the bid only and doesn't change the job's totals.</div>
       <div class="form" style="margin-top:10px">
-        <div class="f wide"><label>Job location</label><input id="rcLoc" value="${esc(j.recapLocation||'')}" placeholder="City, State"></div>
+        <div class="f wide"><label>Job location</label><input id="rcLoc" value="${esc(j.recapLocation||'')}" placeholder="City, State (saved on the job)"></div>
         <div class="f wide"><label>Job description</label><input id="rcDesc" value="${esc(j.recapDesc||'')}" placeholder="Short description of the work"></div></div>
       <div class="rccheck ${ok?'ok':'bad'}">${ok
         ? `✓ Every line checks out. The recap comes to <b>${money(p.total,2)}</b>, the same as the bid builder.`
         : `<b>Fix these before it can be saved:</b><ul>${p.issues.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>`}</div>
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button class="btn" id="rcClose">Close</button><button class="btn primary" id="rcGo" ${ok?'':'disabled'}>Save recap</button></div>`;
     $('#pickBox').parentElement.style.width = 'min(640px,96%)';
-    const keep = (id,k)=>$('#'+id).onchange = e=>{ j[k] = e.target.value.trim(); Store.save(); draw(); };
+    const keep = (id,k)=>$('#'+id).onchange = e=>{ j[k] = e.target.value.trim(); Store.save(); syncDrawer(); draw(); };
     keep('rcLoc','recapLocation'); keep('rcDesc','recapDesc');
     $('#rcClose').onclick = ()=>$('#pick').classList.remove('open');
     $('#rcGo').onclick = async ()=>{
