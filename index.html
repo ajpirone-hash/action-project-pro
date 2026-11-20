@@ -33,7 +33,7 @@ header>*{position:relative;z-index:1}
 .brand{display:flex;align-items:center;gap:16px}
 .brand img{height:58px;width:auto;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35))}
 .brand .div{width:2px;align-self:stretch;background:linear-gradient(#e8a317,rgba(232,163,23,0));margin:2px 2px}
-.wm{font-family:"Arial Black","Segoe UI Black",Impact,system-ui,sans-serif;font-style:italic;font-weight:900;font-size:28px;line-height:1;letter-spacing:.5px;text-transform:uppercase;display:flex;align-items:center;gap:10px}
+.wm{font-family:"Arial Black","Segoe UI Black",system-ui,-apple-system,"Helvetica Neue",sans-serif;font-style:italic;font-weight:900;font-size:28px;line-height:1;letter-spacing:.5px;text-transform:uppercase;display:flex;align-items:center;gap:10px}
 .wm .pro{font-style:normal;font-size:15px;letter-spacing:2px;background:#e8a317;color:#0d1b2e;padding:4px 9px 3px;border-radius:4px;transform:skewX(-12deg);box-shadow:0 2px 8px rgba(232,163,23,.35)}
 .wm .pro span{display:inline-block;transform:skewX(12deg)}
 .tag{margin-top:6px;font-size:11.5px;letter-spacing:2.2px;text-transform:uppercase;color:#c9d6e8;font-weight:600}
@@ -224,6 +224,34 @@ header{padding-top:max(18px, env(safe-area-inset-top));padding-left:max(28px, en
   #drawer th,.modal th{white-space:nowrap} #drawer td{min-width:72px}
   .modal .box{width:96%;max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));padding:16px 14px}
 }
+
+/* ---- fits every screen: header in two tidy rows (brand + account, then actions) ---- */
+header{justify-content:flex-end;row-gap:12px}
+header .brand{order:0;flex:1 1 auto;min-width:0}
+#syncPill,#btnAccount{order:1}
+header .sp{order:2;flex:0 0 100%;height:0}
+header .btn:not(#btnAccount),header input{order:3}
+#btnAccount{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* tablets, wide/foldable phones, phones in landscape */
+@media (min-width:641px) and (max-width:1180px){
+  header{padding:max(14px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) 14px max(20px, env(safe-area-inset-left));gap:10px}
+  .brand img{height:46px} .wm{font-size:24px} .wm .pro{font-size:13px} .tag{font-size:10.5px;letter-spacing:1.6px;margin-top:5px} .tag .ver,.addr{display:none}
+  header .btn{padding:6px 12px;font-size:13.5px}
+  main{padding:16px max(18px, env(safe-area-inset-right)) 50px max(18px, env(safe-area-inset-left))}
+  .kpis{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+  .search{order:-2;flex:1 1 calc(100% - 170px);margin-left:0;min-width:0} .sort{order:-1}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+}
+/* short screens (phone sideways): keep the header thin */
+@media (max-height:500px) and (orientation:landscape){
+  header{row-gap:6px;padding-top:max(8px, env(safe-area-inset-top));padding-bottom:8px} .brand img{height:32px} .wm{font-size:19px} .tag{display:none}
+  .dh{padding-top:8px;padding-bottom:8px}
+}
+@media (max-width:640px){
+  header{justify-content:flex-start}
+  .brand{flex:1 1 100%}
+  #btnAccount{max-width:150px}
+}
 /* ---- shared web app ---- */
 .syncpill{font-size:12px;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.14);color:#fff;white-space:nowrap}
 .syncpill::before{content:"●";margin-right:6px}
@@ -294,7 +322,7 @@ header{padding-top:max(18px, env(safe-area-inset-top));padding-left:max(28px, en
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span style="opacity:.6;font-weight:400">· v0.11 (new sign-in)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.12 (fits every screen)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
