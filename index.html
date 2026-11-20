@@ -339,7 +339,7 @@ header .btn:not(#btnAccount),header input{order:3}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.21 (move material orders)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.22 (recap matches your form)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -426,7 +426,7 @@ const DEFAULT_SETTINGS = {
   perDiem: 75,
   rootFolder: 'Documents/Action Projects',
   // Recap defaults (from the 2026 RECAP template). Each bid can override them.
-  recap: { consumablesPerMH: 3, salesTax: 8.9, matOP: 20, labOP: 20, subOP: 20, cleanup: 0, toolTruckPerDay: 100 },
+  recap: { consumablesPerMH: 3, consumablesLump: 0, salesTax: 8.9, matOP: 20, labOP: 20, subOP: 20, cleanup: 0, toolTruckPerDay: 100, interOffice: 200 },
   laborRates: [
     {cls:'Project Manager / Supervision', st:131.60, hw:17.51},
     {cls:'General Foreman',  st:46.73, hw:17.51},
@@ -461,7 +461,7 @@ function normalizeJob(j){
     bidTotal:0, bidStatus:'Estimating', awardDate:'', federal:false, parentId:null, revisions:[], bidBond:{req:'No', pct:20},
     changeOrders:[], materials:[], materialItems:[], labor:[], travel:[],
     quotes:[], subs:[], rentals:[], estLabor:[], estOther:[],
-    markup:{}}, j, {markup: Object.assign({}, s.recap, j.markup||{})});
+    markup:{}}, j, {markup: Object.assign({}, DEFAULT_SETTINGS.recap, s.recap, j.markup||{})});
 }
 const Store = {
   jobs: [], settings: null, trash: [],
@@ -544,7 +544,7 @@ function bidBuild(j){
   const equip = q.filter(x=>x.cat==='Equipment').reduce((a,x)=>a+(+x.amount||0),0);
   const pvf   = q.filter(x=>x.cat!=='Equipment').reduce((a,x)=>a+(+x.amount||0),0);
   const hwHours = j.estLabor.filter(l=>l.cls!=='Helper').reduce((a,l)=>a+(+l.hours||0),0);
-  const consumables = (+m.consumablesPerMH||0) * hwHours;
+  const consumables = (+m.consumablesLump||0) > 0 ? +m.consumablesLump : (+m.consumablesPerMH||0) * hwHours;
   const matSub = equip + pvf + consumables, tax = matSub*(+m.salesTax||0)/100;
   const matCost = matSub + tax, matOP = matCost*(+m.matOP||0)/100, matPrice = matCost + matOP;
 
@@ -555,7 +555,9 @@ function bidBuild(j){
   const fmHours = j.estLabor.filter(l=>FOREMAN.has(l.cls)).reduce((a,l)=>a+(+l.hours||0),0);
   const toolTruck = fmHours/8*(+m.toolTruckPerDay||0);
   const otherExp = j.estOther.reduce((a,o)=>a+(+o.amount||0),0);
-  const expenses = toolTruck + otherExp;
+  // the recap carries a standing inter office expense ($200) on every job
+  const interOffice = m.interOffice==null ? DEFAULT_SETTINGS.recap.interOffice : (+m.interOffice||0);
+  const expenses = toolTruck + interOffice + otherExp;
   const labExpOP = (labCost+expenses)*(+m.labOP||0)/100;
   const labExpPrice = labCost + expenses + labExpOP;
 
@@ -567,7 +569,7 @@ function bidBuild(j){
 
   const price = matPrice + labExpPrice + subPrice;
   const bond = bondApplies(j, price) ? bondFor(price) : {lines:[], total:0};
-  return {equip, pvf, consumables, tax, matCost, matOP, matPrice, hours, labCost, cleanup, toolTruck, otherExp, expenses, labExpOP, labExpPrice,
+  return {equip, pvf, consumables, tax, matCost, matOP, matPrice, hours, labCost, cleanup, toolTruck, interOffice, otherExp, expenses, labExpOP, labExpPrice,
           actionDepts, outside, rentals, subOP, subPrice, price, bond, suggested: price + bond.total,
           // simple rollups used by the tab footers
           mat: equip+pvf, subs: actionDepts+outside, lab: labCost, other: expenses};
@@ -806,7 +808,7 @@ const LOGS = {
 };
 const NUMT = new Set(['number','money']);
 // Lists taken from the RECAP template
-const TRADES = ['Insulation','Concrete coring/cutting','Electrical','Sheet metal','Civil','Millwright','Service','Pipe fab shop','Pipe support fab','Temperature controls','Air/water balancing','Hot tap','Crane','Backfill','Trench drain','Operator','Badges','Plumbing','Other'];
+const TRADES = ['Insulation','Concrete coring/cutting','Electrical','Sheet metal','Civil','Millwright','Service','Pipe fab shop','Pipe support fab','Temperature controls','Air/water balancing','Hot tap','Crane','Backfill','Trench drain','Operator','Excavation','Permit','Dumpster','Testing','Badges','Plumbing','Other'];
 const EXPENSES = ['Hotel','Per diem','Travel time','Inter office expenses','As-built drawings','Ditching / backfill','Engineering','Field office','Pipe ID','Safety meeting','Welding machine rental','Temporary water / power','Valve tag / pipe identification','Warranty reserve','Permits','Other'];
 const colOpts = o => o==='ITEMST' ? ITEM_STATUS : o==='CLS' ? Store.settings.laborRates.map(r=>r.cls) : o==='TRADES' ? TRADES : o==='EXPENSES' ? EXPENSES : o;
 
@@ -1081,7 +1083,7 @@ function bidBuilderCard(j){
         <div class="sh">I. Material</div>
         <div class="r"><span>Pipe, valves, fittings</span><b>${money(b.pvf)}</b></div>
         <div class="r"><span>Equipment</span><b>${money(b.equip)}</b></div>
-        <div class="r"><span>Consumables ${pin('consumablesPerMH',j)} $/MH</span><b>${money(b.consumables)}</b></div>
+        <div class="r"><span>Consumables ${pin('consumablesPerMH',j)} $/MH <span class="note">or lump $</span>${pin('consumablesLump',j)}</span><b>${money(b.consumables)}</b></div>
         <div class="r"><span>Sales tax ${pin('salesTax',j)}%</span><b>${money(b.tax)}</b></div>
         <div class="r"><span>O&amp;P ${pin('matOP',j)}%</span><b>${money(b.matOP)}</b></div>
         <div class="r t"><span>Material price</span><b>${money(b.matPrice)}</b></div>
@@ -1090,6 +1092,7 @@ function bidBuilderCard(j){
         <div class="r"><span>Labor (${b.hours.toLocaleString()} MH, H&amp;W, ins.)</span><b>${money(b.labCost-b.cleanup)}</b></div>
         <div class="r"><span>Clean-up ${pin('cleanup',j)}%</span><b>${money(b.cleanup)}</b></div>
         <div class="r"><span>Tool &amp; truck ${pin('toolTruckPerDay',j)} $/day</span><b>${money(b.toolTruck)}</b></div>
+        <div class="r"><span>Inter office $${pin('interOffice',j)}</span><b>${money(b.interOffice)}</b></div>
         <div class="r"><span>Job expenses</span><b>${money(b.otherExp)}</b></div>
         <div class="r"><span>O&amp;P ${pin('labOP',j)}%</span><b>${money(b.labExpOP)}</b></div>
         <div class="r t"><span>Labor &amp; expense price</span><b>${money(b.labExpPrice)}</b></div>
@@ -1419,6 +1422,207 @@ const Zip = {
   }
 };
 
+/* XLCALC-BEGIN
+   A small Excel calculator for the recap workbook. It reads every sheet's
+   cells and formulas (shared formulas included), works the formulas out the
+   way Excel does (SUM, IF, NOW, + - * / ^ &, comparisons, ranges), and
+   writes the results back as the saved values. That way the totals are
+   right in Protected View, previews and phones before Excel recalculates,
+   and the app checks the form's own formulas instead of a copy of them.
+   Anything it can't work out (e.g. #REF! cells) keeps its saved value.     */
+const XLCalc = {
+  colNum(c){ let n = 0; for(const ch of c) n = n*26 + ch.charCodeAt(0) - 64; return n; },
+  colName(n){ let s = ''; while(n > 0){ const m = (n-1) % 26; s = String.fromCharCode(65+m) + s; n = Math.floor((n-1)/26); } return s; },
+  unesc(s){ return s.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&apos;/g,"'").replace(/&#(\d+);/g,(_,d)=>String.fromCharCode(+d)).replace(/&amp;/g,'&'); },
+  esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); },
+  sst(xml){ if(!xml) return [];
+    return [...xml.matchAll(/<si>([\s\S]*?)<\/si>/g)].map(m=>[...m[1].replace(/<rPh[\s\S]*?<\/rPh>/g,'').matchAll(/<t(?: [^>]*)?>([\s\S]*?)<\/t>/g)].map(t=>this.unesc(t[1])).join('')); },
+  /* cells of one sheet: ref -> {t, v, f, si, ref, xml, idx} */
+  cells(xml, sst){
+    const out = new Map(), shared = new Map(), re = /<c r="([A-Z]+)(\d+)"([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;
+    let m;
+    while((m = re.exec(xml))){
+      const [whole, col, row, attrs, inner=''] = m, t = (attrs.match(/ t="(\w+)"/)||[])[1] || 'n';
+      const c = {col:this.colNum(col), row:+row, t, idx:m.index, len:whole.length, attrs, inner};
+      const fm = inner.match(/<f([^>]*?)(?:\/>|>([\s\S]*?)<\/f>)/), vm = inner.match(/<v>([\s\S]*?)<\/v>/);
+      let v = vm ? this.unesc(vm[1]) : null;
+      if(t==='s' && v!=null) v = sst[+v] ?? '';
+      else if(t==='inlineStr'){ v = [...inner.matchAll(/<t(?: [^>]*)?>([\s\S]*?)<\/t>/g)].map(x=>this.unesc(x[1])).join(''); }
+      else if(t==='b') v = v==='1';
+      else if(t==='e') v = {err:v};
+      else if((t==='n') && v!=null) v = +v;
+      c.v = v;
+      if(fm){
+        const fa = fm[1], ftext = fm[2]!=null ? this.unesc(fm[2]) : null, si = (fa.match(/ si="(\d+)"/)||[])[1];
+        if(/ t="shared"/.test(fa)){
+          if(ftext!=null && ftext!==''){ shared.set(si, {text:ftext, col:c.col, row:c.row}); c.f = ftext; c.base = {col:c.col,row:c.row}; c.si = si; }
+          else c.si = si;
+        } else if(/ t="array"/.test(fa) || / t="dataTable"/.test(fa)) c.skip = true;
+        else c.f = ftext;
+        c.hasF = true;
+      }
+      out.set(col+row, c);
+    }
+    for(const c of out.values()) if(c.hasF && c.f==null && c.si!=null){ const sh = shared.get(c.si); if(sh){ c.f = sh.text; c.base = {col:sh.col,row:sh.row}; } else c.skip = true; }
+    return out;
+  },
+  /* ---------- formula parser ---------- */
+  tokens(f){
+    const T = [], re = /\s*(?:("(?:[^"]|"")*")|('(?:[^']|'')+'!|[A-Za-z_][\w\.]*!)|(\$?[A-Z]{1,3}\$?\d+(?::\$?[A-Z]{1,3}\$?\d+)*)|(\d+(?:\.\d+)?(?:[Ee][+-]?\d+)?|\.\d+)|(#REF!|#[A-Z\/0]+[!?]?)|([A-Za-z_][\w\.]*)\s*(?=\()|(<>|<=|>=|[-+*\/^&=<>%(),:]))/y;
+    let i = 0;
+    while(i < f.length){
+      re.lastIndex = i; const m = re.exec(f);
+      if(!m){ if(/^\s*$/.test(f.slice(i))) break; throw new Error('cannot read formula: '+f); }
+      i = re.lastIndex;
+      if(m[1]!=null) T.push({k:'str', v:m[1].slice(1,-1).replace(/""/g,'"')});
+      else if(m[2]!=null) T.push({k:'sheet', v:m[2].replace(/^'|'?!$/g,'').replace(/''/g,"'")});
+      else if(m[3]!=null) T.push({k:'ref', v:m[3]});
+      else if(m[4]!=null) T.push({k:'num', v:+m[4]});
+      else if(m[5]!=null) T.push({k:'err', v:m[5]});
+      else if(m[6]!=null) T.push({k:'fn', v:m[6].toUpperCase()});
+      else T.push({k:'op', v:m[7]});
+    }
+    return T;
+  },
+  parse(f){
+    if(this._pc && this._pc.has(f)) return this._pc.get(f);
+    const T = this.tokens(f); let p = 0;
+    const peek = () => T[p], take = () => T[p++], isOp = v => peek() && peek().k==='op' && peek().v===v;
+    const ref1 = s => { const m = s.match(/^(\$?)([A-Z]{1,3})(\$?)(\d+)$/); return {ac:!!m[1], col:this.colNum(m[2]), ar:!!m[3], row:+m[4]}; };
+    const prim = () => {
+      const t = take(); if(!t) throw new Error('formula ends early: '+f);
+      if(t.k==='num') return {k:'num', v:t.v};
+      if(t.k==='str') return {k:'str', v:t.v};
+      if(t.k==='err') return {k:'errv', v:t.v};
+      if(t.k==='sheet'){ const r = take(); if(!r || r.k!=='ref') throw new Error('bad sheet ref: '+f); return {k:'ref', sheet:t.v, parts:r.v.split(':').map(ref1)}; }
+      if(t.k==='ref') return {k:'ref', sheet:null, parts:t.v.split(':').map(ref1)};
+      if(t.k==='fn'){ take(); const args = []; if(!isOp(')')){ for(;;){ args.push(cmp()); if(isOp(',')){ take(); continue; } break; } } if(!isOp(')')) throw new Error('missing ) in '+f); take(); return {k:'fn', n:t.v, args}; }
+      if(t.k==='op' && t.v==='('){ const e = cmp(); if(!isOp(')')) throw new Error('missing ) in '+f); take(); return e; }
+      if(t.k==='op' && (t.v==='-' || t.v==='+')) return {k:'neg', s:t.v, e:unary()};
+      throw new Error('unexpected '+t.v+' in '+f);
+    };
+    const unary = () => { if(isOp('-') || isOp('+')){ const s = take().v; return {k:'neg', s, e:unary()}; } return post(); };
+    const post = () => { let e = prim(); while(isOp('%')){ take(); e = {k:'pct', e}; } return e; };
+    const pow = () => { let e = unary(); while(isOp('^')){ take(); e = {k:'bin', o:'^', a:e, b:unary()}; } return e; };
+    const mul = () => { let e = pow(); while(isOp('*') || isOp('/')){ const o = take().v; e = {k:'bin', o, a:e, b:pow()}; } return e; };
+    const add = () => { let e = mul(); while(isOp('+') || isOp('-')){ const o = take().v; e = {k:'bin', o, a:e, b:mul()}; } return e; };
+    const cat = () => { let e = add(); while(isOp('&')){ take(); e = {k:'bin', o:'&', a:e, b:add()}; } return e; };
+    const cmp = () => { let e = cat(); while(peek() && peek().k==='op' && ['=','<>','<','>','<=','>='].includes(peek().v)){ const o = take().v; e = {k:'bin', o, a:e, b:cat()}; } return e; };
+    const ast = cmp(); if(p < T.length) throw new Error('extra text in formula: '+f);
+    (this._pc = this._pc || new Map()).set(f, ast); return ast;
+  },
+  /* ---------- evaluation ---------- */
+  load(sheets){ // sheets: {name: {xml}} ; sst array
+    this.book = new Map(); for(const [name, s] of Object.entries(sheets)) this.book.set(name.toLowerCase(), {name, cells:this.cells(s.xml, this.sstArr), memo:new Map()});
+  },
+  ERR: e => ({err:e}),
+  isErr: v => v && typeof v==='object' && 'err' in v,
+  num(v){ if(v==null || v==='') return 0; if(typeof v==='number') return v; if(typeof v==='boolean') return v?1:0; if(this.isErr(v)) throw v;
+    const n = Number(String(v).trim()); if(String(v).trim()!=='' && !isNaN(n)) return n; throw this.ERR('#VALUE!'); },
+  str(v){ if(v==null) return ''; if(this.isErr(v)) throw v; if(typeof v==='boolean') return v?'TRUE':'FALSE'; return typeof v==='number' ? String(+v.toPrecision(15)) : String(v); },
+  cellVal(sheetKey, col, row, stack){
+    const sh = this.book.get(sheetKey); if(!sh) throw this.ERR('#REF!');
+    const ref = this.colName(col)+row, c = sh.cells.get(ref); if(!c) return null;
+    if(!c.hasF) return c.v;
+    if(sh.memo.has(ref)) return sh.memo.get(ref);
+    if(c.skip || c.f==null || /#REF!/.test(c.f) || /\[\d+\]/.test(c.f)) return c.v;   // keep Excel's saved value
+    const key = sheetKey+'!'+ref; if(stack.has(key)) return c.v; stack.add(key);
+    let v;
+    try{ v = this.ev(this.parse(c.f), sheetKey, c.row-(c.base?c.base.row:c.row), c.col-(c.base?c.base.col:c.col), stack); if(v && v.range) v = this.first(v); if(v==null) v = 0; }
+    catch(e){ if(this.isErr(e)) v = e; else { c.skip = true; stack.delete(key); return c.v; } }
+    stack.delete(key); sh.memo.set(ref, v); return v;
+  },
+  first(r){ return this.cellVal(r.sheet, r.c1, r.r1, r.stack); },
+  ev(n, sk, dr, dc, stack){
+    switch(n.k){
+      case 'num': return n.v;
+      case 'str': return n.v;
+      case 'errv': return this.ERR(n.v);
+      case 'pct': return this.num(this.val(n.e, sk, dr, dc, stack))/100;
+      case 'neg': { const x = this.num(this.val(n.e, sk, dr, dc, stack)); return n.s==='-' ? -x : x; }
+      case 'ref': {
+        const sheet = n.sheet ? n.sheet.toLowerCase() : sk;
+        const pts = n.parts.map(q=>({col:q.col + (q.ac?0:dc), row:q.row + (q.ar?0:dr)}));
+        if(pts.length===1) return this.cellVal(sheet, pts[0].col, pts[0].row, stack);
+        const cs = pts.map(q=>q.col), rs = pts.map(q=>q.row);
+        return {range:true, sheet, c1:Math.min(...cs), c2:Math.max(...cs), r1:Math.min(...rs), r2:Math.max(...rs), stack};
+      }
+      case 'bin': {
+        const a = this.val(n.a, sk, dr, dc, stack), b = this.val(n.b, sk, dr, dc, stack);
+        if(this.isErr(a)) return a; if(this.isErr(b)) return b;
+        if(n.o==='&') return this.str(a) + this.str(b);
+        if(['=','<>','<','>','<=','>='].includes(n.o)){
+          const kind = x => x==null ? 'blank' : typeof x==='number' ? 'n' : typeof x==='boolean' ? 'b' : 's';
+          let x = a, y = b, ka = kind(a), kb = kind(b);
+          if(ka==='blank') { x = kb==='s' ? '' : kb==='b' ? false : 0; ka = kb==='blank' ? 'n' : kb; }
+          if(kb==='blank') { y = ka==='s' ? '' : ka==='b' ? false : 0; kb = ka; }
+          let c;
+          if(ka!==kb){ const order = {n:0, s:1, b:2}; c = order[ka] - order[kb]; }
+          else if(ka==='s'){ const p = x.toLowerCase(), q = y.toLowerCase(); c = p<q ? -1 : p>q ? 1 : 0; }
+          else c = (+x) - (+y);
+          return {'=':c===0, '<>':c!==0, '<':c<0, '>':c>0, '<=':c<=0, '>=':c>=0}[n.o];
+        }
+        const x = this.num(a), y = this.num(b);
+        if(n.o==='+') return x+y; if(n.o==='-') return x-y; if(n.o==='*') return x*y;
+        if(n.o==='/') return y===0 ? this.ERR('#DIV/0!') : x/y;
+        if(n.o==='^') return Math.pow(x,y);
+        throw new Error('operator '+n.o);
+      }
+      case 'fn': {
+        if(n.n==='SUM'){ let s = 0;
+          for(const a of n.args){ const v = this.ev(a, sk, dr, dc, stack);
+            if(v && v.range){ for(let r=v.r1; r<=v.r2; r++) for(let c=v.c1; c<=v.c2; c++){ const x = this.cellVal(v.sheet, c, r, stack); if(this.isErr(x)) return x; if(typeof x==='number') s += x; } }
+            else if(this.isErr(v)) return v;
+            else if(a.k==='ref'){ if(typeof v==='number') s += v; }
+            else s += this.num(v); }
+          return s; }
+        if(n.n==='IF'){ const c = this.val(n.args[0], sk, dr, dc, stack); if(this.isErr(c)) return c;
+          const t = typeof c==='string' ? (()=>{ throw this.ERR('#VALUE!'); })() : !!this.num(c);
+          const pick = t ? n.args[1] : n.args[2];
+          if(!pick) return t ? true : false;
+          const v = this.val(pick, sk, dr, dc, stack); return v==null ? 0 : v; }
+        if(n.n==='NOW'){ const d = new Date(); return (d.getTime() - d.getTimezoneOffset()*60000)/864e5 + 25569; }
+        if(n.n==='TODAY'){ const d = new Date(); return Math.floor((d.getTime() - d.getTimezoneOffset()*60000)/864e5) + 25569; }
+        throw new Error('function '+n.n);
+      }
+    }
+    throw new Error('node '+n.k);
+  },
+  val(n, sk, dr, dc, stack){ const v = this.ev(n, sk, dr, dc, stack); return v && v.range ? this.first(v) : v; },
+  /* Works out every formula in the book. Returns {get(sheet, ref), write(sheet) -> new xml or null if unchanged}. */
+  run(sheets, sstXml){
+    this._pc = new Map(); this.sstArr = this.sst(sstXml); this.load(sheets);
+    const stack = new Set();
+    for(const sh of this.book.values()) for(const [ref, c] of sh.cells) if(c.hasF) this.cellVal(sh.name.toLowerCase(), c.col, c.row, stack);
+    return this;
+  },
+  get(sheet, ref){ const sh = this.book.get(sheet.toLowerCase()), c = sh && sh.cells.get(ref); if(!c) return null; return c.hasF && sh.memo.has(ref) ? sh.memo.get(ref) : c.v; },
+  /* Puts the worked-out results into the sheet's xml as saved values; formulas themselves are untouched. */
+  write(sheet, xml){
+    const sh = this.book.get(sheet.toLowerCase()); let out = '', last = 0, changed = false;
+    const list = [...sh.cells.values()].filter(c=>c.hasF && sh.memo.has(this.colName(c.col)+c.row)).sort((a,b)=>a.idx-b.idx);
+    for(const c of list){
+      const v = sh.memo.get(this.colName(c.col)+c.row);
+      if(this.isErr(v) && this.isErr(c.v) && v.err===c.v.err) continue;
+      if(!this.isErr(v) && v===c.v) continue;
+      if(typeof v==='number' && typeof c.v==='number' && Math.abs(v-c.v) <= 1e-9*Math.max(1,Math.abs(v))) continue;
+      let t, vv;
+      if(typeof v==='number'){ t = ''; vv = String(v); }
+      else if(typeof v==='boolean'){ t = ' t="b"'; vv = v?'1':'0'; }
+      else if(this.isErr(v)){ t = ' t="e"'; vv = v.err; }
+      else { t = ' t="str"'; vv = this.esc(v); }
+      const whole = xml.slice(c.idx, c.idx+c.len);
+      const attrs = c.attrs.replace(/ t="\w+"/,'') + t;
+      const fpart = (c.inner.match(/<f[^>]*?(?:\/>|>[\s\S]*?<\/f>)/)||[''])[0];
+      const rest = c.inner.replace(/<f[^>]*?(?:\/>|>[\s\S]*?<\/f>)/,'').replace(/<v>[\s\S]*?<\/v>/,'');
+      const cell = `<c r="${this.colName(c.col)}${c.row}"${attrs}>${fpart}<v>${vv}</v>${rest}</c>`;
+      out += xml.slice(last, c.idx) + cell; last = c.idx + whole.length; changed = true;
+    }
+    return changed ? out + xml.slice(last) : null;
+  }
+};
+/* XLCALC-END */
+
 const RECAP_ML = 'Install material list 1', RECAP_RC = 'Install Recap 1', RECAP_LINES = [6, 41];
 const XL = {
   cellRe: ref => new RegExp(`<c r="${ref}"(?: [^>]*?)?(?:/>|>[\\s\\S]*?</c>)`),
@@ -1465,7 +1669,7 @@ const RecapTpl = {
     const ents = Zip.read(buf), {map} = await XL.sheets(ents);
     if(!map[RECAP_ML] || !map[RECAP_RC]) throw new Error(`This doesn't look like the recap form: it needs the tabs "${RECAP_ML}" and "${RECAP_RC}".`);
     const ml = await Zip.text(map[RECAP_ML]), rc = await Zip.text(map[RECAP_RC]);
-    const need = [[ml,['B1','J1','B2','B3','J2','F44','B6','C6','D6','E6','B41','E41']],[rc,['F9','D11','D13','D15','D18','D30','E18','E38','D41','D43','F47','D51','E51','D53','E53','D55','E55','F60','D65','F74','F86','D88','G93']]];
+    const need = [[ml,['B1','J1','B2','B3','J2','F44','B6','C6','D6','E6','B41','E41']],[rc,['F9','D11','D13','D15','D18','D30','E18','E38','D41','D43','F47','D51','E51','D53','E53','D55','E55','F60','D65','F74','F86','D88','G93','G95','C48','C56','C74','C78','C81','C86']]];
     for(const [x,refs] of need) for(const r of refs) if(!XL.has(x,r)) throw new Error(`The form is missing cell ${r}, so it can't be filled safely.`);
   },
   async upload(file){
@@ -1498,11 +1702,16 @@ const RECAP_MAP = {
         'Per diem':'F55','Welding machine rental':'F56','Temporary water / power':'F57','Valve tag / pipe identification':'F58','Warranty reserve':'F59','Inter office expenses':'F60'},
   dept: {'Sheet metal':74,'Electrical':75,'Plumbing':76,'Millwright':77,'Service':78},
   outside: {'Crane':81,'Temperature controls':83,'Air/water balancing':84,'Hot tap':85,'Concrete coring/cutting':86},
+  // Lines you rename on your recaps when a cost has no line of its own (Operator, Insulation, Permit, ...).
+  // Only lines this bid isn't already using get renamed; the math on them is the same as the line's.
+  freeDept: [77,78,76,74,75],          // in-house contracts, no O&P
+  freeMisc: [81,83,85,84,86,82],       // misc subs, sub O&P (82 RENTAL only when there are no rentals)
+  freeExp:  ['F56','F57','F58','F49','F48','F52','F54'],   // job expenses entered as an amount, labor O&P
   pct: {'1st Yr Apprentice':.5,'2nd Yr Apprentice':.55,'3rd Yr Apprentice':.6,'4th Yr Apprentice':.7,'5th Yr Apprentice':.8}
 };
 
 /* Works out every cell to fill, plus a list of anything that would make the recap wrong or incomplete. */
-function recapPlan(j){
+function recapPlan(j, book){
   const b = bidBuild(j), s = Store.settings, m = j.markup, issues = [], ml = {}, rc = {};
   const r2 = n => Math.round(n*100)/100, need = (ok, msg) => { if(!ok) issues.push(msg); };
   // header
@@ -1519,7 +1728,11 @@ function recapPlan(j){
   pvf.slice(0, RECAP_LINES[1]-RECAP_LINES[0]+1).forEach((q,i)=>{ const r = RECAP_LINES[0]+i;
     ml['B'+r] = [q.supplier, q.quote ? 'quote '+q.quote : '', q.desc].filter(Boolean).join(' - '); ml['C'+r] = 1; ml['D'+r] = 'LOT'; ml['E'+r] = +q.amount||0; });
   rc.F9 = r2(b.equip);
-  Object.assign(rc, {D11:+m.consumablesPerMH||0, D13:(+m.salesTax||0)/100, D15:(+m.matOP||0)/100});
+  // a lump-sum consumables figure goes on the form as $/MH over the same hours, so the form's formula gives the same dollars
+  const hwH = j.estLabor.filter(l=>l.cls!=='Helper').reduce((a,l)=>a+(+l.hours||0),0);
+  const lump = (+m.consumablesLump||0) > 0;
+  need(!lump || hwH > 0, 'Bid builder: lump-sum consumables need labor hours on the recap (the form figures consumables per man-hour).');
+  Object.assign(rc, {D11: lump ? (hwH ? m.consumablesLump/hwH : 0) : (+m.consumablesPerMH||0), D13:(+m.salesTax||0)/100, D15:(+m.matOP||0)/100});
   // II. labor
   need(j.estLabor.length, 'Labor Estimate: enter the man-hours.');
   const hrs = {};
@@ -1539,14 +1752,22 @@ function recapPlan(j){
   Object.entries(RECAP_MAP.pct).forEach(([c,p])=>{ need(Math.abs((+rate(c).pctJ||0)-p)<1e-9, `Rates & settings: the recap pays ${c} ${p*100}% of journeyman.`); need(+rate(c).hw===+rate('1st Yr Apprentice').hw, `Rates & settings: the recap uses one apprentice H&W rate; ${c} is different.`); });
   need(+m.toolTruckPerDay===100, `Bid builder: the recap figures tool & truck at $100/day; this bid uses $${m.toolTruckPerDay}.`);
   // III. job expenses
-  const ex = {};
+  const ex = {}, label = (r, t) => { rc['C'+r] = String(t).toUpperCase().slice(0,40); };
+  const extra = [];
   j.estOther.forEach((o,i)=>{
     const ref = RECAP_MAP.exp[o.desc];
-    need(ref, `Job Expenses line ${i+1}: "${o.desc}" has no line on the recap. Change it to one that does, or remove it.`);
     need(+o.amount>0, `Job Expenses line ${i+1} (${o.desc}): enter the amount.`);
     if(['Hotel','Per diem','Travel time'].includes(o.desc)) need(+o.qty>0, `Job Expenses line ${i+1} (${o.desc}): enter the ${o.desc==='Travel time'?'hours':'days'} in "Days / hrs".`);
-    if(ref){ ex[ref] = ex[ref] || {amt:0, qty:0}; ex[ref].amt += +o.amount||0; ex[ref].qty += +o.qty||0; }
+    if(!ref){ extra.push(o); return; }
+    ex[ref] = ex[ref] || {amt:0, qty:0}; ex[ref].amt += +o.amount||0; ex[ref].qty += +o.qty||0;
   });
+  // Permits, Other, ...: put on a job-expense line this bid isn't using, renamed (same math, labor O&P)
+  const groups = new Map();
+  extra.forEach(o=>{ const name = o.desc==='Other' ? ((o.notes||'').trim() || 'Other') : o.desc; const k = name.toUpperCase().slice(0,40); groups.set(k, (groups.get(k)||0) + (+o.amount||0)); });
+  const freeE = RECAP_MAP.freeExp.filter(r=>!ex[r]);
+  [...groups].forEach(([name, a], i)=>{ const r = freeE[i];
+    need(r, `Job Expenses: the recap has no more spare lines for "${name}". Combine it with another line.`);
+    if(r){ ex[r] = {amt:a, qty:0}; label(r.slice(1), name); } });
   const amt = r => ex[r] ? ex[r].amt : 0, qty = r => ex[r] ? ex[r].qty : 0;
   ['F48','F49','F52','F54','F56','F57','F58'].forEach(r=>rc[r] = r2(amt(r)));
   rc.F47 = r2(amt('F47')); rc.D47 = qty('F47') || r2(amt('F47')/400);
@@ -1554,72 +1775,99 @@ function recapPlan(j){
   rc.D51 = qty('F51'); rc.E51 = qty('F51') ? amt('F51')/qty('F51') : 0;
   rc.E53 = qty('F53'); rc.D53 = qty('F53') ? amt('F53')/qty('F53') : (+s.hotelRate||0);
   rc.E55 = qty('F55'); rc.D55 = qty('F55') ? amt('F55')/qty('F55') : (+s.perDiem||0);
-  rc.F60 = r2(amt('F60'));
+  rc.F60 = r2(amt('F60') + b.interOffice);
   const labBase = b.labCost - b.cleanup; rc.D59 = labBase ? amt('F59')/labBase : 0;
   need(!amt('F59') || labBase, 'Job Expenses: warranty reserve needs labor hours to figure against.');
   rc.D65 = (+m.labOP||0)/100;
   // IV. subs and rentals
-  const sel = j.subs.filter(x=>x.status==='Selected'), sub = {}, qn = {};
+  const sel = j.subs.filter(x=>x.status==='Selected'), sub = {}, qn = {}, spill = [];
+  const rentUsed = j.rentals.some(x=>x.use!=='No');
   sel.forEach((x,i)=>{
     const dept = x.type==='Action dept', row = (dept ? RECAP_MAP.dept : RECAP_MAP.outside)[x.trade];
     need((x.company||'').trim(), `Subcontractors line ${i+1}: enter the company.`);
     need(+x.amount>0, `Subcontractors line ${i+1} (${x.company||x.trade}): enter the quote amount.`);
-    need(row, `Subcontractors line ${i+1}: the recap has no ${dept?'Action department':'outside sub'} line for "${x.trade}". Pick a trade that's on the form.`);
     if(row){ sub[row] = (sub[row]||0) + (+x.amount||0); if(x.quote) (qn[row] = qn[row]||[]).push(x.quote); }
+    else spill.push(x);
   });
-  [74,75,76,77,78,81,83,84,85,86].forEach(r=>{ rc['F'+r] = r2(sub[r]||0); if(qn[r]) rc['D'+r] = qn[r].join(', '); });
+  // a trade with no line of its own goes on a spare line of the same kind, renamed, like you do by hand
+  const named = new Map();
+  spill.forEach(x=>{
+    const dept = x.type==='Action dept', name = (x.trade==='Other' ? (x.company||'Other') : x.trade).toUpperCase().slice(0,40), key = (dept?'D:':'M:') + name;
+    if(!named.has(key)){
+      const pool = (dept ? RECAP_MAP.freeDept : RECAP_MAP.freeMisc).filter(r=>sub[r]==null && !(r===82 && rentUsed) && ![...named.values()].includes(r));
+      named.set(key, pool[0] || null);
+      need(pool[0], `Subcontractors: the recap has no more spare ${dept?'Action department':'misc sub'} lines for "${name}". Combine it with another line.`);
+      if(pool[0]) label(pool[0], name);
+    }
+    const r = named.get(key); if(!r) return;
+    sub[r] = (sub[r]||0) + (+x.amount||0); if(x.quote) (qn[r] = qn[r]||[]).push(x.quote);
+  });
+  [74,75,76,77,78,81,82,83,84,85,86].forEach(r=>{ if(r===82 && rentUsed) return; rc['F'+r] = r2(sub[r]||0); if(qn[r]) rc['D'+r] = qn[r].join(', '); });
   const rent = j.rentals.filter(x=>x.use!=='No');
   rent.forEach((x,i)=>{ need((x.equip||'').trim() || (x.vendor||'').trim(), `Equipment Rentals line ${i+1}: enter the equipment.`); need(rentalLine(x)>0, `Equipment Rentals line ${i+1}: enter the rate and how long.`); });
-  rc.F82 = r2(b.rentals); const rq = rent.map(x=>x.quote).filter(Boolean); if(rq.length) rc.D82 = rq.join(', ');
+  if(rentUsed){ rc.F82 = r2(b.rentals); const rq = rent.map(x=>x.quote).filter(Boolean); if(rq.length) rc.D82 = rq.join(', '); }
   rc.D88 = (+m.subOP||0)/100;
   // bond: only on federal jobs over $150,000
   if(b.bond.total) rc.G93 = r2(b.bond.total);
-  // double-check: run the form's own math on these numbers and compare with the bid builder
-  const total = recapMath(ml, rc);
-  need(Math.abs(total - b.suggested) < 0.01, `Totals don't match: the recap comes to ${money(total,2)} but the bid builder says ${money(b.suggested,2)}.`);
-  return {ml, rc, issues, total, app:b.suggested, lines:pvf.length};
+  // double-check: fill a copy of your form and run its own formulas (every tab), then compare with the bid builder
+  let total = null, parts = null;
+  if(book){
+    try{ const calc = recapCalc(book, ml, rc); total = calc.total; parts = calc.parts;
+      if(total==null) issues.push('The recap total could not be worked out from your form.');
+      else {
+        const chk = [['Material',parts.G16,b.matPrice],['Labor & job expenses',parts.G66,b.labExpPrice],['Subcontracts',parts.G89,b.subPrice],['Bond',parts.G93,b.bond.total]];
+        chk.forEach(([n,x,y])=>need(Math.abs((+x||0)-(+y||0)) < 0.01, `${n} doesn't match: the recap has ${money(+x||0,2)}, the bid builder ${money(+y||0,2)}.`));
+        need(Math.abs(total - b.suggested) < 0.01, `Totals don't match: the recap comes to ${money(total,2)} but the bid builder says ${money(b.suggested,2)}.`);
+      }
+    }catch(e){ issues.push('Could not read your recap form: ' + (e.message||e)); }
+  }
+  return {ml, rc, issues, total, parts, app:b.suggested, lines:pvf.length};
 }
 
-/* The recap's formulas, written out, so the totals can be checked before anything is saved. */
-function recapMath(ml, rc){
-  const v = r => +rc[r]||0;
-  let lines = 0; for(let r=RECAP_LINES[0]; r<=RECAP_LINES[1]; r++) lines += (+ml['E'+r]||0)*(+ml['C'+r]||0);
-  const F10 = lines*(1+(+ml.F44||0));
-  const D38 = v('D18')+v('D19')+v('D20')+v('D21')+v('D28')+v('D29')+v('D30')+v('D37'), D39 = ['D23','D24','D25','D26','D27','D32','D33','D34','D35','D36'].reduce((a,r)=>a+v(r),0), D40 = v('D22')+v('D31');
-  const F12 = v('F9') + F10 + v('D11')*(D38+D39), G14 = F12*(1+v('D13')), G16 = G14*(1+v('D15'));
-  const E = {E18:v('E18'),E19:v('E19'),E20:v('E20'),E21:v('E21'),E22:v('E22')};
-  [.5,.55,.6,.7,.8].forEach((p,i)=>E['E'+(23+i)] = p*E.E21);
-  [19,20,21,22,23,24,25,26,27].forEach((r,i)=>E['E'+(28+i)] = 1.5*E['E'+r]);
-  let wages = 0; for(let r=18;r<=36;r++) wages += v('D'+r)*E['E'+r]; wages += v('D37')*2;
-  const G42 = wages + D38*v('E38') + D39*v('E39') + D40*v('E40') + wages*v('D41'), G44 = G42*(1+v('D43'));
-  const G62 = ['F47','F48','F49','F50','F52','F54','F56','F57','F58','F60'].reduce((a,r)=>a+v(r),0) + v('D51')*v('E51') + v('D53')*v('E53') + v('D55')*v('E55') + v('D59')*G42
-    + (v('D19')/8 + v('D20')/8 + v('D28')/8 + v('D29')/8)*100;
-  const G66 = (G44+G62)*(1+v('D65'));
-  const G79 = [74,75,76,77,78].reduce((a,r)=>a+v('F'+r),0), G87 = [81,82,83,84,85,86].reduce((a,r)=>a+v('F'+r),0);
-  return G16 + G66 + G79 + G87*(1+v('D88')) + v('G93');
+/* Reads the blank form once: every sheet's xml, the shared strings and the workbook entry. */
+async function recapBook(tpl){
+  const ents = Zip.read(tpl.buf), {map, wbEnt} = await XL.sheets(ents), sheets = {};
+  for(const [name, ent] of Object.entries(map)) if(ent) sheets[name] = {xml: await Zip.text(ent), ent};
+  const sstEnt = ents.find(x=>x.name==='xl/sharedStrings.xml');
+  return {ents, map, wbEnt, sheets, sst: sstEnt ? await Zip.text(sstEnt) : ''};
+}
+/* Fills a copy of the form in memory and works out every formula on every tab, the way Excel does. */
+function recapCalc(book, ml, rc){
+  const sheets = {};
+  for(const [n, x] of Object.entries(book.sheets)) sheets[n] = {xml: x.xml};
+  for(const [r,val] of Object.entries(ml)) sheets[RECAP_ML].xml = XL.set(sheets[RECAP_ML].xml, r, val);
+  for(const [r,val] of Object.entries(rc)) sheets[RECAP_RC].xml = XL.set(sheets[RECAP_RC].xml, r, val);
+  XLCalc.run(sheets, book.sst);
+  const g = ref => { const v = XLCalc.get(RECAP_RC, ref); return typeof v==='number' ? v : (v==null || v==='' ? 0 : null); };
+  const parts = {G16:g('G16'), G66:g('G66'), G89:g('G89'), G93:g('G93'), G91:g('G91')};
+  return {sheets, total: g('G95'), parts};
 }
 
 async function recapBuild(j, plan, tpl){
-  const ents = Zip.read(tpl.buf), {map, wbEnt} = await XL.sheets(ents);
-  let ml = await Zip.text(map[RECAP_ML]), rc = await Zip.text(map[RECAP_RC]);
-  for(const [r,val] of Object.entries(plan.ml)) ml = XL.set(ml, r, val);
-  for(const [r,val] of Object.entries(plan.rc)) rc = XL.set(rc, r, val);
-  await Zip.setText(map[RECAP_ML], ml); await Zip.setText(map[RECAP_RC], rc);
-  let wb = await Zip.text(wbEnt);                                    // have Excel recalculate everything on open
+  const book = await recapBook(tpl), calc = recapCalc(book, plan.ml, plan.rc);
+  if(calc.total==null || Math.abs(calc.total - plan.app) >= 0.01) throw new Error('the recap total no longer matches the bid builder');
+  // save the filled cells, plus the worked-out totals on every tab, so the file reads right even before Excel recalculates
+  for(const [name, x] of Object.entries(calc.sheets)){
+    const filled = XLCalc.write(name, x.xml) || x.xml;
+    if(filled !== book.sheets[name].xml) await Zip.setText(book.sheets[name].ent, filled);
+  }
+  let wb = await Zip.text(book.wbEnt);                                    // and have Excel recalculate everything on open
   wb = /<calcPr[^>]*fullCalcOnLoad=/.test(wb) ? wb : wb.replace(/<calcPr([^>]*?)\/>/, '<calcPr$1 fullCalcOnLoad="1"/>');
-  await Zip.setText(wbEnt, wb);
-  return Zip.write(ents);
+  await Zip.setText(book.wbEnt, wb);
+  return Zip.write(book.ents);
 }
 
 async function openRecap(j){
   const tpl = await RecapTpl.get().catch(()=>null), par = parentOf(j);
+  let book = null, bookErr = '';
+  if(tpl){ try{ book = await recapBook(tpl); }catch(e){ bookErr = 'Could not open your recap form: ' + (e.message||e); } }
   let filled = false;   // a change order takes the location/description of its original bid when it has none of its own
   ['recapLocation','recapDesc'].forEach(k=>{ if(!(j[k]||'').trim() && par && (par[k]||'').trim()){ j[k] = par[k]; filled = true; } });
   if(filled) Store.save();
   const syncDrawer = ()=>['recapLocation','recapDesc'].forEach(k=>{ const el = document.querySelector(`#bidForm [data-k="${k}"]`); if(el) el.value = j[k]||''; });
   syncDrawer();
   const draw = ()=>{
-    const p = recapPlan(j); if(!tpl) p.issues.unshift('Upload your blank recap form once in Rates & settings.');
+    const p = recapPlan(j, book); if(!tpl) p.issues.unshift('Upload your blank recap form once in Rates & settings.'); if(bookErr) p.issues.unshift(bookErr);
     const ok = !p.issues.length;
     $('#pickBox').innerHTML = `<h3>Recap sheet</h3>
       <div class="note">Filled from this job: <b>${esc(j.sv||'no SV #')} · ${esc(j.name)}</b>, dated ${new Date().toLocaleDateString('en-US')}, with every line from its bid builder. It's a gross sum for the bid only and doesn't change the job's totals.</div>
@@ -1627,7 +1875,7 @@ async function openRecap(j){
         <div class="f wide"><label>Job location</label><input id="rcLoc" value="${esc(j.recapLocation||'')}" placeholder="City, State (saved on the job)"></div>
         <div class="f wide"><label>Job description</label><input id="rcDesc" value="${esc(j.recapDesc||'')}" placeholder="Short description of the work"></div></div>
       <div class="rccheck ${ok?'ok':'bad'}">${ok
-        ? `✓ Every line checks out. The recap comes to <b>${money(p.total,2)}</b>, the same as the bid builder.`
+        ? `✓ Every line checks out. Your form's own formulas come to <b>${money(p.total,2)}</b>, the same as the bid builder (material ${money(p.parts.G16,2)}, labor &amp; job expenses ${money(p.parts.G66,2)}, subcontracts ${money(p.parts.G89,2)}${p.parts.G93?`, bond ${money(p.parts.G93,2)}`:''}).${Object.keys(p.rc).some(k=>/^C\d/.test(k))?` Renamed lines: ${Object.entries(p.rc).filter(([k])=>/^C\d/.test(k)).map(([k,v])=>esc(v)).join(', ')}.`:''}`
         : `<b>Fix these before it can be saved:</b><ul>${p.issues.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>`}</div>
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button class="btn" id="rcClose">Close</button><button class="btn primary" id="rcGo" ${ok?'':'disabled'}>Save recap</button></div>`;
     $('#pickBox').parentElement.style.width = 'min(640px,96%)';
@@ -1635,7 +1883,7 @@ async function openRecap(j){
     keep('rcLoc','recapLocation'); keep('rcDesc','recapDesc');
     $('#rcClose').onclick = ()=>$('#pick').classList.remove('open');
     $('#rcGo').onclick = async ()=>{
-      const p2 = recapPlan(j); if(p2.issues.length) return draw();
+      const p2 = recapPlan(j, book); if(p2.issues.length || !book) return draw();
       $('#rcGo').disabled = true; $('#rcGo').textContent = 'Saving…';
       try{
         const blob = await recapBuild(j, p2, tpl);
