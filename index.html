@@ -360,6 +360,17 @@ header .btn:not(#btnAccount),header input{order:3}
 .qrow .qsub{font-size:12px;color:var(--muted);margin-top:2px}
 .qbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center}
 .qbar label.btn{cursor:pointer}
+/* Tool requests (gang box link for the crew) */
+.trurl{font:12px ui-monospace,Consolas,monospace;word-break:break-all;background:#f5f7fa;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-top:10px;color:#1b3a66}
+.trhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:16px 0 4px}
+.trhead h5{margin:0;font-size:13.5px}
+.tritem{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:8px;background:#fff}
+.tritem.done{background:#f6f8f6;opacity:.8}
+.tritem .trmeta{font-size:12.5px;color:var(--muted);margin-bottom:6px}
+.tritem ul{margin:0;padding-left:18px;font-size:13.5px}
+.tritem .qbar{margin-top:8px}
+.viewonly .tredit{display:none!important}
+#drawer .tab .n:empty{display:none}
 .qmsg{margin-top:8px}
 .qmsg.err{color:var(--lost)}
 .qdone{background:#f3f7fc;border:1px solid #d6e2f1;border-radius:8px;padding:10px 12px;margin-bottom:10px}
@@ -376,7 +387,7 @@ header .btn:not(#btnAccount),header input{order:3}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.28 (import recaps)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.29 (tool requests)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -793,7 +804,7 @@ async function setStatus(id, status){
 
 /* ---------------- Drawer ---------------- */
 function openJob(id){ openId=id; renderDrawer(); $('#drawer').classList.add('open'); $('#scrim').classList.add('open'); }
-function closeJob(){ JobChat.stop(); openId=null; $('#drawer').classList.remove('open'); $('#scrim').classList.remove('open'); }
+function closeJob(){ JobChat.stop(); ToolReq.stop(); openId=null; $('#drawer').classList.remove('open'); $('#scrim').classList.remove('open'); }
 $('#scrim').onclick = closeJob;
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeJob(); $('#settings').classList.remove('open'); $('#newBid').classList.remove('open'); $('#pick').classList.remove('open'); $('#intake').classList.remove('open'); }});
 
@@ -1226,8 +1237,8 @@ function renderDrawer(){
           ${completeRow(j)}
         </div>
         <div class="card">
-          <div class="tabs">${['co','mat','items','quotes','lab','trav'].map(k=>`<button class="tab ${k===openTab?'on':''}" data-tab="${k}">${k==='quotes'?'Material Quotes':LOGS[k].label}<span class="n">${k==='quotes' ? (j.quotePdfs||[]).length : j[LOGS[k].key].length + (k==='co'?childrenOf(j.id).length:0)}</span></button>`).join('')}</div>
-          ${openTab==='quotes' ? (awarded ? quotesTab(j) : logTable(j,'co')) : logTable(j,openTab)}
+          <div class="tabs">${['co','mat','items','quotes','lab','trav','tools'].map(k=>`<button class="tab ${k===openTab?'on':''}" data-tab="${k}">${k==='quotes'?'Material Quotes':k==='tools'?'🧰 Tool Requests':LOGS[k].label}<span class="n">${k==='quotes' ? (j.quotePdfs||[]).length : k==='tools' ? ToolReq.countFor(j) : j[LOGS[k].key].length + (k==='co'?childrenOf(j.id).length:0)}</span></button>`).join('')}</div>
+          ${openTab==='quotes' ? (awarded ? quotesTab(j) : logTable(j,'co')) : openTab==='tools' ? (awarded ? ToolReq.tab(j) : logTable(j,'co')) : logTable(j,openTab)}
         </div>
       </div>
     </div>
@@ -1248,6 +1259,7 @@ function renderDrawer(){
   });
   JobChat.wire(j);
   QuoteTab.wire(j);
+  ToolReq.wire(j);
   if($('#dComplete')) $('#dComplete').onclick = ()=>completeJob(j);
   if($('#dReopen')) $('#dReopen').onclick = ()=>reopenJob(j);
   $('#dStatus').onchange = e=>setStatus(j.id, e.target.value);
@@ -1287,6 +1299,162 @@ function renderDrawer(){
   $('#drawer').querySelectorAll('[data-btab]').forEach(b=>b.onclick=()=>{ bidTab=b.dataset.btab; renderDrawer(); });
   $('#drawer').querySelectorAll('[data-log]').forEach(w=>bindLog(j,w));
 }
+
+/* ---------------- Tool requests: a gang box link for the crew (Cmod page) ----------------
+   Each Awarded job can get a link to https://ajpirone-hash.github.io/Cmod/ with the job filled in.
+   The crew checks off tools and taps Send: the list is emailed to the office (Cmod's own setting)
+   and, through toollinks/{code}/lists, lands here in the job. The random code in the link is the key;
+   crews don't sign in. The code is kept on the job as j.toolLink = {t, at, by}. */
+const CMOD_URL = 'https://ajpirone-hash.github.io/Cmod/';
+const ToolReq = {
+  sel:null, forJob:null, form:{}, unsub:null, t:null, lists:[], loading:false, err:'', counts:{},
+  avail(){ return typeof Cloud!=='undefined' && Cloud.on && Cloud.ready; },
+  col(){ return Cloud.db.collection('toollinks'); },
+  jobs(cur){
+    const L = Store.jobs.filter(x=>x.bidStatus==='Awarded' && (x.id===cur || !folderJob(x).completedDate));
+    return L.sort((a,b)=>(isChild(a)-isChild(b)) || (b.sv||'').localeCompare(a.sv||'') || a.name.localeCompare(b.name));
+  },
+  label(x){ return [x.sv, x.name].filter(Boolean).join(' ') + (isChild(x) ? ` (change order of ${parentOf(x).sv||parentOf(x).name})` : ''); },
+  target(j){
+    if(this.forJob!==j.id){ this.forJob = j.id; this.sel = j.id; }
+    const t = Store.get(this.sel); return t && t.bidStatus==='Awarded' ? t : j;
+  },
+  countFor(j){ const t = j.toolLink && j.toolLink.t; const n = t && this.counts[t]; return n ? n : ''; },
+  addrOf(x){ return (x.recapLocation || folderJob(x).recapLocation || '').trim(); },
+  url(x, f){
+    const q = new URLSearchParams();
+    if(x.toolLink && x.toolLink.t) q.set('t', x.toolLink.t);
+    q.set('job', x.sv||''); q.set('name', x.name||'');
+    const addr = (f.addr!=null ? f.addr : this.addrOf(x)).trim(); if(addr) q.set('addr', addr);
+    if((f.crew||'').trim()) q.set('by', f.crew.trim());
+    if(f.need) q.set('need', f.need);
+    return CMOD_URL + '?' + q.toString().replace(/\+/g,'%20');
+  },
+  fields(x){ const f = this.form[x.id] || (this.form[x.id] = {});
+    if(f.addr==null) f.addr = this.addrOf(x);
+    try{ if(f.to==null) f.to = localStorage.getItem('apToolTo')||''; if(f.from==null) f.from = localStorage.getItem('apInviteFrom')||''; }catch(_){ f.to = f.to||''; f.from = f.from||''; }
+    return f; },
+  /* Makes the job's code (once) and the toollinks doc the crew's list is written under. */
+  async ensure(x){
+    if(!this.avail()) return null;
+    if(!Cloud.canEdit()) throw new Error('You have view-only access.');
+    const cur = x.toolLink && x.toolLink.t;
+    const t = cur || Array.from(crypto.getRandomValues(new Uint8Array(16)), b=>b.toString(16).padStart(2,'0')).join('');
+    await this.col().doc(t).set({ws: CLOUD_CONFIG.workspace||'main', jobId: x.id, sv: x.sv||'', name: x.name||'', open: true,
+      by: Cloud.email, at: firebase.firestore.FieldValue.serverTimestamp()}, {merge:true});
+    if(!cur){ x.toolLink = {t, at: new Date().toISOString(), by: Cloud.email}; changed(); }
+    return t;
+  },
+  emailText(x, f, url){
+    const crew = (f.crew||'').trim();
+    return {
+      subject: `Tool list needed: ${[x.sv, x.name].filter(Boolean).join(' ')}`,
+      body: `Hi${crew?' '+crew.split(/\s+/)[0]:''},\n\nPlease send me the list of tools you need for ${[x.sv, x.name].filter(Boolean).join(' ')}${f.need?`, needed by ${fdate(f.need)}`:''}.\n\nOpen this link on your phone, tap the tools you need, then tap Send to warehouse:\n${url}\n\nThe job is already filled in. Your list comes straight back to me.\n\nThanks,\n${(f.from||'').trim()}`
+    };
+  },
+  tab(j){
+    const x = this.target(j), f = this.fields(x), on = this.avail();
+    const opts = this.jobs(j.id).map(o=>`<option value="${esc(o.id)}" ${o.id===x.id?'selected':''}>${esc(this.label(o))}</option>`).join('');
+    const linkNote = on ? (x.toolLink ? '' : `<div class="note" style="margin-top:6px">The link is made the first time you email or copy it. It stays the same for this job.</div>`)
+      : `<div class="note" style="margin-top:6px">Lists come back by email only here. Use <a href="https://ajpirone-hash.github.io/action-project-pro/" target="_blank" rel="noopener">Action Project PRO online</a> so they also show up in the job.</div>`;
+    return `<div id="trTab">
+      <div class="note" style="margin-bottom:10px">Send the crew a link to the gang box list. They tap the tools they need and send it, and the list comes back to you${on?' and shows up below':''}.</div>
+      <div class="tredit">
+        <div class="form">
+          <div class="f" style="grid-column:1/-1"><label>Job (awarded jobs only)</label><select id="trJob">${opts}</select></div>
+          <div class="f"><label>Send to (name)</label><input id="trCrew" value="${esc(f.crew||'')}" placeholder="Example: Mike"></div>
+          <div class="f"><label>Their email</label><input id="trTo" type="email" value="${esc(f.to||'')}" placeholder="name@company.com"></div>
+          <div class="f"><label>Job address</label><input id="trAddr" value="${esc(f.addr||'')}" placeholder="Street, city"></div>
+          <div class="f"><label>Tools needed by</label><input id="trNeed" type="date" value="${esc(f.need||'')}"></div>
+          <div class="f"><label>Your name (signs the email)</label><input id="trFrom" value="${esc(f.from||'')}" placeholder="Your name"></div>
+        </div>
+        <div class="qbar"><button class="btn primary" id="trMail">✉ Email the link</button><button class="btn" id="trCopy">⧉ Copy link</button><button class="btn" id="trOpen">↗ Open it</button></div>
+        <div class="trurl" id="trUrl">${esc(this.url(x, f))}</div>${linkNote}
+      </div>
+      ${on ? `<div class="trhead"><h5>Tool lists sent back for ${esc([x.sv, x.name].filter(Boolean).join(' '))}</h5></div><div id="trLists"></div>` : ''}
+    </div>`;
+  },
+  watch(x){
+    const t = x.toolLink && x.toolLink.t || null;
+    if(this.t===t && (this.unsub || !t)) return;
+    this.stop(); this.t = t; this.lists = []; this.err = '';
+    if(!t || !this.avail()) return this.draw();
+    this.loading = true;
+    this.unsub = this.col().doc(t).collection('lists').orderBy('at','desc').limit(100).onSnapshot(snap=>{
+      this.loading = false; this.err = '';
+      const before = this.counts[t];
+      this.lists = snap.docs.map(d=>Object.assign({id:d.id}, d.data({serverTimestamps:'estimate'})));
+      this.counts[t] = this.lists.filter(l=>!l.done).length;
+      this.draw();
+      if(before!==this.counts[t]){ const n = $('#drawer [data-tab="tools"] .n'); if(n) n.textContent = this.counts[t] || ''; }
+    }, e=>{ this.loading = false; this.err = e.code==='permission-denied' ? 'Tool lists are waiting on a one-time update to the Firestore rules.' : 'Tool lists unavailable: '+e.message; this.draw(); });
+  },
+  stop(){ if(this.unsub) this.unsub(); this.unsub = null; this.t = null; this.lists = []; },
+  csv(l){
+    const c = v=>{ v = String(v==null?'':v).replace(/\r?\n/g,' '); if(v && '=+-@'.includes(v[0])) v = "'"+v; return /[",]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; };
+    const rows = [['Job #','Job Name','Job Address','Requested By','Date Needed','Send In','Category','Tool','Size / Length','Qty','Notes']];
+    (l.lines||[]).forEach(i=>rows.push([l.jobNumber,l.jobName,l.jobAddress,l.requestedBy,l.dateNeeded?fdate(l.dateNeeded):'',l.container,i.category,i.tool,i.option,i.qty,i.note]));
+    return '﻿' + rows.map(r=>r.map(c).join(',')).join('\r\n') + '\r\n';
+  },
+  draw(){
+    const box = $('#trLists'); if(!box) return;
+    if(this.err){ box.innerHTML = `<div class="note">${esc(this.err)}</div>`; return; }
+    if(!this.t){ box.innerHTML = `<div class="note">No link sent for this job yet.</div>`; return; }
+    if(this.loading){ box.innerHTML = `<div class="note">Loading…</div>`; return; }
+    if(!this.lists.length){ box.innerHTML = `<div class="note">Nothing back yet. Lists the crew sends from the link show up here.</div>`; return; }
+    box.innerHTML = this.lists.map(l=>{
+      const meta = [l.requestedBy ? '<b>'+esc(l.requestedBy)+'</b>' : '<b>Crew</b>', esc(JobChat.when(l.at)), l.dateNeeded ? 'needed '+esc(fdate(l.dateNeeded)) : '', l.container ? esc(l.container) : '', l.jobAddress ? esc(l.jobAddress) : '',
+        l.done ? `<span class="pill done">✓ Pulled${l.doneBy?' by '+esc(Cloud.nameOf(l.doneBy)):''}</span>` : ''].filter(Boolean).join(' · ');
+      const items = (l.lines||[]).map(i=>`<li><b>${esc(i.qty)} ×</b> ${esc(i.tool)}${i.option?', <b>'+esc(i.option)+'</b>':''}${i.note?` <span class="note">(${esc(i.note)})</span>`:''}</li>`).join('');
+      return `<div class="tritem ${l.done?'done':''}"><div class="trmeta">${meta}</div><ul>${items || '<li>(no tools)</li>'}</ul>
+        <div class="qbar"><button class="btn sm" data-trcsv="${esc(l.id)}">⬇ Spreadsheet</button><button class="btn sm" data-trcopy="${esc(l.id)}">⧉ Copy</button>
+          <button class="btn sm tredit" data-trdone="${esc(l.id)}">${l.done?'↩ Not pulled yet':'✓ Mark pulled'}</button>
+          <button class="btn ghost sm tredit" data-trdel="${esc(l.id)}" title="Delete this list" aria-label="Delete this list">✕</button></div></div>`;
+    }).join('');
+    const find = id => this.lists.find(l=>l.id===id), t = this.t;
+    box.querySelectorAll('[data-trcsv]').forEach(b=>b.onclick=()=>{ const l = find(b.dataset.trcsv); if(!l) return;
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([this.csv(l)], {type:'text/csv'}));
+      a.download = ('Tools_' + [l.jobNumber, l.jobName].filter(Boolean).join('_')).replace(/[^A-Za-z0-9-]+/g,'_').slice(0,50) + '.csv';
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 10000); });
+    box.querySelectorAll('[data-trcopy]').forEach(b=>b.onclick=async ()=>{ const l = find(b.dataset.trcopy); if(!l) return;
+      try{ await navigator.clipboard.writeText(l.text||''); toast('Copied the tool list'); }catch(_){ toast('Could not copy'); } });
+    box.querySelectorAll('[data-trdone]').forEach(b=>b.onclick=async ()=>{ const l = find(b.dataset.trdone); if(!l) return;
+      try{ await this.col().doc(t).collection('lists').doc(l.id).update(l.done ? {done:false, doneBy:'', doneAt:null} : {done:true, doneBy:Cloud.email, doneAt:firebase.firestore.FieldValue.serverTimestamp()}); }
+      catch(e){ toast('Could not save: '+(e.message||e)); } });
+    box.querySelectorAll('[data-trdel]').forEach(b=>b.onclick=async ()=>{
+      if(!await askSure('Delete this tool list?', 'It is removed from the job for everyone. The email copy is not touched.', 'Delete')) return;
+      try{ await this.col().doc(t).collection('lists').doc(b.dataset.trdel).delete(); toast('Tool list deleted'); }catch(e){ toast('Could not delete: '+(e.message||e)); } });
+  },
+  wire(j){
+    const box = $('#trTab'); if(!box){ return; }
+    const x = this.target(j), f = this.fields(x);
+    this.watch(x);
+    const showUrl = ()=>{ $('#trUrl').textContent = this.url(x, f); };
+    $('#trJob').onchange = e=>{ this.sel = e.target.value; renderDrawer(); };
+    [['trCrew','crew'],['trTo','to'],['trAddr','addr'],['trNeed','need'],['trFrom','from']].forEach(([id,k])=>{
+      $('#'+id).oninput = $('#'+id).onchange = e=>{ f[k] = e.target.value;
+        try{ if(k==='to') localStorage.setItem('apToolTo', f.to.trim()); if(k==='from') localStorage.setItem('apInviteFrom', f.from.trim()); }catch(_){}
+        showUrl(); };
+    });
+    const ready = async ()=>{
+      try{ await this.ensure(x); }
+      catch(e){ toast(e.code==='permission-denied' ? 'Tool links need the one-time Firestore rules update first.' : 'Could not make the link: '+(e.message||e)); return null; }
+      return this.url(x, f);
+    };
+    $('#trMail').onclick = async ()=>{
+      if(!(f.to||'').trim()){ toast('Type their email first'); return $('#trTo').focus(); }
+      const u = await ready(); if(!u) return;
+      const m = this.emailText(x, f, u);
+      location.href = `mailto:${encodeURIComponent(f.to.trim()).replace(/%40/g,'@')}?subject=${encodeURIComponent(m.subject)}&body=${encodeURIComponent(m.body)}`;
+    };
+    $('#trCopy').onclick = async ()=>{
+      const u = await ready(); if(!u) return;
+      try{ await navigator.clipboard.writeText(u); toast('Link copied. Paste it into a text or email.'); }catch(_){ toast(u); }
+    };
+    $('#trOpen').onclick = async ()=>{ const w = window.open('', '_blank'); const u = await ready(); if(!u){ if(w) w.close(); return; } if(w) w.location = u; else location.href = u; };
+    this.draw();
+  }
+};
 
 /* ---------------- Make a job a change order of another ---------------- */
 function pickParent(j){
