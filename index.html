@@ -413,7 +413,7 @@ header .btn:not(#btnAccount),header input{order:3}
 @media (max-width:640px){ .qrow{padding:10px} .qbar .btn{flex:1 1 auto;text-align:center} }
 </style>
 <script>/* v0.32 appearance: light / dark / system, remembered per device */
-(function(){try{var m=localStorage.getItem('apAppearance')||'system';var d=m==='dark'||(m==='system'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);document.documentElement.dataset.appear=m;}catch(e){}})();</script>
+(function(){try{var m=localStorage.getItem('apAppearance')||'system';var d=m==='dark'||(m==='system'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);document.documentElement.dataset.appear=m;}catch(e){}try{if(window.matchMedia&&matchMedia('(hover: none) and (pointer: coarse)').matches)document.documentElement.classList.add('touch');}catch(e){}})();</script>
 <style id="iosTheme">
 /* ---- v0.32 iOS look (light + dark) ---- */
 /* Appearance switch (header) */
@@ -701,6 +701,20 @@ html.dark .idmi .ic,html.dark .idmi.pri b{color:#5caaff}
 html.dark .idmi.danger b,html.dark .idmi.danger .ic{color:#ff453a}
 html.dark .jninput{background:#1c1c1e;color:#fff;border-color:#38383a}
 html.dark .jnerr{color:#ff453a}
+/* v0.34 close a job: swipe down on touch devices, X button on mouse/desktop */
+#dClose{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;padding:0!important;border-radius:50%!important;font-size:0!important;flex:none;background:rgba(118,118,128,.16)!important;color:#3c3c43!important;margin-left:auto}
+#dClose::before{content:"\2715";font-size:16px;font-weight:700;line-height:1}
+#dClose:hover{background:rgba(118,118,128,.28)!important}
+html.dark #dClose{background:rgba(118,118,128,.3)!important;color:#ebebf5!important}
+html:not(.touch) .drawer::before{display:none}
+html.touch #dClose{display:none}
+html.touch .drawer{transform:translateY(100%);transition:transform .28s cubic-bezier(.2,.8,.2,1)}
+html.touch .drawer.open{transform:none}
+html.touch .drawer.dragging{transition:none}
+html.touch .drawer::before{width:44px;height:5px;margin-left:-22px;top:7px}
+html.touch .drawer .swipezone{position:absolute;top:0;left:0;right:0;height:26px;z-index:6}
+html.touch .dh{touch-action:none}
+
 </style>
 </head>
 <body>
@@ -710,7 +724,7 @@ html.dark .jnerr{color:#ff453a}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.33 (job numbers)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.34 (swipe down / X to close)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -4010,6 +4024,46 @@ if(Cloud.on){
   var bi=document.getElementById('btnIntake'), ti=document.querySelector('#iostab [data-t=intake]');
   function badge(){ var s=bi.querySelector('.ibadge'), o=ti.querySelector('.ibadge'); if(o) o.remove(); if(s) ti.appendChild(s.cloneNode(true)); }
   if(bi&&ti&&window.MutationObserver){ new MutationObserver(badge).observe(bi,{childList:true,subtree:true}); badge(); }
+})();
+</script>
+<script>/* v0.34 swipe down to close an open job (touch devices) */
+(function(){
+  var dr=document.getElementById('drawer'); if(!dr) return;
+  var mq=window.matchMedia?matchMedia('(hover: none) and (pointer: coarse)'):null;
+  function setTouch(){ document.documentElement.classList.toggle('touch',!!(mq&&mq.matches)); }
+  if(mq){ mq.addEventListener?mq.addEventListener('change',setTouch):mq.addListener(setTouch); }
+  var y0=0,x0=0,dy=0,t0=0,active=false,decided=false,fromTop=false;
+  function scroller(t){ var db=dr.querySelector('.db'); return db; }
+  dr.addEventListener('touchstart',function(e){
+    if(!document.documentElement.classList.contains('touch')||!dr.classList.contains('open')||e.touches.length!==1) return;
+    var t=e.target, db=scroller();
+    if(t.closest('input,select,textarea,button:not(#dClose),a,.tabs,.seg,.jscroll,.tscroll,table')&&!t.closest('.dh')) { if(!(db&&db.scrollTop<=0)) return; }
+    fromTop = !!t.closest('.dh,.swipezone,.jtabs') || (e.touches[0].clientY - dr.getBoundingClientRect().top) < 30;
+    if(!fromTop && !(db&&db.scrollTop<=0)) return;
+    y0=e.touches[0].clientY; x0=e.touches[0].clientX; dy=0; t0=Date.now(); active=true; decided=false;
+  },{passive:true});
+  dr.addEventListener('touchmove',function(e){
+    if(!active) return;
+    var y=e.touches[0].clientY, x=e.touches[0].clientX, d=y-y0;
+    if(!decided){ if(Math.abs(d)<8&&Math.abs(x-x0)<8) return; decided=true;
+      if(d<=0||Math.abs(x-x0)>Math.abs(d)){ active=false; return; }
+      var db=scroller(); if(!fromTop&&db&&db.scrollTop>0){ active=false; return; }
+      dr.classList.add('dragging'); }
+    dy=Math.max(0,d); dr.style.transform='translateY('+dy+'px)';
+    if(e.cancelable) e.preventDefault();
+  },{passive:false});
+  function end(){
+    if(!active) return; active=false;
+    if(!decided){ return; }
+    dr.classList.remove('dragging');
+    var v=dy/Math.max(1,Date.now()-t0);
+    if(dy>Math.min(160,window.innerHeight*0.22)||v>0.6){ dr.style.transform=''; if(typeof closeJob==='function') closeJob(); }
+    else { dr.style.transform=''; }
+    dy=0;
+  }
+  dr.addEventListener('touchend',end); dr.addEventListener('touchcancel',end);
+  // tap the grab handle to close
+  dr.addEventListener('click',function(e){ if(document.documentElement.classList.contains('touch')&&e.target===dr&&e.clientY-dr.getBoundingClientRect().top<26&&typeof closeJob==='function') closeJob(); });
 })();
 </script>
 </body>
