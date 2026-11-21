@@ -204,6 +204,8 @@ select.inl{border:1px solid var(--line);border-radius:5px;padding:2px 4px;backgr
 .chatin textarea{flex:1;min-width:0;resize:vertical;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit}
 .chatsend{background:#1b3a66;color:#fff;border-color:#1b3a66;padding:0 18px}
 .chathint{margin-top:4px;font-size:11px}
+.chatnew{display:inline-flex;align-items:center;gap:4px;background:#fdecea;color:#b3261e;border:1px solid #f5c2bd;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:650;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;animation:chatpulse 2s ease-in-out 3}
+@keyframes chatpulse{50%{box-shadow:0 0 0 4px rgba(179,38,30,.15)}}
 @media (pointer:coarse){ .chathint{display:none} }
 .viewonly #recapBtn,.viewonly #rateEdit{display:none!important}
 .viewonly .mvcol{display:none!important}
@@ -368,7 +370,7 @@ header .btn:not(#btnAccount),header input{order:3}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.25 (material quotes)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.27 (chat alerts on job boxes)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -455,7 +457,7 @@ const DEFAULT_SETTINGS = {
   perDiem: 75,
   rootFolder: 'Documents/Action Projects',
   // Recap defaults (from the 2026 RECAP template). Each bid can override them.
-  recap: { consumablesPerMH: 3, consumablesLump: 0, salesTax: 8.9, matOP: 20, labOP: 20, subOP: 20, cleanup: 0, toolTruckPerDay: 100, interOffice: 200 },
+  recap: { consumablesPerMH: 3, consumablesLump: 0, salesTax: 8.9, matOP: 20, labOP: 20, subOP: 20, cleanup: 0, toolTruckPerDay: 100, interOffice: 200, escHours: 0, escRate: 2.5 },
   laborRates: [
     {cls:'Project Manager / Supervision', st:131.60, hw:17.51},
     {cls:'General Foreman',  st:46.73, hw:17.51},
@@ -572,13 +574,16 @@ function bidBuild(j){
   const q = j.quotes.filter(x=>x.use!=='No');
   const equip = q.filter(x=>x.cat==='Equipment').reduce((a,x)=>a+(+x.amount||0),0);
   const pvf   = q.filter(x=>x.cat!=='Equipment').reduce((a,x)=>a+(+x.amount||0),0);
-  const hwHours = j.estLabor.filter(l=>l.cls!=='Helper').reduce((a,l)=>a+(+l.hours||0),0);
+  // escalation man-hours (recap row 37): paid at the escalation rate, carry journeyman H&W, count for consumables
+  const escH = +m.escHours||0, escRate = m.escRate==null ? DEFAULT_SETTINGS.recap.escRate : (+m.escRate||0);
+  const hwHours = j.estLabor.filter(l=>l.cls!=='Helper').reduce((a,l)=>a+(+l.hours||0),0) + escH;
   const consumables = (+m.consumablesLump||0) > 0 ? +m.consumablesLump : (+m.consumablesPerMH||0) * hwHours;
   const matSub = equip + pvf + consumables, tax = matSub*(+m.salesTax||0)/100;
   const matCost = matSub + tax, matOP = matCost*(+m.matOP||0)/100, matPrice = matCost + matOP;
 
   const hours = j.estLabor.reduce((a,l)=>a+(+l.hours||0),0);
-  const labBase = j.estLabor.reduce((a,l)=>a+laborLine(l,j).cost,0);
+  const escalation = escH ? escH*escRate*(1+jobRates(j).ins) + escH*rateFor('Journeyman', j).hw : 0;
+  const labBase = j.estLabor.reduce((a,l)=>a+laborLine(l,j).cost,0) + escalation;
   const cleanup = labBase*(+m.cleanup||0)/100, labCost = labBase + cleanup;
 
   const fmHours = j.estLabor.filter(l=>FOREMAN.has(l.cls)).reduce((a,l)=>a+(+l.hours||0),0);
@@ -598,7 +603,7 @@ function bidBuild(j){
 
   const price = matPrice + labExpPrice + subPrice;
   const bond = bondApplies(j, price) ? bondFor(price) : {lines:[], total:0};
-  return {equip, pvf, consumables, tax, matCost, matOP, matPrice, hours, labCost, cleanup, toolTruck, interOffice, otherExp, expenses, labExpOP, labExpPrice,
+  return {equip, pvf, consumables, tax, matCost, matOP, matPrice, hours, escH, escRate, escalation, labCost, cleanup, toolTruck, interOffice, otherExp, expenses, labExpOP, labExpPrice,
           actionDepts, outside, rentals, subOP, subPrice, price, bond, suggested: price + bond.total,
           // simple rollups used by the tab footers
           mat: equip+pvf, subs: actionDepts+outside, lab: labCost, other: expenses};
@@ -710,6 +715,7 @@ function tileHTML(j){
     <div class="top"><span class="sv">${esc(j.sv)||'No SV # yet'}${j.revisions.length?` · <span class="revtag">${revName(j.revisions.length-1)}</span>`:''}</span>
       <span style="display:flex;gap:4px">${j.federal?'<span class="pill fed">Federal</span>':''}<span class="pri" style="color:${PRI[j.priority]||'#888'}">${esc(j.priority)}</span></span></div>
     <h3>${esc(j.name)}</h3>
+    ${JobChat.badge(j)}
     ${childrenOf(j.id).length?`<div><span class="pill co">+${childrenOf(j.id).length} change order${childrenOf(j.id).length>1?'s':''}</span></div>`:''}
     ${isChild(j)?`<div><span class="pill co">Change order of ${esc(parentOf(j).name)}</span></div>`:''}
     ${j.completedDate?`<div><span class="pill done">✓ Job completed ${fdate(j.completedDate)}</span></div>`:''}
@@ -753,7 +759,7 @@ function renderGrid(){
   }
   const J = visibleJobs();
   $('#grid').innerHTML = J.length ? J.map(tileHTML).join('') : `<div class="empty">No jobs match this view.</div>`;
-  $('#grid').querySelectorAll('.tile').forEach(el=>el.onclick=e=>{ if(e.target.closest('select')) return; openJob(el.dataset.id); });
+  $('#grid').querySelectorAll('.tile').forEach(el=>el.onclick=e=>{ if(e.target.closest('select')) return; if(e.target.closest('.chatnew')) JobChat.scrollTo = el.dataset.id; openJob(el.dataset.id); });
   $('#grid').querySelectorAll('[data-status]').forEach(sel=>sel.onchange=e=>setStatus(sel.dataset.status, e.target.value));
 }
 
@@ -837,7 +843,7 @@ const LOGS = {
 };
 const NUMT = new Set(['number','money']);
 // Lists taken from the RECAP template
-const TRADES = ['Insulation','Concrete coring/cutting','Electrical','Sheet metal','Civil','Millwright','Service','Pipe fab shop','Pipe support fab','Temperature controls','Air/water balancing','Hot tap','Crane','Backfill','Trench drain','Operator','Excavation','Permit','Dumpster','Testing','Badges','Plumbing','Other'];
+const TRADES = ['Insulation','Scaffolding','Concrete coring/cutting','Electrical','Sheet metal','Civil','Millwright','Service','Pipe fab shop','Pipe support fab','Temperature controls','Air/water balancing','Hot tap','Crane','Backfill','Trench drain','Operator','Excavation','Permit','Dumpster','Testing','Badges','Plumbing','Other'];
 const EXPENSES = ['Hotel','Per diem','Travel time','Inter office expenses','As-built drawings','Ditching / backfill','Engineering','Field office','Pipe ID','Safety meeting','Welding machine rental','Temporary water / power','Valve tag / pipe identification','Warranty reserve','Permits','Other'];
 const colOpts = o => o==='ITEMST' ? ITEM_STATUS : o==='CLS' ? Store.settings.laborRates.map(r=>r.cls) : o==='TRADES' ? TRADES : o==='EXPENSES' ? EXPENSES : o;
 
@@ -1120,7 +1126,8 @@ function bidBuilderCard(j){
         <div class="r t"><span>Material price</span><b>${money(b.matPrice)}</b></div>
         <div class="sh">II–III. Labor &amp; job expenses</div>
         <div class="r rates"><span>Rates <select id="rateSel" style="max-width:170px">${rateOptions(j)}</select></span><button class="btn sm" id="rateEdit">Edit rates</button></div>
-        <div class="r"><span>Labor (${b.hours.toLocaleString()} MH, H&amp;W, ins.)</span><b>${money(b.labCost-b.cleanup)}</b></div>
+        <div class="r"><span>Labor (${b.hours.toLocaleString()} MH, H&amp;W, ins.)</span><b>${money(b.labCost-b.cleanup-b.escalation)}</b></div>
+        <div class="r"><span>Escalation ${pin('escHours',j)} MH × $${pin('escRate',j)}</span><b>${money(b.escalation)}</b></div>
         <div class="r"><span>Clean-up ${pin('cleanup',j)}%</span><b>${money(b.cleanup)}</b></div>
         <div class="r"><span>Tool &amp; truck ${pin('toolTruckPerDay',j)} $/day</span><b>${money(b.toolTruck)}</b></div>
         <div class="r"><span>Inter office $${pin('interOffice',j)}</span><b>${money(b.interOffice)}</b></div>
@@ -1765,7 +1772,7 @@ function recapPlan(j, book){
     ml['B'+r] = [q.supplier, q.quote ? 'quote '+q.quote : '', q.desc].filter(Boolean).join(' - '); ml['C'+r] = 1; ml['D'+r] = 'LOT'; ml['E'+r] = +q.amount||0; });
   rc.F9 = r2(b.equip);
   // a lump-sum consumables figure goes on the form as $/MH over the same hours, so the form's formula gives the same dollars
-  const hwH = j.estLabor.filter(l=>l.cls!=='Helper').reduce((a,l)=>a+(+l.hours||0),0);
+  const hwH = j.estLabor.filter(l=>l.cls!=='Helper').reduce((a,l)=>a+(+l.hours||0),0) + b.escH;
   const lump = (+m.consumablesLump||0) > 0;
   need(!lump || hwH > 0, 'Bid builder: lump-sum consumables need labor hours on the recap (the form figures consumables per man-hour).');
   Object.assign(rc, {D11: lump ? (hwH ? m.consumablesLump/hwH : 0) : (+m.consumablesPerMH||0), D13:(+m.salesTax||0)/100, D15:(+m.matOP||0)/100});
@@ -1781,7 +1788,7 @@ function recapPlan(j, book){
   Object.assign(rc, hrs);
   const JR = jobRates(j), rate = c => (JR.list.find(r=>r.cls===c)||{});
   Object.assign(rc, {E18:+rate('Project Manager / Supervision').st||0, E19:+rate('General Foreman').st||0, E20:+rate('Foreman').st||0, E21:+rate('Journeyman').st||0, E22:+rate('Helper').st||0,
-    E38:+rate('Journeyman').hw||0, E39:+rate('1st Yr Apprentice').hw||0, E40:+rate('Helper').hw||0, D41:+JR.ins||0, D43:(+m.cleanup||0)/100});
+    D37:b.escH, E37:b.escRate, E38:+rate('Journeyman').hw||0, E39:+rate('1st Yr Apprentice').hw||0, E40:+rate('Helper').hw||0, D41:+JR.ins||0, D43:(+m.cleanup||0)/100});
   // the form's own fixed math has to agree with the app's settings
   need(+s.otMultiplier===1.5, `Rates & settings: the recap figures overtime at 1.5×; the app is set to ${s.otMultiplier}×.`);
   ['Project Manager / Supervision','General Foreman','Foreman'].forEach(c=>need(+rate(c).hw===+rate('Journeyman').hw, `Rates & settings: the recap uses one H&W rate for PM, foremen and journeymen; ${c} is different.`));
@@ -1952,18 +1959,56 @@ function chatCard(j){
 }
 const JobChat = {
   jobId:null, unsub:null, msgs:[], draft:{}, err:'', loading:false,
+  sums:{}, seen:{}, seenLoaded:false, scrollTo:null, marking:'',
   avail(){ return typeof Cloud!=='undefined' && Cloud.on && Cloud.ready; },
-  col(id){ return Cloud.db.collection('jobchat').doc(CLOUD_CONFIG.workspace||'main').collection('jobs').doc(Cloud.enc(id)).collection('msgs'); },
+  root(){ return Cloud.db.collection('jobchat').doc(CLOUD_CONFIG.workspace||'main'); },
+  col(id){ return this.root().collection('jobs').doc(Cloud.enc(id)).collection('msgs'); },
+  /* New-message badges on the job boxes. jobchat/{ws}/jobs/{job} holds the latest message
+     (at, by, text); jobchat/{ws}/seen/{email} holds when you last saw each job's chat. */
+  startBadges(){
+    if(!this.avail() || this.badgesOn) return; this.badgesOn = true;
+    this.root().collection('jobs').onSnapshot(snap=>{
+      snap.docChanges().forEach(ch=>{ if(ch.type==='removed') delete this.sums[ch.doc.id]; else this.sums[ch.doc.id] = ch.doc.data({serverTimestamps:'estimate'}); });
+      this.badgesChanged();
+    }, e=>console.warn('chat badges:', e.message));
+    this.root().collection('seen').doc(Cloud.email).onSnapshot(d=>{
+      this.seen = d.exists ? d.data({serverTimestamps:'estimate'}) : {}; this.seenLoaded = true; this.badgesChanged();
+    }, e=>console.warn('chat seen:', e.message));
+  },
+  ms: t => t && t.toMillis ? t.toMillis() : 0,
+  unread(j){
+    if(!this.avail() || !this.seenLoaded) return null;
+    const k = Cloud.enc(j.id), s = this.sums[k];
+    if(!s || s.by===Cloud.email || (openId===j.id && this.jobId===j.id)) return null;
+    return this.ms(s.at) > this.ms(this.seen[k]) ? s : null;
+  },
+  badge(j){
+    const s = this.unread(j); if(!s) return '';
+    return `<div><span class="chatnew" title="${esc(Cloud.nameOf(s.by)+': '+(s.text||''))}">💬 New message from ${esc(Cloud.nameOf(s.by))}</span></div>`;
+  },
+  count(){ return Store.jobs.filter(j=>this.unread(j)).length; },
+  badgesChanged(){
+    if(this.jobId) this.markSeen(this.jobId);
+    render();
+    const n = this.count(), base = document.title.replace(/^\(\d+\) /,'');
+    document.title = n ? `(${n}) ${base}` : base;
+  },
+  markSeen(id){
+    const k = Cloud.enc(id), s = this.sums[k];
+    if(!s || !this.seenLoaded || s.by===Cloud.email || this.ms(s.at) <= this.ms(this.seen[k])) return;
+    const tag = k + '@' + this.ms(s.at); if(this.marking===tag) return; this.marking = tag;
+    this.root().collection('seen').doc(Cloud.email).set({[k]: firebase.firestore.FieldValue.serverTimestamp()}, {merge:true}).catch(e=>console.warn('chat seen:', e.message));
+  },
   watch(id){
     if(this.jobId===id) return;
     this.stop(); this.jobId = id; this.msgs = []; this.err = ''; this.loading = true;
     this.unsub = this.col(id).orderBy('at').limitToLast(300).onSnapshot(snap=>{
       this.loading = false; this.err = '';
       this.msgs = snap.docs.map(d=>Object.assign({id:d.id}, d.data({serverTimestamps:'estimate'})));
-      this.draw();
+      this.draw(); this.markSeen(id);
     }, e=>{ this.loading = false; this.err = e.code==='permission-denied' ? 'The chat is waiting on a one-time update to the Firestore rules.' : 'Chat unavailable: '+e.message; this.draw(); });
   },
-  stop(){ if(this.unsub) this.unsub(); this.unsub = null; this.jobId = null; this.msgs = []; },
+  stop(){ const was = this.jobId; if(this.unsub) this.unsub(); this.unsub = null; this.jobId = null; this.msgs = []; if(was && this.avail()) setTimeout(()=>render(), 0); },
   when(t){
     const d = t && t.toDate ? t.toDate() : new Date(); const now = new Date();
     const tm = d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
@@ -1990,7 +2035,12 @@ const JobChat = {
     const text = ta.value.trim(); if(!text) return;
     if(text.length > 2000) return toast('That message is too long (2,000 characters max).');
     const id = this.jobId; ta.value = ''; delete this.draft[id]; this.justSent = true;
-    try{ await this.col(id).add({text, by:Cloud.email, at:firebase.firestore.FieldValue.serverTimestamp()}); }
+    try{
+      const at = firebase.firestore.FieldValue.serverTimestamp(), b = Cloud.db.batch();
+      b.set(this.col(id).doc(), {text, by:Cloud.email, at});
+      b.set(this.root().collection('jobs').doc(Cloud.enc(id)), {text:text.slice(0,140), by:Cloud.email, at});
+      await b.commit();
+    }
     catch(e){ if(openId===id && $('#chatText') && !$('#chatText').value) $('#chatText').value = text; this.draft[id] = text;
       toast(e.code==='permission-denied' ? 'Could not send: the chat needs the Firestore rules update first.' : 'Could not send: '+(e.message||e)); }
   },
@@ -2002,6 +2052,8 @@ const JobChat = {
     ta.onkeydown = e=>{ if(e.key==='Enter' && !e.shiftKey && !e.isComposing){ e.preventDefault(); this.send(); } };
     $('#chatSend').onclick = ()=>this.send();
     this.draw(); const box = $('#chatList'); box.scrollTop = box.scrollHeight;
+    this.markSeen(j.id);
+    if(this.scrollTo===j.id){ this.scrollTo = null; setTimeout(()=>{ const c = $('#drawer .chatcard'); if(c) c.scrollIntoView({block:'start', behavior:'smooth'}); }, 60); }
   }
 };
 
@@ -2763,6 +2815,7 @@ const Cloud = {
       trash: this.sortTrash([...this.synced.trash.values()].map(s=>JSON.parse(s))),
       settings: meta('settings') || undefined, intake: meta('intake') || undefined});
     this.ready = true;
+    JobChat.startBadges();
     if(this.canEdit()) Store.save();                         // writes settings the first time only
     document.body.classList.toggle('viewonly', !this.canEdit());
     $('#login').classList.remove('open');
