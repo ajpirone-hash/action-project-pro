@@ -189,6 +189,24 @@ table.rc{font-size:12px}table.rc td,table.rc th{padding:3px 6px}
 
 .bb table{font-size:12.5px}
 .sum{background:#f7f8fa;border-radius:10px;padding:12px 14px;position:sticky;top:0}
+/* v0.31 compact bid builder: each tab carries its own inputs, one short totals box */
+.bset{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;background:#f7f9fc;border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin:0 0 10px;font-size:12.5px}
+.bset .bf{display:inline-flex;align-items:center;gap:4px;background:#fff;border:1px solid #e6e9ee;border-radius:8px;padding:3px 8px;white-space:nowrap;color:var(--muted)}
+.bset .bf b{color:var(--ink);font-variant-numeric:tabular-nums;margin-left:4px}
+.bset .pct{width:52px;border:1px solid var(--line);border-radius:5px;padding:1px 4px;text-align:right}
+.bset select{font-size:12.5px;padding:2px 4px;max-width:160px}
+.bset .btn.sm{padding:2px 8px;font-size:12px}
+.bset .bp{margin-left:auto;font-weight:700;white-space:nowrap}
+.bset .bp b{font-variant-numeric:tabular-nums;margin-left:4px}
+.btot{position:static;margin-top:14px}
+.bt3{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.bt3 div{background:#fff;border-radius:8px;padding:7px 10px}
+.bt3 span{display:block;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+.bt3 b{font-size:15px;font-variant-numeric:tabular-nums}
+.btot .bondd,.btot .bnote{margin-top:6px}
+.bbtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.bbtns .btn{flex:1 1 160px}
+@media (max-width:640px){ .bt3{grid-template-columns:1fr 1fr} .bset .bf{white-space:normal;flex-wrap:wrap} .bset .bp{margin-left:0;width:100%;text-align:right} }
 .sum .r{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 0;font-size:13px}
 .sum .r b{font-variant-numeric:tabular-nums}
 .sum .r.t{border-top:1px solid var(--line);margin-top:4px;padding-top:7px}
@@ -401,7 +419,7 @@ header .btn:not(#btnAccount),header input{order:3}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.30 (tidy job tabs)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.31 (compact bid builder)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -1138,51 +1156,40 @@ function editJobRates(j){
   draw(); $('#pick').classList.add('open');
 }
 function bidBuilderCard(j){
-  const b = bidBuild(j), s = Store.settings;
+  const b = bidBuild(j);
   const diff = (+j.bidTotal||0) - b.suggested;
+  const f = (label, val) => `<span class="bf">${label}${val!==undefined?` <b>${money(val)}</b>`:''}</span>`;
+  /* only what the tab's own table and the totals box below don't already show */
+  const SET = {
+    bq: `${f(`Consumables ${pin('consumablesPerMH',j)} $/MH or lump $${pin('consumablesLump',j)}`, b.consumables)}${f(`Sales tax ${pin('salesTax',j)}%`, b.tax)}${f(`O&amp;P ${pin('matOP',j)}%`, b.matOP)}`,
+    bs: `${f(`O&amp;P on subs &amp; rentals ${pin('subOP',j)}%`, b.subOP)}`,
+    bl: `<span class="bf">Rates <select id="rateSel">${rateOptions(j)}</select><button class="btn sm" id="rateEdit">Edit rates</button></span>${f(`Escalation ${pin('escHours',j)} MH × $${pin('escRate',j)}`, b.escalation)}${f(`Clean-up ${pin('cleanup',j)}%`, b.cleanup)}${f(`O&amp;P on labor &amp; expenses ${pin('labOP',j)}%`, b.labExpOP)}`,
+    bo: `${f(`Tool &amp; truck ${pin('toolTruckPerDay',j)} $/day`, b.toolTruck)}${f(`Inter office $${pin('interOffice',j)}`)}`
+  };
+  const bond = bondApplies(j,b.price);
   return `<div class="card"><h4>Build the bid ${j.federal?'<span class="pill fed">Federal – bond applies</span>':''}</h4>
     ${revBar(j)}
-    <div class="bb">
-      <div>
-        <div class="tabs">${['bq','bs','br','bl','bo'].map(k=>`<button class="tab ${k===bidTab?'on':''}" data-btab="${k}">${LOGS[k].label}<span class="n">${j[LOGS[k].key].length}</span></button>`).join('')}</div>
-        ${logTable(j,bidTab)}
+    <div class="tabs">${['bq','bs','br','bl','bo'].map(k=>`<button class="tab ${k===bidTab?'on':''}" data-btab="${k}">${LOGS[k].label}<span class="n">${j[LOGS[k].key].length}</span></button>`).join('')}</div>
+    ${SET[bidTab]?`<div class="bset">${SET[bidTab]}</div>`:''}
+    ${logTable(j,bidTab)}
+    <div class="sum btot">
+      <div class="bt3">
+        <div><span>Material</span><b>${money(b.matPrice)}</b></div>
+        <div><span>Labor &amp; expenses</span><b>${money(b.labExpPrice)}</b></div>
+        <div><span>Subcontracts</span><b>${money(b.subPrice)}</b></div>
+        <div><span>${bond?'Bond':'No bond'}</span><b>${bond?money(b.bond.total):'—'}</b></div>
       </div>
-      <div class="sum">
-        <div class="sh">I. Material</div>
-        <div class="r"><span>Pipe, valves, fittings</span><b>${money(b.pvf)}</b></div>
-        <div class="r"><span>Equipment</span><b>${money(b.equip)}</b></div>
-        <div class="r"><span>Consumables ${pin('consumablesPerMH',j)} $/MH <span class="note">or lump $</span>${pin('consumablesLump',j)}</span><b>${money(b.consumables)}</b></div>
-        <div class="r"><span>Sales tax ${pin('salesTax',j)}%</span><b>${money(b.tax)}</b></div>
-        <div class="r"><span>O&amp;P ${pin('matOP',j)}%</span><b>${money(b.matOP)}</b></div>
-        <div class="r t"><span>Material price</span><b>${money(b.matPrice)}</b></div>
-        <div class="sh">II–III. Labor &amp; job expenses</div>
-        <div class="r rates"><span>Rates <select id="rateSel" style="max-width:170px">${rateOptions(j)}</select></span><button class="btn sm" id="rateEdit">Edit rates</button></div>
-        <div class="r"><span>Labor (${b.hours.toLocaleString()} MH, H&amp;W, ins.)</span><b>${money(b.labCost-b.cleanup-b.escalation)}</b></div>
-        <div class="r"><span>Escalation ${pin('escHours',j)} MH × $${pin('escRate',j)}</span><b>${money(b.escalation)}</b></div>
-        <div class="r"><span>Clean-up ${pin('cleanup',j)}%</span><b>${money(b.cleanup)}</b></div>
-        <div class="r"><span>Tool &amp; truck ${pin('toolTruckPerDay',j)} $/day</span><b>${money(b.toolTruck)}</b></div>
-        <div class="r"><span>Inter office $${pin('interOffice',j)}</span><b>${money(b.interOffice)}</b></div>
-        <div class="r"><span>Job expenses</span><b>${money(b.otherExp)}</b></div>
-        <div class="r"><span>O&amp;P ${pin('labOP',j)}%</span><b>${money(b.labExpOP)}</b></div>
-        <div class="r t"><span>Labor &amp; expense price</span><b>${money(b.labExpPrice)}</b></div>
-        <div class="sh">IV. Subcontracts</div>
-        <div class="r"><span>Action depts</span><b>${money(b.actionDepts)}</b></div>
-        <div class="r"><span>Outside subs</span><b>${money(b.outside)}</b></div>
-        <div class="r"><span>Equipment rentals</span><b>${money(b.rentals)}</b></div>
-        <div class="r"><span>O&amp;P on subs &amp; rentals ${pin('subOP',j)}%</span><b>${money(b.subOP)}</b></div>
-        <div class="r t"><span>Subcontract price</span><b>${money(b.subPrice)}</b></div>
-        <div class="r t"><span><b>Total price less bond</b></span><b>${money(b.price)}</b></div>
-        ${bondApplies(j,b.price) ? `<div class="r"><span>Payment &amp; performance bond</span><b>${money(b.bond.total)}</b></div>
-          <div class="bondd">${b.bond.lines.map(l=>`<div><span>${l.label}</span><span>${money(l.amt,2)}</span></div>`).join('')}</div>`
-        : `<div class="r note"><span>No bond (${j.federal?'federal, $150,000 or less':'not a federal job'})</span><b>—</b></div>`}
-        <div class="r big"><span>Total price with bond</span><b>${money(b.suggested)}</b></div>
-        ${j.federal ? fedBox(j,b) : ''}
-        <button class="btn primary" id="useBid\" style="width:100%;margin-top:8px">Use as bid total</button>
-        <button class="btn" id="recapBtn" style="width:100%;margin-top:6px">📄 Fill recap sheet</button>
-        <button class="btn" id="recapImp" style="width:100%;margin-top:6px">📥 Import a recap (.xlsx)</button>
-        ${(j.recapImports||[]).length?`<div class="riimp">Last import: ${esc(j.recapImports[j.recapImports.length-1].file)} on ${fdate(new Date(j.recapImports[j.recapImports.length-1].at).toISOString().slice(0,10))}${j.recapImports.length>1?` · ${j.recapImports.length} imports in all, see Revision history`:''}</div>`:''}
-        ${j.bidTotal? `<div class="note" style="margin-top:6px;text-align:center">Current bid total ${money(j.bidTotal)}${b.suggested>0 && Math.abs(diff)>=1?` (${diff>0?'+':''}${money(diff)} vs suggested)`:''}</div>`:''}
+      ${bond ? `<div class="bondd">${b.bond.lines.map(l=>`<div><span>${l.label}</span><span>${money(l.amt,2)}</span></div>`).join('')}</div>`
+        : `<div class="note bnote">No bond: ${j.federal?'federal, $150,000 or less':'not a federal job'}. Price less bond ${money(b.price)}.</div>`}
+      <div class="r big"><span>Total price with bond</span><b>${money(b.suggested)}</b></div>
+      ${j.federal ? fedBox(j,b) : ''}
+      <div class="bbtns">
+        <button class="btn primary" id="useBid">Use as bid total</button>
+        <button class="btn" id="recapImp">📥 Import a recap (.xlsx)</button>
+        <button class="btn" id="recapBtn">📄 Fill recap sheet</button>
       </div>
+      ${(j.recapImports||[]).length?`<div class="riimp">Last import: ${esc(j.recapImports[j.recapImports.length-1].file)} on ${fdate(new Date(j.recapImports[j.recapImports.length-1].at).toISOString().slice(0,10))}${j.recapImports.length>1?` · ${j.recapImports.length} imports in all, see Revision history`:''}</div>`:''}
+      ${j.bidTotal? `<div class="note" style="margin-top:6px;text-align:center">Current bid total ${money(j.bidTotal)}${b.suggested>0 && Math.abs(diff)>=1?` (${diff>0?'+':''}${money(diff)} vs suggested)`:''}</div>`:''}
     </div></div>`;
 }
 
