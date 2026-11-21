@@ -111,8 +111,16 @@ main{padding:20px 24px 60px;max-width:1500px;margin:0 auto}
 .fin b{font-size:16px;font-variant-numeric:tabular-nums}
 .fin .rem{background:#eef7f1}
 .fin .rem.neg{background:#fdeeee}
-.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:4px 0 10px}
-.tab{padding:7px 12px;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);font-weight:600}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin:4px 0 10px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:7px 12px;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);font-weight:600;white-space:nowrap;flex:none}
+.seg{display:inline-flex;gap:2px;background:#eef0f3;border-radius:9px;padding:3px;margin:0 0 12px;max-width:100%;overflow-x:auto;scrollbar-width:none}
+.seg::-webkit-scrollbar{display:none}
+.seg button{border:none;background:none;border-radius:7px;padding:6px 14px;font-weight:600;font-size:13px;color:var(--muted);cursor:pointer;white-space:nowrap;flex:none}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.seg .n{font-size:11px;background:#e2e5ea;border-radius:999px;padding:0 6px;margin-left:5px}
+.seg button.on .n{background:#eef0f3}
+.seg .n:empty{display:none}
 .tab.on{color:var(--ink);border-bottom-color:var(--brand-2)}
 .tab .n{font-size:11px;background:#eef0f3;border-radius:999px;padding:0 6px;margin-left:4px}
 table{width:100%;border-collapse:collapse;font-size:13px}
@@ -147,11 +155,16 @@ tfoot td{font-weight:650;border-top:1px solid var(--line)}
 .trashnote{grid-column:1/-1;font-size:13px;color:var(--muted);background:#fff;border:1px dashed var(--line);border-radius:8px;padding:8px 12px}
 .pill.co{background:#fff1d6;color:#8a5a00}
 tr.linked td{background:#fffaf0}
-.jtabs{display:flex;gap:6px;flex-wrap:wrap;align-items:center;background:#fff;border-bottom:1px solid var(--line);padding:8px 20px}
+.jtabs{display:flex;gap:10px;align-items:flex-end;background:#fff;border-bottom:1px solid var(--line);padding:8px 20px 0}
+.jscroll{display:flex;gap:6px;flex:1 1 auto;min-width:0;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.jscroll::-webkit-scrollbar{display:none}
+.jtab .jn{font-weight:500;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.jtab{flex:none;white-space:nowrap}
 .jtab{display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:#f7f8fa;border-radius:8px 8px 0 0;padding:6px 12px;cursor:pointer;font-weight:600;font-size:13px;border-bottom:3px solid transparent}
 .jtab.on{background:#fff;border-bottom-color:var(--c);box-shadow:0 2px 6px rgba(0,0,0,.06)}
 .jtab .amt{font-weight:500;color:var(--muted);font-size:12px}
-.jsum{margin-left:auto;font-size:12.5px;color:var(--muted);font-weight:600}
+.jsum{flex:none;font-size:12.5px;color:var(--muted);font-weight:600;white-space:nowrap;padding-bottom:6px}
+.jsum b{color:var(--ink)}
 .pklist{max-height:320px;overflow:auto;margin-top:10px;display:flex;flex-direction:column;gap:4px}
 .pkitem{display:flex;align-items:center;gap:8px;text-align:left;border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 10px;cursor:pointer}
 .pkitem .note{margin-left:auto}
@@ -252,7 +265,8 @@ header{padding-top:max(18px, env(safe-area-inset-top));padding-left:max(28px, en
   .grid{grid-template-columns:1fr;gap:10px}
   .dh{flex-wrap:wrap;padding:max(10px, env(safe-area-inset-top)) 12px 10px;gap:8px} .dh h2{font-size:18px} .dh>div:first-child{flex:1 1 100%} .dh .status-sel{flex:1}
   .db{padding:10px 8px 40px;gap:10px} .card{padding:12px 12px}
-  .jtabs{flex-wrap:nowrap;overflow-x:auto;padding:6px 10px}
+  .jtabs{padding:6px 10px 0;gap:8px} .jtab .jn{display:none} .jtab{padding:6px 10px;gap:5px} .jsum{font-size:12px}
+  .tab{padding:7px 10px}
   .form{grid-template-columns:1fr 1fr;gap:8px 10px}
   .tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none} .tabs::-webkit-scrollbar{display:none} .tab{white-space:nowrap;flex:none}
   #drawer table,.modal table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
@@ -387,7 +401,7 @@ header .btn:not(#btnAccount),header input{order:3}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.29 (tool requests)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.30 (tidy job tabs)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -1172,12 +1186,28 @@ function bidBuilderCard(j){
     </div></div>`;
 }
 
+/* job drawer tabs: 5 top tabs on one row; Material holds Orders / On job / Quotes */
+const MAT_TABS = ['mat','items','quotes'];
+let matSub = 'mat';
+function jobTabCount(j,k){
+  return k==='quotes' ? (j.quotePdfs||[]).length : k==='tools' ? ToolReq.countFor(j) : j[LOGS[k].key].length + (k==='co'?childrenOf(j.id).length:0);
+}
+function jobTabs(j){
+  if(MAT_TABS.includes(openTab)) matSub = openTab;
+  const inMat = MAT_TABS.includes(openTab);
+  const top = [['co','Change Orders','Change Orders'],['matg','Material','Material orders, material on job and quotes'],['lab','Labor','Labor Hours'],['trav','Hotel & Per Diem','Hotel & Per Diem'],['tools','🧰 Tools','Tool Requests']];
+  const n = k => k==='matg' ? MAT_TABS.reduce((s,x)=>s+jobTabCount(j,x),0) : jobTabCount(j,k);
+  const on = k => k==='matg' ? inMat : k===openTab;
+  const sub = [['mat','Orders'],['items','On job'],['quotes','Quotes']];
+  return `<div class="tabs jt">${top.map(([k,l,t])=>`<button class="tab ${on(k)?'on':''}" data-tab="${k==='matg'?matSub:k}" title="${esc(t)}">${l}<span class="n">${n(k)||''}</span></button>`).join('')}</div>
+    ${inMat?`<div class="seg">${sub.map(([k,l])=>`<button class="${k===openTab?'on':''}" data-tab="${k}">${l}<span class="n">${jobTabCount(j,k)||''}</span></button>`).join('')}</div>`:''}`;
+}
 function familyTabs(j){
   const P = parentOf(j) || j, kids = childrenOf(P.id);
   if(!kids.length) return '';
-  const tab = (x,label) => `<button class="jtab ${x.id===j.id?'on':''}" data-view="${esc(x.id)}" style="--c:${sColor(x.bidStatus)}"><span class="dot" style="background:${sColor(x.bidStatus)}"></span>${label}<span class="amt">${x.bidTotal?money(x.bidTotal):''}</span></button>`;
-  return `<div class="jtabs">${tab(P,'Main job')}${kids.map((k,i)=>tab(k,`CO ${i+1}: ${esc(k.name)}`)).join('')}
-    <span class="jsum">Revised total ${money(totals(P).revised)}</span></div>`;
+  const tab = (x,tag,name) => `<button class="jtab ${x.id===j.id?'on':''}" data-view="${esc(x.id)}" style="--c:${sColor(x.bidStatus)}" title="${esc(tag+(name?': '+name:'')+(x.bidTotal?' · '+money(x.bidTotal):''))}"><span class="dot" style="background:${sColor(x.bidStatus)}"></span><b>${tag}</b>${name?`<span class="jn">${esc(name)}</span>`:''}<span class="amt">${x.bidTotal?money(x.bidTotal):''}</span></button>`;
+  return `<div class="jtabs"><div class="jscroll">${tab(P,'Main job','')}${kids.map((k,i)=>tab(k,`CO ${i+1}`,k.name)).join('')}</div>
+    <span class="jsum">Revised <b>${money(totals(P).revised)}</b></span></div>`;
 }
 function renderDrawer(){
   const j = Store.get(openId); if(!j) return closeJob();
@@ -1237,7 +1267,7 @@ function renderDrawer(){
           ${completeRow(j)}
         </div>
         <div class="card">
-          <div class="tabs">${['co','mat','items','quotes','lab','trav','tools'].map(k=>`<button class="tab ${k===openTab?'on':''}" data-tab="${k}">${k==='quotes'?'Material Quotes':k==='tools'?'🧰 Tool Requests':LOGS[k].label}<span class="n">${k==='quotes' ? (j.quotePdfs||[]).length : k==='tools' ? ToolReq.countFor(j) : j[LOGS[k].key].length + (k==='co'?childrenOf(j.id).length:0)}</span></button>`).join('')}</div>
+          ${jobTabs(j)}
           ${openTab==='quotes' ? (awarded ? quotesTab(j) : logTable(j,'co')) : openTab==='tools' ? (awarded ? ToolReq.tab(j) : logTable(j,'co')) : logTable(j,openTab)}
         </div>
       </div>
@@ -1296,6 +1326,7 @@ function renderDrawer(){
   $('#drawer').querySelectorAll('[data-bb]').forEach(el=>el.onchange=()=>{ j.bidBond[el.dataset.bb] = el.dataset.bb==='pct' ? (+el.value||0) : el.value; changed(); });
   $('#drawer').querySelectorAll('[data-mk]').forEach(el=>el.onchange=()=>{ j.markup[el.dataset.mk] = +el.value||0; changed(); });
   $('#drawer').querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>{ openTab=b.dataset.tab; renderDrawer(); });
+  $('#drawer').querySelectorAll('.tabs .tab.on, .jscroll .jtab.on').forEach(b=>{ const s=b.parentElement; if(s.scrollWidth>s.clientWidth){ const l=b.offsetLeft-s.offsetLeft; if(l<s.scrollLeft||l+b.offsetWidth>s.scrollLeft+s.clientWidth) s.scrollLeft=Math.max(0,l-24); } });
   $('#drawer').querySelectorAll('[data-btab]').forEach(b=>b.onclick=()=>{ bidTab=b.dataset.btab; renderDrawer(); });
   $('#drawer').querySelectorAll('[data-log]').forEach(w=>bindLog(j,w));
 }
