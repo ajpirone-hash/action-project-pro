@@ -182,6 +182,7 @@ table.rc{font-size:12px}table.rc td,table.rc th{padding:3px 6px}
 .btn.danger{background:var(--lost);border-color:var(--lost);color:#fff}
 .btn.danger:hover{background:#a5301f}
 #ask{z-index:40}
+#jobNoAsk{z-index:41}
 .pill.fed{background:#e6eefb;color:#1f4e79}
 .bb{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
 @media(max-width:1100px){.bb{grid-template-columns:1fr}}
@@ -667,6 +668,39 @@ html.dark .revitem .rn{color:#ebebf5}
 html.dark .card h4{background:transparent!important}
 html.dark select.mvsel{background:#3a2a0a;color:#ffd38a;border-color:#8a6100}
 
+
+/* v0.33 job number button + menu */
+.jno{color:#007aff;font-weight:700}
+.svsec{color:#8e8e93;font-weight:500;font-size:.92em;margin-left:2px}
+.idbtn{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:5px;padding:3px 8px 3px 0;margin:-3px 0;border-radius:8px;font:inherit;color:inherit;-webkit-tap-highlight-color:transparent}
+.idbtn:focus-visible{outline:2px solid #007aff;outline-offset:2px}
+.idbtn .jno{font-size:15px}
+.idcaret{font-size:10px;color:#8e8e93;margin-left:2px}
+.idbtn:hover .idcaret{color:#007aff}
+.idmenu{position:fixed;z-index:60;background:rgba(255,255,255,.98);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.22),0 0 0 .5px rgba(0,0,0,.08);overflow:hidden;font-size:15px;color:#000;max-height:70vh;overflow-y:auto}
+.idmh{padding:12px 14px 10px;color:#3c3c43;border-bottom:.5px solid #c6c6c8;font-size:14px}
+.idmh small{display:block;color:#8e8e93;font-size:12px;margin-top:3px;line-height:1.35}
+.idmi{all:unset;box-sizing:border-box;width:100%;display:flex;gap:10px;align-items:flex-start;padding:11px 14px;cursor:pointer;border-bottom:.5px solid #e5e5ea;color:#000;min-height:44px}
+.idmi:last-child{border-bottom:0}
+.idmi:hover,.idmi:focus-visible{background:#f2f2f7}
+.idmi .ic{width:20px;text-align:center;color:#007aff;font-weight:700;flex:none}
+.idmi b{font-weight:500;display:block}
+.idmi small{display:block;color:#8e8e93;font-size:12px;margin-top:2px;line-height:1.3}
+.idmi.pri b{color:#007aff;font-weight:600}
+.idmi.danger b,.idmi.danger .ic{color:#ff3b30}
+.jninput{width:100%;box-sizing:border-box;font-size:20px;font-weight:600;padding:12px 14px;border-radius:10px;border:1px solid #c6c6c8;background:#fff;color:#000;letter-spacing:.5px}
+.jninput:focus{outline:none;border-color:#007aff;box-shadow:0 0 0 3px rgba(0,122,255,.2)}
+.jnerr{color:#ff3b30;font-size:13px;min-height:18px;margin-top:6px}
+html.dark .jno{color:#5caaff}
+html.dark .svsec,html.dark .idcaret{color:#98989f}
+html.dark .idmenu{background:rgba(44,44,46,.98);color:#fff;box-shadow:0 10px 40px rgba(0,0,0,.6),0 0 0 .5px rgba(255,255,255,.1)}
+html.dark .idmh{color:#ebebf5;border-bottom-color:#38383a}
+html.dark .idmi{color:#fff;border-bottom-color:#38383a}
+html.dark .idmi:hover,html.dark .idmi:focus-visible{background:#3a3a3c}
+html.dark .idmi .ic,html.dark .idmi.pri b{color:#5caaff}
+html.dark .idmi.danger b,html.dark .idmi.danger .ic{color:#ff453a}
+html.dark .jninput{background:#1c1c1e;color:#fff;border-color:#38383a}
+html.dark .jnerr{color:#ff453a}
 </style>
 </head>
 <body>
@@ -676,7 +710,7 @@ html.dark select.mvsel{background:#3a2a0a;color:#ffd38a;border-color:#8a6100}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.32 (iOS look, light/dark)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.33 (job numbers)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -708,6 +742,13 @@ html.dark select.mvsel{background:#3a2a0a;color:#ffd38a;border-color:#8a6100}
 <div class="modal" id="ask"><div class="box" style="width:min(420px,94%)">
   <h3 id="askTitle">Are you sure?</h3><p id="askMsg" style="margin:0 0 18px;color:var(--muted)"></p>
   <div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn" id="askNo">Cancel</button><button class="btn danger" id="askYes">Delete</button></div>
+</div></div>
+<div class="modal" id="jobNoAsk"><div class="box" style="width:min(420px,94%)">
+  <h3>Job number</h3>
+  <p style="margin:0 0 12px;color:var(--muted)">Enter the job number the company gave <b id="jnSv"></b> <span id="jnName"></span>. It becomes the main ID on this job. The SV # stays on the job and still works in search, intake and links.</p>
+  <input id="jnInput" class="jninput" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Job number">
+  <div id="jnErr" class="jnerr"></div>
+  <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px"><button class="btn" id="jnCancel">Cancel</button><button class="btn primary" id="jnSave">Save job number</button></div>
 </div></div>
 <div class="modal" id="intake"><div class="box" style="width:min(980px,96%)" id="intakeBox"></div></div>
 <div id="login" role="dialog" aria-label="Sign in">
@@ -794,6 +835,15 @@ const LocalAdapter = {
 };
 
 /* Fills in any field a job is missing, so older saved data and backups keep working. */
+/* v0.33 job numbers: once a job is awarded the company gives it a job number.
+   j.jobNo becomes the main ID people see; j.sv stays as it was, so everything
+   that keys off the SV # (folders, material moves, quote PDFs, chat, tool
+   requests, change orders, recap import, PDF intake) keeps working. */
+const jnum = j => String((j && j.jobNo) || '').trim();
+const jid = j => jnum(j) || (j && j.sv) || '';                  // main ID: job # if set, else SV #
+const jidLabel = j => jnum(j) ? 'Job ' + jnum(j) : ((j && j.sv) || '');
+const idHTML = (j, none='No SV # yet') => jnum(j) ? `<span class="jno">Job ${esc(jnum(j))}</span>${j.sv?` <span class="svsec">${esc(j.sv)}</span>`:''}` : (esc(j.sv) || none);
+const sameJobRef = (j, ref) => { const k = normKey(ref); return !!k && (normKey(j.sv)===k || (!!jnum(j) && normKey(jnum(j))===k)); };
 function normalizeJob(j){
   const s = (typeof Store!=='undefined' && Store.settings) || DEFAULT_SETTINGS;
   return Object.assign({sv:'', name:'', priority:'Normal', estStatus:'Not Started', startDate:'', sentDate:'', pct:0, notes:'',
@@ -993,7 +1043,7 @@ function renderBar(){
   const chips = [['Active',null,active],['All',null,J.length],...STATUSES.map(s=>[s.k,s.c,cnt(s.k)])];
   $('#bar').innerHTML = chips.map(([k,c,n])=>`<button class="chip ${filter===k?'on':''}" data-f="${k}">${c?`<span class="dot" style="background:${c}"></span>`:''}${k}<span class="n">${n}</span></button>`).join('')
     + `<button class="chip trashchip ${filter==='Trash'?'on':''}" data-f="Trash">🗑 Recently deleted<span class="n">${Store.trash.length}</span></button>`
-    + `<input class="search" id="q" placeholder="Search job name or SV #" value="${esc(query)}">`
+    + `<input class="search" id="q" placeholder="Search name, SV # or job #" value="${esc(query)}">`
     + `<select class="sort" id="sort"><option value="recent">Newest first</option><option value="value">Bid value</option><option value="name">Job name</option><option value="priority">Priority</option></select>`;
   $('#sort').value = sortBy;
   $('#bar').querySelectorAll('.chip').forEach(b=>b.onclick=()=>{filter=b.dataset.f; render();});
@@ -1006,7 +1056,7 @@ function visibleJobs(){
   if(filter==='Active') J = J.filter(j=>['Estimating','Bid Sent','Awarded'].includes(j.bidStatus));
   else if(filter!=='All') J = J.filter(j=>j.bidStatus===filter);
   const q = query.trim().toLowerCase();
-  if(q) J = J.filter(j=>(j.name+' '+j.sv).toLowerCase().includes(q));
+  if(q) J = J.filter(j=>(j.name+' '+j.sv+' '+jnum(j)).toLowerCase().includes(q));
   const pr = {High:0,Normal:1,Low:2};
   const cmp = {
     recent:(a,b)=>(b.startDate||'').localeCompare(a.startDate||''),
@@ -1020,7 +1070,7 @@ function visibleJobs(){
 function tileHTML(j){
   const c = sColor(j.bidStatus), t = totals(j), awarded = j.bidStatus==='Awarded';
   return `<article class="tile" style="--c:${c}" data-id="${esc(j.id)}">
-    <div class="top"><span class="sv">${esc(j.sv)||'No SV # yet'}${j.revisions.length?` · <span class="revtag">${revName(j.revisions.length-1)}</span>`:''}</span>
+    <div class="top"><span class="sv">${idHTML(j)}${j.revisions.length?` · <span class="revtag">${revName(j.revisions.length-1)}</span>`:''}</span>
       <span style="display:flex;gap:4px">${j.federal?'<span class="pill fed">Federal</span>':''}<span class="pri" style="color:${PRI[j.priority]||'#888'}">${esc(j.priority)}</span></span></div>
     <h3>${esc(j.name)}</h3>
     ${JobChat.badge(j)}
@@ -1043,7 +1093,7 @@ function trashHTML(){
   return `<div class="trashnote">Deleted items stay here for ${Store.TRASH_DAYS} days, then they are removed for good.</div>` + Store.trash.map(it=>{
     const d = Store.daysLeft(it), when = new Date(it.deletedAt).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
     const title = it.kind==='job' ? esc(it.job.name) : esc(it.label.replace(/s$/,'')) + ' line';
-    const sub = it.kind==='job' ? `${esc(it.job.sv)||'No SV #'} · ${esc(it.job.bidStatus)} · ${it.job.bidTotal?money(it.job.bidTotal):'no bid total'}`
+    const sub = it.kind==='job' ? `${esc(jidLabel(it.job))||'No SV #'} · ${esc(it.job.bidStatus)} · ${it.job.bidTotal?money(it.job.bidTotal):'no bid total'}`
       : `From ${esc(it.jobName)}${it.sv?' ('+esc(it.sv)+')':''} · ${esc(Object.values(it.row).filter(v=>v!==''&&v!=null).slice(0,3).join(' · '))}`;
     return `<article class="tile trash" style="--c:var(--nobid)">
       <div class="top"><span class="sv">${it.kind==='job'?'Job':'Line item'} · deleted ${when}</span><span class="pill ${d<=5?'warn':''}">${d} day${d===1?'':'s'} left</span></div>
@@ -1093,11 +1143,69 @@ async function setStatus(id, status){
   else if(status==='Awarded' && was!=='Awarded') openJob(id);
 }
 
+/* ---------------- v0.33 job number menu (tap the SV # in the job header) ---------------- */
+function jobNoFree(j, v){ const k = normKey(v); return !Store.jobs.some(x=>x.id!==j.id && (normKey(x.jobNo)===k || normKey(x.sv)===k)); }
+function closeIdMenu(e){ const m = $('#idMenu'); if(e && e.target && m && m.contains(e.target)) return; if(m) m.remove(); document.removeEventListener('click', closeIdMenu, true); }
+function idMenu(j, btn){
+  if($('#idMenu')){ closeIdMenu(); return; }
+  const edit = !(typeof Cloud!=='undefined' && Cloud.on && !Cloud.canEdit());
+  const awarded = j.bidStatus==='Awarded', n = jnum(j);
+  const it = (act, ic, t, sub='', cls='') => `<button type="button" role="menuitem" class="idmi ${cls}" data-act="${act}"><span class="ic">${ic}</span><span><b>${t}</b>${sub?`<small>${sub}</small>`:''}</span></button>`;
+  let html = `<div class="idmh">${n ? `Job <b>${esc(n)}</b>${j.sv?` · was ${esc(j.sv)}`:''}${j.jobNoAt?`<small>Job number set ${fdate(j.jobNoAt)}</small>`:''}` : `<b>${esc(j.sv)||'No SV # yet'}</b><small>${awarded?'Awarded: switch it to the job number the company gave it.':'You can switch to a job number once this job is Awarded.'}</small>`}</div>`;
+  if(edit && !n && awarded) html += it('set','#','Change to job number…','Job # becomes the main ID. SV # stays searchable.','pri');
+  if(edit && !n && !awarded && !isChild(j)) html += it('award','✓','Mark as Awarded','Then enter the job number');
+  if(edit && n) html += it('set','✎','Edit job number…');
+  if(n) html += it('copyjob','⧉','Copy job number');
+  if(j.sv) html += it('copysv','⧉','Copy SV number');
+  if(edit && n) html += it('clear','↩','Go back to SV number','Removes the job number','danger');
+  const m = document.createElement('div'); m.id = 'idMenu'; m.className = 'idmenu'; m.setAttribute('role','menu'); m.innerHTML = html;
+  document.body.appendChild(m);
+  const r = btn.getBoundingClientRect(), w = Math.min(300, innerWidth - 16);
+  m.style.width = w + 'px';
+  m.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + 'px';
+  m.style.top = (r.bottom + 6) + 'px';
+  setTimeout(()=>document.addEventListener('click', closeIdMenu, true), 0);
+  const copy = async v=>{ try{ await navigator.clipboard.writeText(v); toast(v + ' copied'); }catch(_){ toast(v); } };
+  m.querySelectorAll('[data-act]').forEach(b=>b.onclick = async ()=>{
+    closeIdMenu();
+    const a = b.dataset.act;
+    if(a==='copyjob') return copy(n);
+    if(a==='copysv') return copy(j.sv);
+    if(a==='award') return setStatus(j.id, 'Awarded');
+    if(a==='set') return askJobNo(j);
+    if(a==='clear'){
+      if(!await askSure('Go back to the SV number?', `Job ${n} is taken off ${j.name}. It shows as ${j.sv||'its SV #'} again. Nothing else on the job changes.`, 'Remove job #')) return;
+      j.jobNo = ''; j.jobNoAt = ''; Store.save(); render(); renderDrawer(); toast(`Back to ${j.sv||'SV #'}`);
+    }
+  });
+}
+function askJobNo(j){
+  const m = $('#jobNoAsk'), inp = $('#jnInput'), err = $('#jnErr');
+  $('#jnSv').textContent = j.sv || 'this job';
+  $('#jnName').textContent = j.name || '';
+  inp.value = jnum(j); err.textContent = '';
+  m.classList.add('open'); setTimeout(()=>{ inp.focus(); inp.select(); }, 30);
+  const done = ()=>{ m.classList.remove('open'); document.removeEventListener('keydown', key, true); };
+  const save = ()=>{
+    const v = inp.value.trim();
+    if(!v){ err.textContent = 'Type the job number, or press Cancel.'; inp.focus(); return; }
+    if(!jobNoFree(j, v)){ err.textContent = `${v} is already used by another job.`; inp.focus(); return; }
+    const was = jnum(j);
+    j.jobNo = v; if(v!==was) j.jobNoAt = today();
+    done(); Store.save(); render(); renderDrawer();
+    toast(was ? `Job number changed to ${v}` : `${j.sv||j.name} is now Job ${v}`);
+  };
+  const key = e=>{ if(e.key==='Escape'){ e.stopPropagation(); done(); } else if(e.key==='Enter' && e.target===inp){ e.preventDefault(); save(); } };
+  document.addEventListener('keydown', key, true);
+  $('#jnSave').onclick = save; $('#jnCancel').onclick = done;
+  m.onclick = e=>{ if(e.target===m) done(); };
+}
+
 /* ---------------- Drawer ---------------- */
 function openJob(id){ openId=id; renderDrawer(); $('#drawer').classList.add('open'); $('#scrim').classList.add('open'); }
-function closeJob(){ JobChat.stop(); ToolReq.stop(); openId=null; $('#drawer').classList.remove('open'); $('#scrim').classList.remove('open'); }
+function closeJob(){ closeIdMenu(); JobChat.stop(); ToolReq.stop(); openId=null; $('#drawer').classList.remove('open'); $('#scrim').classList.remove('open'); }
 $('#scrim').onclick = closeJob;
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeJob(); $('#settings').classList.remove('open'); $('#newBid').classList.remove('open'); $('#pick').classList.remove('open'); $('#intake').classList.remove('open'); }});
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeIdMenu(); closeJob(); $('#settings').classList.remove('open'); $('#newBid').classList.remove('open'); $('#pick').classList.remove('open'); $('#intake').classList.remove('open'); }});
 
 const fld = (label,key,val,type='text',extra='') => `<div class="f ${type==='textarea'?'wide':''}"><label>${label}</label>${
   type==='textarea' ? `<textarea rows="2" data-k="${key}">${esc(val)}</textarea>`
@@ -1167,7 +1275,7 @@ function logTable(j, tabKey){
     return `<td>${esc(r[k])}</td>`;
   };
   const linked = tabKey==='co' ? childrenOf(j.id) : [];
-  const linkedRows = linked.map(c=>`<tr class="linked"><td>${esc(c.sv)||'—'}</td><td>${fdate(c.sentDate||c.startDate)}</td><td>${esc(c.name)} <span class="pill co">linked job</span></td><td>${coStatus(c.bidStatus)}</td><td class="num">${money(c.bidTotal,2)}</td><td class="note">From its own bid</td><td class="num">${money(c.materials.reduce((a,m)=>a+(+m.cost||0),0),2)}</td><td><button class="btn sm" data-openjob="${esc(c.id)}">Open</button></td></tr>`).join('');
+  const linkedRows = linked.map(c=>`<tr class="linked"><td>${esc(jid(c))||'—'}</td><td>${fdate(c.sentDate||c.startDate)}</td><td>${esc(c.name)} <span class="pill co">linked job</span></td><td>${coStatus(c.bidStatus)}</td><td class="num">${money(c.bidTotal,2)}</td><td class="note">From its own bid</td><td class="num">${money(c.materials.reduce((a,m)=>a+(+m.cost||0),0),2)}</td><td><button class="btn sm" data-openjob="${esc(c.id)}">Open</button></td></tr>`).join('');
   const isMat = tabKey==='mat', T = isMat ? moveTargets() : null;
   const tagCell = (r,ri,c) => { const td = cell(r,ri,c);
     if(isMat && c[1]==='quote') return td.replace(/<\/td>$/, `<div class="mvphone">${moveSelect(T, j, r, ri)}</div></td>`);
@@ -1195,7 +1303,7 @@ function logTable(j, tabKey){
    tags the order (m.co) so the CO table can show what material went to it. */
 const coKey = c => String(c.no || c.desc || '').trim();
 function moveTargets(){
-  const label = x => (x.sv ? x.sv + ' · ' : '') + (x.name || 'Untitled job');
+  const label = x => (jid(x) ? jid(x) + ' · ' : '') + (x.name || 'Untitled job');
   const rank = x => x.bidStatus==='Awarded' ? 0 : 1;          // awarded jobs first, then newest SV
   const T = [];
   topJobs().slice().sort((a,b)=>rank(a)-rank(b) || String(b.sv).localeCompare(String(a.sv)) || String(a.name).localeCompare(String(b.name))).forEach(P=>{
@@ -1203,7 +1311,7 @@ function moveTargets(){
     T.push({group:g, jobId:P.id, co:'', label:'Main job · ' + label(P)});
     P.changeOrders.filter(c=>coKey(c)).forEach(c=>T.push({group:g, jobId:P.id, co:coKey(c), label:'↳ CO ' + (c.no||'') + (c.desc ? ' · ' + String(c.desc).slice(0,40) : '')}));
     childrenOf(P.id).forEach(k=>T.push({group:g, jobId:k.id, co:'', label:'↳ CO job · ' + label(k)}));
-    childrenOf(P.id).forEach(k=>k.changeOrders.filter(c=>coKey(c)).forEach(c=>T.push({group:g, jobId:k.id, co:coKey(c), label:'   ↳ ' + (k.sv||k.name) + ' CO ' + (c.no||String(c.desc).slice(0,30))})));
+    childrenOf(P.id).forEach(k=>k.changeOrders.filter(c=>coKey(c)).forEach(c=>T.push({group:g, jobId:k.id, co:coKey(c), label:'   ↳ ' + (jid(k)||k.name) + ' CO ' + (c.no||String(c.desc).slice(0,30))})));
   });
   return T;
 }
@@ -1240,7 +1348,7 @@ async function moveMaterial(src, idx, t){
   const m = src.materials[idx], dst = t && Store.get(t.jobId);
   if(!m || !dst) return;
   const name = m.quote ? `${m.supplier ? m.supplier + ' ' : ''}#${m.quote}` : (m.desc || 'This order');
-  const where = x => (x.sv ? x.sv + ' ' : '') + x.name;
+  const where = x => (jid(x) ? jid(x) + ' ' : '') + x.name;
   const coName = t.co ? ` (CO ${t.co})` : '';
   if(dst===src){                                   // same job: just tag / untag a change order
     if(t.co) m.co = t.co; else delete m.co;
@@ -1482,13 +1590,14 @@ function renderDrawer(){
   const keepScroll = $('#drawer .db') ? $('#drawer .db').scrollTop : 0;
   $('#drawer').style.setProperty('--c', c);
   $('#drawer').innerHTML = `
-  <div class="dh"><div><div class="sv">${esc(j.sv)||'No SV # yet'} ${j.federal?'<span class="pill fed">Federal</span>':''}</div><h2>${esc(j.name)}</h2></div>
+  <div class="dh"><div><div class="sv"><button class="idbtn" id="dIdBtn" type="button" aria-haspopup="menu" title="${jnum(j)?'Job number':'SV number'}: tap for options">${idHTML(j)}<span class="idcaret">▾</span></button> ${j.federal?'<span class="pill fed">Federal</span>':''}</div><h2>${esc(j.name)}</h2></div>
     <select class="status-sel" style="--c:${c};width:auto" id="dStatus">${STATUSES.map(s=>`<option ${s.k===j.bidStatus?'selected':''}>${s.k}</option>`).join('')}</select>
     <button class="btn" id="dClose">Close</button></div>
   ${familyTabs(j)}
   <div class="db">
     <div class="card"><h4>Bid information</h4>
       <div class="form" id="bidForm">
+        ${awarded || jnum(j) ? fld('Job number','jobNo',j.jobNo||'') : ''}
         ${fld('SV number','sv',j.sv)}
         ${fld('Job name','name',j.name)}
         ${fld('Job location','recapLocation',j.recapLocation||'')}
@@ -1548,6 +1657,7 @@ function renderDrawer(){
   $('#drawer .db').scrollTop = keepScroll;
 
   $('#dClose').onclick = closeJob;
+  $('#dIdBtn').onclick = e=>{ e.stopPropagation(); idMenu(j, e.currentTarget); };
   document.querySelectorAll('#drawer [data-copypath]').forEach(b=>b.onclick = async ()=>{
     const t = b.dataset.copypath;
     try{ await navigator.clipboard.writeText(t); toast('Path copied. Paste it into File Explorer.'); }
@@ -1568,7 +1678,7 @@ function renderDrawer(){
     j.parentId = null; changed(); toast('Now its own job');
   };
   $('#dDelete').onclick = async ()=>{
-    if(!await askSure('Delete this job?', `${j.name}${j.sv?' ('+j.sv+')':''} will move to Recently deleted. You can restore it for ${Store.TRASH_DAYS} days, then it is removed for good.`, 'Delete job')) return;
+    if(!await askSure('Delete this job?', `${j.name}${jid(j)?' ('+jidLabel(j)+')':''} will move to Recently deleted. You can restore it for ${Store.TRASH_DAYS} days, then it is removed for good.`, 'Delete job')) return;
     Store.trashJob(j); closeJob(); render(); toast('Moved to Recently deleted');
   };
   $('#revSave').onclick = ()=>saveRevision(j);
@@ -1586,8 +1696,9 @@ function renderDrawer(){
     if(k==='bidTotal'||k==='pct') v = v===''?0:+v;
     if(k==='federal') v = v==='yes';
     if(k==='sv') v = v.trim();
+    if(k==='jobNo'){ v = v.trim(); if(v && !jobNoFree(j, v)) { toast(`Job ${v} is already used by another job.`); el.value = j.jobNo||''; return; } if(v !== jnum(j)) j.jobNoAt = v ? today() : ''; }
     j[k] = v; Store.save(); render();
-    if(['bidTotal','name','sv','federal'].includes(k)) renderDrawer();
+    if(['bidTotal','name','sv','federal','jobNo'].includes(k)) renderDrawer();
   });
   $('#drawer').querySelectorAll('[data-bb]').forEach(el=>el.onchange=()=>{ j.bidBond[el.dataset.bb] = el.dataset.bb==='pct' ? (+el.value||0) : el.value; changed(); });
   $('#drawer').querySelectorAll('[data-mk]').forEach(el=>el.onchange=()=>{ j.markup[el.dataset.mk] = +el.value||0; changed(); });
@@ -1611,7 +1722,7 @@ const ToolReq = {
     const L = Store.jobs.filter(x=>x.bidStatus==='Awarded' && (x.id===cur || !folderJob(x).completedDate));
     return L.sort((a,b)=>(isChild(a)-isChild(b)) || (b.sv||'').localeCompare(a.sv||'') || a.name.localeCompare(b.name));
   },
-  label(x){ return [x.sv, x.name].filter(Boolean).join(' ') + (isChild(x) ? ` (change order of ${parentOf(x).sv||parentOf(x).name})` : ''); },
+  label(x){ return [jid(x), x.name].filter(Boolean).join(' ') + (isChild(x) ? ` (change order of ${jid(parentOf(x))||parentOf(x).name})` : ''); },
   target(j){
     if(this.forJob!==j.id){ this.forJob = j.id; this.sel = j.id; }
     const t = Store.get(this.sel); return t && t.bidStatus==='Awarded' ? t : j;
@@ -1621,7 +1732,7 @@ const ToolReq = {
   url(x, f){
     const q = new URLSearchParams();
     if(x.toolLink && x.toolLink.t) q.set('t', x.toolLink.t);
-    q.set('job', x.sv||''); q.set('name', x.name||'');
+    q.set('job', jid(x)); q.set('name', x.name||'');
     const addr = (f.addr!=null ? f.addr : this.addrOf(x)).trim(); if(addr) q.set('addr', addr);
     if((f.crew||'').trim()) q.set('by', f.crew.trim());
     if(f.need) q.set('need', f.need);
@@ -1645,8 +1756,8 @@ const ToolReq = {
   emailText(x, f, url){
     const crew = (f.crew||'').trim();
     return {
-      subject: `Tool list needed: ${[x.sv, x.name].filter(Boolean).join(' ')}`,
-      body: `Hi${crew?' '+crew.split(/\s+/)[0]:''},\n\nPlease send me the list of tools you need for ${[x.sv, x.name].filter(Boolean).join(' ')}${f.need?`, needed by ${fdate(f.need)}`:''}.\n\nOpen this link on your phone, tap the tools you need, then tap Send to warehouse:\n${url}\n\nThe job is already filled in. Your list comes straight back to me.\n\nThanks,\n${(f.from||'').trim()}`
+      subject: `Tool list needed: ${[jid(x), x.name].filter(Boolean).join(' ')}`,
+      body: `Hi${crew?' '+crew.split(/\s+/)[0]:''},\n\nPlease send me the list of tools you need for ${[jid(x), x.name].filter(Boolean).join(' ')}${f.need?`, needed by ${fdate(f.need)}`:''}.\n\nOpen this link on your phone, tap the tools you need, then tap Send to warehouse:\n${url}\n\nThe job is already filled in. Your list comes straight back to me.\n\nThanks,\n${(f.from||'').trim()}`
     };
   },
   tab(j){
@@ -1668,7 +1779,7 @@ const ToolReq = {
         <div class="qbar"><button class="btn primary" id="trMail">✉ Email the link</button><button class="btn" id="trCopy">⧉ Copy link</button><button class="btn" id="trOpen">↗ Open it</button></div>
         <div class="trurl" id="trUrl">${esc(this.url(x, f))}</div>${linkNote}
       </div>
-      ${on ? `<div class="trhead"><h5>Tool lists sent back for ${esc([x.sv, x.name].filter(Boolean).join(' '))}</h5></div><div id="trLists"></div>` : ''}
+      ${on ? `<div class="trhead"><h5>Tool lists sent back for ${esc([jid(x), x.name].filter(Boolean).join(' '))}</h5></div><div id="trLists"></div>` : ''}
     </div>`;
   },
   watch(x){
@@ -1763,7 +1874,7 @@ function pickParent(j){
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px"><button class="btn" id="pkCancel">Cancel</button><button class="btn primary" id="pkOk" disabled>Add as change order</button></div>`;
   let chosen = null;
   const draw = ()=>{ const q=$('#pkQ').value.trim().toLowerCase();
-    $('#pkList').innerHTML = cands.filter(x=>(x.name+' '+x.sv).toLowerCase().includes(q)).map(x=>`<button class="pkitem ${chosen===x.id?'on':''}" data-pk="${esc(x.id)}"><span class="dot" style="background:${sColor(x.bidStatus)}"></span><b>${esc(x.name)}</b><span class="note">${esc(x.sv)||'No SV #'} · ${esc(x.bidStatus)}${childrenOf(x.id).length?` · ${childrenOf(x.id).length} CO`:''}</span></button>`).join('') || '<div class="note">No matching jobs.</div>';
+    $('#pkList').innerHTML = cands.filter(x=>(x.name+' '+x.sv+' '+jnum(x)).toLowerCase().includes(q)).map(x=>`<button class="pkitem ${chosen===x.id?'on':''}" data-pk="${esc(x.id)}"><span class="dot" style="background:${sColor(x.bidStatus)}"></span><b>${esc(x.name)}</b><span class="note">${esc(x.sv)||'No SV #'} · ${esc(x.bidStatus)}${childrenOf(x.id).length?` · ${childrenOf(x.id).length} CO`:''}</span></button>`).join('') || '<div class="note">No matching jobs.</div>';
     $('#pkList').querySelectorAll('[data-pk]').forEach(b=>b.onclick=()=>{ chosen=b.dataset.pk; $('#pkOk').disabled=false; draw(); });
   };
   $('#pick').classList.add('open'); draw(); $('#pkQ').oninput = draw; setTimeout(()=>$('#pkQ').focus(),30);
@@ -3136,7 +3247,7 @@ const FileLayer = {
   _t: null,
   scheduleIndex(){ if(!this.connected) return; clearTimeout(this._t); this._t = setTimeout(()=>this.writeIndex().catch(()=>{}), 800); },
   async writeIndex(){
-    const jobs = Store.jobs.map(j=>({id:j.id, sv:j.sv, name:j.name, status:j.bidStatus, awardDate:j.awardDate||'', folder: j.folder&&j.folder.status==='created' ? j.folder.name : '',
+    const jobs = Store.jobs.map(j=>({id:j.id, sv:j.sv, jobNo:jnum(j), name:j.name, status:j.bidStatus, awardDate:j.awardDate||'', folder: j.folder&&j.folder.status==='created' ? j.folder.name : '',
       quoteNos: [...j.materials.map(m=>m.quote), ...(j.quotes||[]).map(q=>q.quote)].filter(Boolean)}));
     await this.writeFile([this.SYS,'jobs.json'], JSON.stringify({updatedAt:new Date().toISOString(), jobs}, null, 2));
   }
@@ -3163,7 +3274,7 @@ const Intake = {
     const ok = [e.docNo, e.relatesTo].filter(Boolean).map(normKey);
     if(ok.length){ const mv = Store.jobs.find(j=>j.materials.some(m=>m.moves && m.moves.length && ok.includes(normKey(m.quote)))); if(mv) return mv; }
     if(r.id && Store.get(r.id)) return Store.get(r.id);
-    if(r.sv){ const j = Store.jobs.find(j=>normKey(j.sv)===normKey(r.sv)); if(j) return j; }
+    for(const ref of [r.jobNo, r.sv]){ if(!ref) continue; const j = Store.jobs.find(j=>normKey(j.sv)===normKey(ref)) || Store.jobs.find(j=>sameJobRef(j, ref)); if(j) return j; }
     if(r.name){ const j = Store.jobs.find(j=>normKey(j.name)===normKey(r.name)); if(j) return j; }
     const keys = [e.docNo, e.relatesTo].filter(Boolean).map(normKey);
     if(keys.length){ const j = Store.jobs.find(j=>j.materials.some(m=>keys.includes(normKey(m.quote)))); if(j) return j; }
@@ -3266,7 +3377,7 @@ async function importJobs(){
   for(const imp of f.imports){
     if(!imp.importId || Store.intake.imported.includes(imp.importId)) continue;
     const src = imp.job || {};
-    let j = src.sv ? Store.jobs.find(x=>normKey(x.sv)===normKey(src.sv)) : null;
+    let j = src.sv ? (Store.jobs.find(x=>normKey(x.sv)===normKey(src.sv)) || Store.jobs.find(x=>sameJobRef(x, src.sv))) : null;
     if(!j && imp.onlyExisting){ Store.intake.imported.push(imp.importId); continue; }
     if(!j){ j = normalizeJob(Object.assign({id: src.sv || ('job-'+Date.now())}, structuredClone(src))); Store.jobs.unshift(j); }
     else {
@@ -3300,7 +3411,7 @@ async function importQuotes(){
   let dir; try{ dir = await FileLayer.dir([FileLayer.SYS, QUOTE_IMPORTS], false); }catch(_){ return; }
   let n = 0; const miss = [];
   for(const imp of todo){
-    const j = (imp.jobId && Store.get(imp.jobId)) || (imp.sv ? Store.jobs.find(x=>normKey(x.sv)===normKey(imp.sv)) : null);
+    const j = (imp.jobId && Store.get(imp.jobId)) || (imp.sv ? (Store.jobs.find(x=>normKey(x.sv)===normKey(imp.sv)) || Store.jobs.find(x=>sameJobRef(x, imp.sv))) : null);
     if(!j){ miss.push(imp.file); continue; }                       // job not in the app (yet): try again next time
     let file; try{ file = await (await dir.getFileHandle(imp.file)).getFile(); }catch(_){ miss.push(imp.file); continue; }
     const name = imp.name || imp.file;
@@ -3469,7 +3580,7 @@ function connectBlock(){
   return `<div class="iconn">Connect your <b>Documents\\Action Projects</b> folder once (Chrome and Edge won't allow Documents itself). Job folders and the <code>_Intake</code> drop folder live inside it. <button class="btn primary sm" id="iConnect">Connect Action Projects folder</button></div>`;
 }
 function renderIntake(){
-  const jobOpts = sel => `<option value="">Pick a job…</option><option value="__skip" ${sel==='__skip'?'selected':''}>Not for a job – ignore</option>` + Store.jobs.filter(j=>!['Lost','No Bid'].includes(j.bidStatus)).map(j=>`<option value="${esc(j.id)}" ${sel===j.id?'selected':''}>${esc(j.sv||'—')} · ${esc(j.name)} (${esc(j.bidStatus)})</option>`).join('');
+  const jobOpts = sel => `<option value="">Pick a job…</option><option value="__skip" ${sel==='__skip'?'selected':''}>Not for a job – ignore</option>` + Store.jobs.filter(j=>!['Lost','No Bid'].includes(j.bidStatus)).map(j=>`<option value="${esc(j.id)}" ${sel===j.id?'selected':''}>${esc(jid(j)||'—')} · ${esc(j.name)} (${esc(j.bidStatus)})</option>`).join('');
   const rows = Intake.rows.map((r,i)=>{ const e = r.entry||{}, [cls,txt] = INTAKE_TXT[r.status];
     const why = r.picked ? 'You picked this job' : (e.jobRef&&e.jobRef.reason) || '';
     return `<tr><td><b>${esc(r.name)}</b>${e.summary?`<div class="note">${esc(e.summary)}</div>`:''}</td>
