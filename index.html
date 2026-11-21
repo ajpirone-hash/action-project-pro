@@ -413,7 +413,7 @@ header .btn:not(#btnAccount),header input{order:3}
 @media (max-width:640px){ .qrow{padding:10px} .qbar .btn{flex:1 1 auto;text-align:center} }
 </style>
 <script>/* v0.32 appearance: light / dark / system, remembered per device */
-(function(){try{var m=localStorage.getItem('apAppearance')||'system';var d=m==='dark'||(m==='system'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);document.documentElement.dataset.appear=m;}catch(e){}try{if(window.matchMedia&&matchMedia('(hover: none) and (pointer: coarse)').matches)document.documentElement.classList.add('touch');}catch(e){}})();</script>
+(function(){try{var m=localStorage.getItem('apAppearance')||'system';var d=m==='dark'||(m==='system'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);document.documentElement.dataset.appear=m;}catch(e){}try{if(window.matchMedia&&matchMedia('(hover: none) and (pointer: coarse)').matches)document.documentElement.classList.add('touch');}catch(e){}try{if(localStorage.getItem('apCloseSide')==='left')document.documentElement.classList.add('closeleft');}catch(e){}})();</script>
 <style id="iosTheme">
 /* ---- v0.32 iOS look (light + dark) ---- */
 /* Appearance switch (header) */
@@ -715,6 +715,12 @@ html.touch .drawer::before{width:44px;height:5px;margin-left:-22px;top:7px}
 html.touch .drawer .swipezone{position:absolute;top:0;left:0;right:0;height:26px;z-index:6}
 html.touch .dh{touch-action:none}
 
+/* v0.35 close side: per-device option to put the job X on the left (e.g. Zenbook Duo edge button) */
+html.closeleft:not(.touch) #dClose{order:-1;margin-left:0;margin-right:6px}
+.devopt{margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
+.devopt h4{margin:0 0 6px;font-size:13px;text-transform:uppercase;color:var(--muted);font-weight:600}
+.devopt label{display:flex;gap:8px;align-items:center;cursor:pointer;font-weight:550}
+
 </style>
 </head>
 <body>
@@ -724,7 +730,7 @@ html.touch .dh{touch-action:none}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.34 (swipe down / X to close)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.35 (close button side)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -4064,6 +4070,22 @@ if(Cloud.on){
   dr.addEventListener('touchend',end); dr.addEventListener('touchcancel',end);
   // tap the grab handle to close
   dr.addEventListener('click',function(e){ if(document.documentElement.classList.contains('touch')&&e.target===dr&&e.clientY-dr.getBoundingClientRect().top<26&&typeof closeJob==='function') closeJob(); });
+})();
+</script>
+<script>/* v0.35 close side: "This device" option in Rates & settings */
+(function(){
+  var btn=document.getElementById('btnSettings'); if(!btn) return;
+  var orig=btn.onclick;
+  btn.onclick=function(){ var r=orig&&orig.apply(this,arguments);
+    var box=document.getElementById('settingsBox'); if(box&&!box.querySelector('.devopt')){
+      var left=document.documentElement.classList.contains('closeleft');
+      var d=document.createElement('div'); d.className='devopt';
+      d.innerHTML='<h4>This device only</h4><label><input type="checkbox" id="optCloseLeft"'+(left?' checked':'')+'> Put the job close button (✕) on the left</label><div class="note" style="margin-top:4px">Use this if something on your screen covers the top-right corner, like the Control Center button on an ASUS Zenbook Duo. Phones and tablets close a job by swiping down, so this only changes computers.</div>';
+      var h3=box.querySelector('h3'); if(h3&&h3.nextSibling) box.insertBefore(d,h3.nextSibling); else box.appendChild(d);
+      d.querySelector('input').onchange=function(e){ var on=e.target.checked; document.documentElement.classList.toggle('closeleft',on);
+        try{ on?localStorage.setItem('apCloseSide','left'):localStorage.removeItem('apCloseSide'); }catch(_){} };
+    }
+    return r; };
 })();
 </script>
 </body>
