@@ -193,6 +193,12 @@ select.inl{border:1px solid var(--line);border-radius:5px;padding:2px 4px;backgr
 .yn{display:flex;gap:18px;margin-top:8px}
 .rccheck{margin-top:12px;border-radius:10px;padding:10px 14px;font-size:13.5px}
 .rccheck.ok{background:#e8f6ee;color:#17693b}.rccheck.bad{background:#fff6e5;color:#7a4a00}.rccheck ul{margin:6px 0 0;padding-left:18px}
+.riflags{margin-top:12px;border:1px solid var(--line,#e3e7ee);border-radius:10px;padding:10px 14px;font-size:13.5px}.riflags ul{margin:6px 0 0;padding-left:18px}.riflags li{margin:2px 0}.riflags li.ri-info{color:var(--muted)}
+.riflags li.ri-add{color:#17693b}.riflags li.ri-del{color:#b3261e}.riflags li.ri-sum{font-weight:600}
+.rimap{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}.rimap select{max-width:220px}
+#riCmp{margin-top:12px}#riCmp summary{cursor:pointer;padding:4px 0}.ritable{width:100%;font-size:13px;border-collapse:collapse}.ritable td,.ritable th{padding:4px 6px;border-bottom:1px solid #eef1f5}
+.ritable .risec td{background:#f4f6fa;font-weight:700;font-size:12px;text-transform:uppercase;color:var(--muted)}.ritable .ritot td{font-weight:700}.ritable .rino td{background:#fff3f2;color:#b3261e}
+.riopts{margin-top:12px;display:flex;flex-direction:column;gap:6px;font-size:13.5px}.riimp{font-size:11.5px;color:var(--muted);margin-top:4px}
 .chatlist{max-height:340px;min-height:70px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:8px;background:#f8f9fb;border:1px solid var(--line);border-radius:10px;margin-top:8px;-webkit-overflow-scrolling:touch}
 .chatempty{margin:auto;text-align:center;padding:10px}
 .cmsg{max-width:85%;align-self:flex-start;background:#fff;border:1px solid var(--line);border-radius:12px 12px 12px 4px;padding:7px 11px;overflow-wrap:anywhere}
@@ -207,7 +213,7 @@ select.inl{border:1px solid var(--line);border-radius:5px;padding:2px 4px;backgr
 .chatnew{display:inline-flex;align-items:center;gap:4px;background:#fdecea;color:#b3261e;border:1px solid #f5c2bd;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:650;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;animation:chatpulse 2s ease-in-out 3}
 @keyframes chatpulse{50%{box-shadow:0 0 0 4px rgba(179,38,30,.15)}}
 @media (pointer:coarse){ .chathint{display:none} }
-.viewonly #recapBtn,.viewonly #rateEdit{display:none!important}
+.viewonly #recapBtn,.viewonly #recapImp,.viewonly #nFromRecap,.viewonly #rateEdit{display:none!important}
 .viewonly .mvcol{display:none!important}
 select.mvsel{max-width:210px;border-color:#e8a317;background:#fffaf0;color:#0d1b2e;font-weight:600}
 .mvphone{display:none}
@@ -370,7 +376,7 @@ header .btn:not(#btnAccount),header input{order:3}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.27 (chat alerts on job boxes)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.28 (import recaps)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -1006,7 +1012,7 @@ function fedBox(j,b){
 /* ---------------- Bid revisions ----------------
    Saving a revision freezes a copy of everything in "Build the bid" plus the
    bid total. The working copy is always the next revision number.           */
-const SNAP_KEYS = ['quotes','subs','rentals','estLabor','estOther','markup','federal','bidBond','bidTotal'];
+const SNAP_KEYS = ['quotes','subs','rentals','estLabor','estOther','markup','rates','federal','bidBond','bidTotal'];
 const revName = n => n===0 ? 'Original' : 'Rev ' + n;
 function snapOf(j){ const s={}; SNAP_KEYS.forEach(k=>s[k]=structuredClone(j[k])); return s; }
 function buildOfSnap(j, snap){ return bidBuild(normalizeJob(Object.assign({}, structuredClone(j), structuredClone(snap)))); }
@@ -1148,6 +1154,8 @@ function bidBuilderCard(j){
         ${j.federal ? fedBox(j,b) : ''}
         <button class="btn primary" id="useBid\" style="width:100%;margin-top:8px">Use as bid total</button>
         <button class="btn" id="recapBtn" style="width:100%;margin-top:6px">📄 Fill recap sheet</button>
+        <button class="btn" id="recapImp" style="width:100%;margin-top:6px">📥 Import a recap (.xlsx)</button>
+        ${(j.recapImports||[]).length?`<div class="riimp">Last import: ${esc(j.recapImports[j.recapImports.length-1].file)} on ${fdate(new Date(j.recapImports[j.recapImports.length-1].at).toISOString().slice(0,10))}${j.recapImports.length>1?` · ${j.recapImports.length} imports in all, see Revision history`:''}</div>`:''}
         ${j.bidTotal? `<div class="note" style="margin-top:6px;text-align:center">Current bid total ${money(j.bidTotal)}${b.suggested>0 && Math.abs(diff)>=1?` (${diff>0?'+':''}${money(diff)} vs suggested)`:''}</div>`:''}
       </div>
     </div></div>`;
@@ -1258,6 +1266,7 @@ function renderDrawer(){
   $('#revSave').onclick = ()=>saveRevision(j);
   if($('#revOpen')) $('#revOpen').onclick = ()=>revHistory(j);
   if($('#recapBtn')) $('#recapBtn').onclick = ()=>openRecap(j);
+  if($('#recapImp')) $('#recapImp').onclick = ()=>importRecap(j);
   if($('#rateSel')) $('#rateSel').onchange = e=>{ const v = e.target.value;
     if(v==='std') j.rates = null; else if(v==='own') return; else j.rates = structuredClone((Store.settings.rateSets||[])[+v]);
     changed(); toast(`Using ${jobRates(j).name} for this job`); };
@@ -1323,7 +1332,9 @@ $('#btnNew').onclick = ()=>{
     </details>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
       <button class="btn" id="nCancel">Cancel</button><button class="btn primary" id="nCreate">Create bid</button></div>`;
+  $('#newBox h3').insertAdjacentHTML('afterend', `<div class="note" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px"><span>Already have a recap for this job?</span><button class="btn sm" id="nFromRecap">📥 Start from a recap (.xlsx)</button></div>`);
   $('#newBid').classList.add('open'); setTimeout(()=>$('#nName').focus(),50);
+  $('#nFromRecap').onclick = ()=>{ $('#newBid').classList.remove('open'); importRecap(null); };
   svRequestWire();
   $('#nCancel').onclick = ()=>$('#newBid').classList.remove('open');
   $('#nCreate').onclick = ()=>{
@@ -1943,6 +1954,361 @@ async function openRecap(j){
     };
   };
   draw(); $('#pick').classList.add('open');
+}
+
+/* ---------------- Import a recap ----------------
+   Reads a filled RECAP workbook (.xlsx) right in the browser (any device),
+   works out its formulas, and turns it into bid-builder lines: material,
+   labor hours, rates, escalation, job expenses, inter office, subs, rentals,
+   O&P and bond. A review screen shows the recap and the app side by side and
+   checks every section to the penny before anything is saved.
+   Importing again onto the same job (Rev 2 over Rev 1) shows only what
+   changed and saves each import as a bid revision, so the history is kept.
+   The recap file itself is only read, never changed.                        */
+const RI_LAB = (()=>{ const m = {}; Object.entries(RECAP_MAP.st).forEach(([c,r])=>m[r] = [c,'Straight Time']); Object.entries(RECAP_MAP.ot).forEach(([c,r])=>m[r] = [c,'Overtime']); return m; })();
+const RI_EXP = {47:'As-built drawings',48:'Ditching / backfill',49:'Engineering',50:'Field office',51:'Travel time',52:'Pipe ID',53:'Hotel',54:'Safety meeting',55:'Per diem',56:'Welding machine rental',57:'Temporary water / power',58:'Valve tag / pipe identification',59:'Warranty reserve'};
+const RI_SUB = {71:['Pipe fab shop',1],72:['Pipe support fab',1],73:['Pipe support install',1],74:['Sheet metal',1],75:['Electrical',1],76:['Plumbing',1],77:['Millwright',1],78:['Service',1],
+  81:['Crane',0],82:['Rental',0],83:['Temperature controls',0],84:['Air/water balancing',0],85:['Hot tap',0],86:['Concrete coring/cutting',0]};
+// the form's own line names, to spot lines you renamed (Operator, Insulation, Permit, ...)
+const RI_LBL = {47:'ASBUILTDRAWINGS',48:'DITCHINGBACKFILL',49:'ENGINEERING',50:'FIELDOFFICE',51:'TRAVELTIME',52:'PIPEID',53:'HOTEL',54:'SAFETYMEETING',55:'PERDIEM',56:'WELDINGMACHINERENTAL',57:'TEMPORARYWATERPOWER',58:'VALVETAGPIPEIDENTIFICATION',59:'WARRANTYRESERVE',
+  71:'PIPEFABSHOP',72:'PIPESUPPORTFAB',73:'PIPESUPPORTINSTALL',74:'SHEETMETAL',75:'ELECTRICAL',76:'PLUMBING',77:'MILLWRIGHT',78:'SERVICE',81:'CRANE',82:'RENTAL',83:'TEMPERATURECONTROLS',84:'AIRWATERBALANCING',85:'HOTTAP',86:'CONCRETECORINGCUTTING'};
+// cells that hold a formula on the blank form; a typed number there is worth a look
+const RI_FORMULAS = {F10:'Pipe, valves, fittings',F11:'Consumables',F12:'Material sub-total',F13:'Sales tax',G14:'Total material cost',G15:'Material O&P',G16:'Material price',
+  F18:'PM labor',F19:'GF labor',F20:'Foreman labor',F21:'Journeyman labor',F22:'Helper labor',F23:'1st yr labor',F24:'2nd yr labor',F25:'3rd yr labor',F26:'4th yr labor',F27:'5th yr labor',
+  E23:'1st yr rate',E24:'2nd yr rate',E25:'3rd yr rate',E26:'4th yr rate',E27:'5th yr rate',E28:'GF OT rate',E29:'Foreman OT rate',E30:'Journeyman OT rate',E31:'Helper OT rate',E32:'1st yr OT rate',E33:'2nd yr OT rate',E34:'3rd yr OT rate',E35:'4th yr OT rate',E36:'5th yr OT rate',
+  F28:'GF OT labor',F29:'Foreman OT labor',F30:'Journeyman OT labor',F31:'Helper OT labor',F32:'1st yr OT labor',F33:'2nd yr OT labor',F34:'3rd yr OT labor',F35:'4th yr OT labor',F36:'5th yr OT labor',F37:'Escalation',
+  D38:'H&W hours',D39:'Apprentice H&W hours',D40:'Helper H&W hours',F38:'H&W',F39:'Apprentice H&W',F40:'Helper H&W',F41:'Insurance & taxes',G42:'Labor sub-total',F43:'Clean-up',G44:'Total labor cost',
+  F51:'Travel time',F53:'Hotel',F55:'Per diem',F59:'Warranty reserve',F61:'Tool & truck',G62:'Total job expenses',G64:'Labor & job expenses',G65:'Labor O&P',G66:'Labor & expense price',
+  G79:'In-house contracts',G87:'Outside subs',G88:'Sub O&P',G89:'Subcontract price',G91:'Total less bond',G95:'Total with bond'};
+const riNorm = s => String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+const riTitle = s => String(s||'').trim().toLowerCase().replace(/\s+/g,' ').replace(/(^|[\s\/(-])([a-z])/g,(m,a,b)=>a+b.toUpperCase());
+const riNear = (a,b) => Math.abs((+a||0)-(+b||0)) < 0.005;
+function riPick(label, list){
+  const n = riNorm(label); if(!n) return null;
+  return list.find(t=>riNorm(t)===n) || list.find(t=>{ const k = riNorm(t); return k.length>=4 && (n.includes(k) || k.includes(n)); }) || null;
+}
+
+/* Opens the workbook and works out every formula. Returns plain values, so nothing else in the app is touched. */
+async function riRead(buf){
+  const ents = Zip.read(buf), {map} = await XL.sheets(ents);
+  if(!map[RECAP_ML] || !map[RECAP_RC]) throw new Error(`This doesn't look like a recap: it needs the tabs "${RECAP_ML}" and "${RECAP_RC}".`);
+  const sheets = {};
+  for(const [n, e] of Object.entries(map)) if(e) sheets[n] = {xml: await Zip.text(e)};
+  const sstEnt = ents.find(x=>x.name==='xl/sharedStrings.xml');
+  XLCalc.run(sheets, sstEnt ? await Zip.text(sstEnt) : '');
+  const grab = (name, rows, cols) => { const out = {}, sh = XLCalc.book.get(name.toLowerCase());
+    for(const [ref, c] of sh.cells){ if(c.row>rows || c.col>cols) continue; let v = XLCalc.get(name, ref); if(XLCalc.isErr(v)) v = null; out[ref] = {v, f: c.hasF ? (c.f||'?') : null}; }
+    return out; };
+  const R = {rc: grab(RECAP_RC, 100, 12), ml: grab(RECAP_ML, 60, 12), other: []};
+  // other recap tabs with a price on them (Demo / Piping recaps 2-4) are not part of Install Recap 1
+  for(const [name] of Object.entries(sheets)){
+    if(name===RECAP_RC || !/RECAP/i.test(name) || /FAB|SUPPORT/i.test(name)) continue;
+    const sh = XLCalc.book.get(name.toLowerCase()); let row = null;
+    for(const [ref, c] of sh.cells) if(typeof c.v==='string' && /TOTAL PRICE\s+WITH BOND/i.test(c.v)){ row = c.row; break; }
+    if(row==null) continue;
+    let tot = 0; for(const [ref, c] of sh.cells) if(c.row===row){ const v = XLCalc.get(name, ref); if(typeof v==='number') tot = Math.max(tot, v); }
+    if(tot > 250) R.other.push({name, total: tot});
+  }
+  return R;
+}
+
+/* Turns the recap into bid-builder lines for job j (or a new job). */
+function riParse(R, file, j){
+  const V = ref => { const c = R.rc[ref]; const v = c && c.v; return typeof v==='number' && isFinite(v) ? v : (typeof v==='string' && v.trim()!=='' && !isNaN(+v) ? +v : 0); };
+  const S = ref => { const c = R.rc[ref]; return c && c.v!=null && typeof c.v!=='number' ? String(c.v).trim() : ''; };
+  const MV = ref => { const c = R.ml[ref]; const v = c && c.v; return typeof v==='number' && isFinite(v) ? v : 0; };
+  const MS = ref => { const c = R.ml[ref]; return c && c.v!=null ? String(c.v).trim() : ''; };
+  const F = ref => R.rc[ref] && R.rc[ref].f;
+  const flags = [], maps = [];
+  const flag = (msg, kind='look') => flags.push({msg, kind});
+  // --- header (often blank on your recaps, so the file name helps too)
+  const fname = (file && file.name) || 'recap.xlsx';
+  const svFile = (fname.match(/SV\s?\d{2}\s?-?\s?\d{3,4}/i)||[''])[0].toUpperCase().replace(/\s/g,'').replace(/^SV(\d{2})-?/,'SV$1-');
+  const revFile = (fname.match(/\brev\.?\s*(\d+)/i)||[])[1];
+  const mlDate = R.ml.J2 && R.ml.J2.v;
+  const hdr = {name: MS('B1'), sv: MS('J1') || svFile, loc: MS('B2'), desc: MS('B3'),
+    date: typeof mlDate==='number' ? new Date(Math.round((mlDate-25569)*864e5)).toISOString().slice(0,10) : (mlDate ? String(mlDate) : ''), rev: revFile ? 'Rev '+revFile : '', file: fname};
+  // --- typed-over formulas
+  Object.entries(RI_FORMULAS).forEach(([ref, label])=>{ if(R.rc[ref] && !F(ref) && V(ref)!==0) flag(`${label} (cell ${ref}) is a typed number, not the form's formula. The app took the recap's figure where it could; check that section below.`); });
+
+  // ---------- I. Material
+  const quotes = [], qrow = [];
+  const equip = V('F9');
+  if(equip) quotes.push({supplier:'Equipment per recap', quote:'', desc:'Equipment (recap line I.A)', cat:'Equipment', date:'', amount:equip, use:'Yes'});
+  const pvfRecap = V('F10');
+  const lines = [];
+  for(let r=6; r<=42; r++){ const g = MV('G'+r); if(!g) continue;
+    const b = MS('B'+r), qty = MV('C'+r), unit = MS('D'+r), price = MV('E'+r);
+    const qn = (b.match(/quote\s*#?\s*:?\s*([A-Z0-9][A-Z0-9-]{3,})/i)||[])[1] || '';
+    const sup = (b.split(/\s+-\s+|\s+quote\b|\s+qte\b|\s+#/i)[0]||'').trim() || 'Per recap';
+    lines.push({supplier: riTitle(sup).slice(0,60), quote: qn, desc: b + (qty && qty!==1 ? ` (${qty} ${unit} @ ${money(price,2)})` : ''), cat:'Pipe, Valves, Fittings', date:'', amount:g, use:'Yes', _r:r}); }
+  const cont = MV('G44'), mlTotal = MV('G45');
+  const fromList = /Install material list 1/i.test(F('F10')||'');
+  if(fromList && riNear(mlTotal, pvfRecap)){
+    lines.forEach(q=>{ delete q._r; quotes.push(q); });
+    if(cont) quotes.push({supplier:'Material contingency', quote:'', desc:`${Math.round(MV('F44')*1000)/10}% contingency on the material list`, cat:'Pipe, Valves, Fittings', date:'', amount:cont, use:'Yes'});
+  } else if(pvfRecap){
+    quotes.push({supplier:'Pipe, valves & fittings per recap', quote:'', desc:'Recap line I.B as carried on the recap', cat:'Pipe, Valves, Fittings', date:'', amount:pvfRecap, use:'Yes'});
+    flag(`Pipe, valves & fittings on the recap (${money(pvfRecap,2)}) doesn't come from the material list (${money(mlTotal,2)}), so it was brought in as one line.`);
+  }
+  if(cont && fromList) flag(`The material list adds a ${Math.round(MV('F44')*1000)/10}% contingency (${money(cont,2)}). It came in as its own quote line.`, 'info');
+
+  const m = Object.assign({}, DEFAULT_SETTINGS.recap);
+  const pct = (num, den, typed) => den ? num/den*100 : (+typed||0)*100;
+  const tidy = (x, typed) => Math.abs(x - typed*100) < 1e-6 ? +(typed*100).toFixed(10) : x;
+  // consumables: $/MH unless the line was typed over
+  const hwHrsRecap = V('D38') + V('D39');
+  if(riNear(V('F11'), V('D11')*hwHrsRecap)){ m.consumablesPerMH = V('D11'); m.consumablesLump = 0; }
+  else { m.consumablesPerMH = 0; m.consumablesLump = V('F11'); }
+  m.salesTax = tidy(pct(V('F13'), V('F12'), V('D13')), V('D13'));
+  m.matOP = tidy(pct(V('G15'), V('G14'), V('D15')), V('D15'));
+
+  // ---------- II. Labor
+  const estLabor = [];
+  Object.keys(RI_LAB).sort((a,b)=>+a.slice(1)-+b.slice(1)).forEach(ref=>{ const h = V(ref); if(!h) return;
+    const [cls, timeType] = RI_LAB[ref]; estLabor.push({cls, timeType, hours:h, notes:'From recap'}); });
+  m.escHours = V('D37'); if(V('D37')) m.escRate = V('E37');
+  // rates on the recap (this job's local)
+  const s = Store.settings, std = jobRates(null);
+  const list = structuredClone(s.laborRates), jm = V('E21');
+  const setR = (cls, k, v) => { const r = list.find(x=>x.cls===cls); if(r) r[k] = v; };
+  [['Project Manager / Supervision','E18'],['General Foreman','E19'],['Foreman','E20'],['Journeyman','E21'],['Helper','E22']].forEach(([c,ref])=>{ setR(c,'st',V(ref)); });
+  [['1st Yr Apprentice','E23'],['2nd Yr Apprentice','E24'],['3rd Yr Apprentice','E25'],['4th Yr Apprentice','E26'],['5th Yr Apprentice','E27']].forEach(([c,ref])=>{
+    const r = list.find(x=>x.cls===c); if(!r) return; r.st = null; const p = jm ? V(ref)/jm : (r.pctJ||0); r.pctJ = Math.abs(p - Math.round(p*1000)/1000) < 1e-9 ? Math.round(p*1000)/1000 : p; });
+  ['Project Manager / Supervision','General Foreman','Foreman','Journeyman'].forEach(c=>setR(c,'hw',V('E38')));
+  list.filter(x=>/Apprentice/.test(x.cls)).forEach(x=>x.hw = V('E39'));
+  setR('Helper','hw',V('E40'));
+  const wageSum = (()=>{ let t = 0; for(let r=18;r<=37;r++) t += V('F'+r); return t; })();
+  let ins = wageSum ? V('F41')/wageSum : V('D41'); if(Math.abs(ins - V('D41')) < 1e-9) ins = V('D41');
+  const same = ins===std.ins && list.every(r=>{ const o = std.list.find(x=>x.cls===r.cls)||{}; return (r.st??null)===(o.st??null) && Math.abs((r.pctJ||0)-(o.pctJ||0))<1e-9 && +r.hw===+o.hw; });
+  const rates = same ? null : {name: `${hdr.sv || 'Recap'} rates (from recap)`, ins, list};
+  // overtime on the recap is 1.5x straight time
+  [[28,19],[29,20],[30,21],[31,22],[32,23],[33,24],[34,25],[35,26],[36,27]].forEach(([o,st])=>{ const e = V('E'+st)*s.otMultiplier;
+    if(V('D'+o) && !riNear(V('E'+o), e)) flag(`Overtime rate on row ${o} is ${money(V('E'+o),2)}, not ${s.otMultiplier}× straight time (${money(e,2)}). The app pays ${s.otMultiplier}×.`); });
+  m.cleanup = tidy(pct(V('F43'), V('G42'), V('D43')), V('D43'));
+
+  // ---------- III. Job expenses
+  const estOther = [];
+  for(let r=47; r<=59; r++){ const a = V('F'+r); if(!a) continue;
+    const label = S('C'+r), n = riNorm(label), def = RI_LBL[r];
+    const renamed = n && !(n.startsWith(def) || def.startsWith(n));
+    let desc = RI_EXP[r], notes = '';
+    if(renamed){ desc = riPick(label, EXPENSES.filter(x=>x!=='Inter office expenses')) || 'Other'; notes = riTitle(label).replace(/\s*@\s*$/,'');
+      maps.push({kind:'exp', row:r, label:notes, idx:estOther.length}); }
+    const qty = r===47 ? V('D47') : r===50 ? V('D50') : r===51 ? V('D51') : (r===53 || r===55) ? V('E'+r) : 0;
+    estOther.push({desc, notes, qty: qty||'', amount:a});
+  }
+  m.interOffice = V('F60');
+  // tool & truck: $100/day per foreman on the form
+  const fmH = V('D19')+V('D20')+V('D28')+V('D29'), tt = V('F61');
+  m.toolTruckPerDay = 100;
+  if(!riNear(tt, fmH/8*100)){
+    if(fmH){ m.toolTruckPerDay = tt*8/fmH; flag(`Tool & truck on the recap is ${money(tt,2)}, not $100/day for the foreman hours. The app uses ${money(m.toolTruckPerDay,2)}/day to match.`, 'info'); }
+    else { estOther.push({desc:'Other', notes:'Tool & truck (as on recap)', qty:'', amount:tt}); flag(`Tool & truck on the recap (${money(tt,2)}) has no foreman hours behind it, so it came in as a job expense.`, 'info'); }
+  }
+  const labExp = V('G64');
+  m.labOP = tidy(pct(V('G65'), labExp, V('D65')), V('D65'));
+
+  // ---------- IV. Subcontracts and rentals
+  const subs = [], rentals = [];
+  for(const r of [71,72,73,74,75,76,77,78,81,82,83,84,85,86]){ const a = V('F'+r); if(!a) continue;
+    const [base, dept] = RI_SUB[r], label = S('C'+r), n = riNorm(label), def = RI_LBL[r];
+    const renamed = n && !(n.startsWith(def) || def.startsWith(n));
+    const qn = S('D'+r) || (R.rc['D'+r] && typeof R.rc['D'+r].v==='number' ? String(R.rc['D'+r].v) : '');
+    if(r===82 && !renamed){ rentals.push({vendor:'Other', equip:'Rental (lump sum from recap)', quote:qn, qty:1, per:'Day', rate:a, dur:1, freight:0, use:'Yes'}); continue; }
+    const name = renamed ? riTitle(label) : base;
+    const trade = riPick(name, TRADES) || 'Other';
+    if(renamed) maps.push({kind:'sub', row:r, label:name, idx:subs.length});
+    subs.push({company: dept ? `Action ${name}` : `${name} (per recap)`, trade, type: dept ? 'Action dept' : 'Outside sub', contact:'', phone:'', quote:qn, amount:a, status:'Selected'});
+  }
+  const subBase = (()=>{ let t = 0; for(let r=80;r<=86;r++) t += V('F'+r); return t; })();
+  m.subOP = tidy(pct(V('G88'), subBase, V('D88')), V('D88'));
+
+  // ---------- bond
+  const bondRecap = V('G93');
+  R.other.forEach(o=>flag(`The workbook also has a priced "${o.name}" tab (${money(o.total,2)}). Only Install Recap 1 is imported.`));
+  return {hdr, flags, maps, bondRecap, fed: bondRecap > 0, builder: {quotes, subs, rentals, estLabor, estOther, markup: m, rates},
+    recap: {G9:equip, F10:pvfRecap, F11:V('F11'), F13:V('F13'), G15:V('G15'), G16:V('G16'), G42:V('G42'), F37:V('F37'), F38:V('F38'), F39:V('F39'), F40:V('F40'), F41:V('F41'), F43:V('F43'), G44:V('G44'),
+      F60:V('F60'), F61:tt, G62:V('G62'), G65:V('G65'), G66:V('G66'), G79:V('G79'), G87:V('G87'), G88:V('G88'), G89:V('G89'), G91:V('G91'), G93:bondRecap, G95:V('G95'),
+      lab: Object.keys(RI_LAB).map(ref=>({ref, h:V(ref), f:V('F'+ref.slice(1)), e:V('E'+ref.slice(1))})).filter(x=>x.h || x.f),
+      exp: (()=>{ const o = []; for(let r=47;r<=59;r++) if(V('F'+r)) o.push({r, label: S('C'+r) || RI_EXP[r], a:V('F'+r)}); return o; })(),
+      sub: [71,72,73,74,75,76,77,78,81,82,83,84,85,86].filter(r=>V('F'+r)).map(r=>({r, label: S('C'+r) || RI_SUB[r][0], a:V('F'+r)}))}};
+}
+
+/* The job as it would be after the import (a copy; nothing saved). */
+function riApplied(j, P, fed, adj){
+  const x = normalizeJob(Object.assign(structuredClone(j), structuredClone(P.builder), {federal: fed}));
+  if(!P.builder.rates) x.rates = null;
+  x.markup = Object.assign({}, x.markup, P.builder.markup);
+  if(adj){ const b0 = bidBuild(x), R = P.recap, m = x.markup;
+    if(adj.mat && !riNear(R.G16, b0.matPrice)) x.quotes.push({supplier:'Recap adjustment', quote:'', desc:'Difference to match the recap', cat:'Pipe, Valves, Fittings', date:'', amount:(R.G16-b0.matPrice)/((1+m.salesTax/100)*(1+m.matOP/100)), use:'Yes'});
+    if(adj.lab && !riNear(R.G66, b0.labExpPrice)) x.estOther.push({desc:'Other', notes:'Recap adjustment', qty:'', amount:(R.G66-b0.labExpPrice)/(1+m.labOP/100)});
+    if(adj.sub && !riNear(R.G89, b0.subPrice)) x.subs.push({company:'Recap adjustment', trade:'Other', type:'Outside sub', contact:'', phone:'', quote:'', amount:(R.G89-b0.subPrice)/(1+m.subOP/100), status:'Selected'});
+  }
+  return x;
+}
+
+/* Side by side: every recap line next to what the app works out for it. */
+function riCompare(P, x){
+  const b = bidBuild(x), R = P.recap, L = [];
+  const add = (sec, label, rv, av, key) => L.push({sec, label, rv:+rv||0, av:+av||0, ok:riNear(rv, av), key});
+  add('I. Material','Equipment',R.G9,b.equip); add('I. Material','Pipe, valves, fittings',R.F10,b.pvf);
+  add('I. Material','Consumables',R.F11,b.consumables); add('I. Material','Sales tax',R.F13,b.tax);
+  add('I. Material','O&P',R.G15,b.matOP); add('I. Material','Material price',R.G16,b.matPrice,'tot');
+  R.lab.forEach(l=>{ const [cls, tt] = RI_LAB[l.ref], r = rateFor(cls, x), w = tt==='Overtime' ? r.ot : r.st;
+    add('II. Labor', `${cls} ${tt==='Overtime'?'OT':'ST'} (${l.h} MH × ${money(l.e,2)})`, l.f, l.h*w); });
+  if(R.F37 || b.escH) add('II. Labor', `Escalation (${b.escH} MH)`, R.F37, b.escH*b.escRate);
+  const hwOf = test => x.estLabor.filter(l=>test(l.cls)).reduce((a,l)=>a+(+l.hours||0)*rateFor(l.cls,x).hw,0);
+  add('II. Labor','Health & welfare',R.F38, hwOf(c=>!/Apprentice|Helper/.test(c)) + b.escH*rateFor('Journeyman',x).hw);
+  add('II. Labor','Apprentice H&W',R.F39, hwOf(c=>/Apprentice/.test(c)));
+  add('II. Labor','Helper H&W',R.F40, hwOf(c=>c==='Helper'));
+  const wages = x.estLabor.reduce((a,l)=>{ const r = rateFor(l.cls,x); return a + (+l.hours||0)*(l.timeType==='Overtime'?r.ot:r.st); },0) + b.escH*b.escRate;
+  add('II. Labor','Insurance & taxes',R.F41, wages*jobRates(x).ins);
+  add('II. Labor','Clean-up',R.F43,b.cleanup); add('II. Labor','Total labor cost',R.G44,b.labCost,'tot');
+  const exp = x.estOther.slice();
+  R.exp.forEach(e=>{ add('III. Job expenses', riTitle(e.label).replace(/\s{2,}.*$/,''), e.a, e.a); });
+  add('III. Job expenses','Inter office',R.F60,b.interOffice); add('III. Job expenses','Tool & truck',R.F61,b.toolTruck + exp.filter(o=>o.notes==='Tool & truck (as on recap)').reduce((a,o)=>a+(+o.amount||0),0));
+  add('III. Job expenses','Total job expenses',R.G62,b.expenses,'tot'); add('III. Job expenses','O&P',R.G65,b.labExpOP);
+  add('III. Job expenses','Labor & expense price',R.G66,b.labExpPrice,'tot');
+  R.sub.forEach(s=>add('IV. Subcontracts', riTitle(s.label), s.a, s.a));
+  add('IV. Subcontracts','Action depts (at cost)',R.G79,b.actionDepts); add('IV. Subcontracts','Outside subs & rentals',R.G87,b.outside+b.rentals);
+  add('IV. Subcontracts','O&P',R.G88,b.subOP); add('IV. Subcontracts','Subcontract price',R.G89,b.subPrice,'tot');
+  add('Totals','Total price less bond',R.G91,b.price,'tot'); add('Totals','Payment & performance bond',R.G93,b.bond.total,'tot');
+  add('Totals','Total price with bond',R.G95,b.suggested,'tot');
+  return {L, b};
+}
+
+/* What changed from the job's working copy to the imported recap (only the changes). */
+function riDiff(j, x){
+  const out = [], f2 = n => money(n,2);
+  const A = bidBuild(j), B = bidBuild(x);
+  [['Material price','matPrice'],['Labor & expense price','labExpPrice'],['Subcontract price','subPrice'],['Total with bond','suggested']].forEach(([l,k])=>{ if(!riNear(A[k],B[k])) out.push({t:'sum', s:`${l}: ${f2(A[k])} → ${f2(B[k])} (${B[k]>A[k]?'+':''}${f2(B[k]-A[k])})`}); });
+  const hrs = J => { const o = {}; J.estLabor.forEach(l=>{ const k = `${l.cls} ${l.timeType==='Overtime'?'OT':'ST'}`; o[k] = (o[k]||0) + (+l.hours||0); }); return o; };
+  const ha = hrs(j), hb = hrs(x);
+  [...new Set([...Object.keys(ha), ...Object.keys(hb)])].forEach(k=>{ if((ha[k]||0)!==(hb[k]||0)) out.push({t:'lab', s:`${k} hours: ${ha[k]||0} → ${hb[k]||0}`}); });
+  const lines = (arr, key, val, name) => { const o = new Map(); arr.forEach(r=>{ const k = key(r); o.set(k, (o.get(k)||0) + val(r)); }); return o; };
+  const cmp = (label, a, b) => { [...new Set([...a.keys(), ...b.keys()])].forEach(k=>{ const p = a.get(k), q = b.get(k);
+    if(p==null) out.push({t:'add', s:`${label} added: ${k} ${f2(q)}`}); else if(q==null) out.push({t:'del', s:`${label} removed: ${k} ${f2(p)}`});
+    else if(!riNear(p,q)) out.push({t:'chg', s:`${label}: ${k} ${f2(p)} → ${f2(q)}`}); }); };
+  const qk = q => [q.supplier, q.quote].filter(Boolean).join(' ') + (q.cat==='Equipment' ? ' (equipment)' : '');
+  cmp('Material', lines(j.quotes.filter(q=>q.use!=='No'), qk, q=>+q.amount||0), lines(x.quotes.filter(q=>q.use!=='No'), qk, q=>+q.amount||0));
+  const ek = o => o.desc==='Other' || o.notes ? `${o.desc}${o.notes?': '+o.notes:''}` : o.desc;
+  cmp('Job expense', lines(j.estOther, ek, o=>+o.amount||0), lines(x.estOther, ek, o=>+o.amount||0));
+  const sk = s => `${s.trade} – ${s.company}`;
+  cmp('Sub', lines(j.subs.filter(s=>s.status==='Selected'), sk, s=>+s.amount||0), lines(x.subs.filter(s=>s.status==='Selected'), sk, s=>+s.amount||0));
+  cmp('Rental', lines(j.rentals.filter(r=>r.use!=='No'), r=>r.equip||r.vendor, rentalLine), lines(x.rentals.filter(r=>r.use!=='No'), r=>r.equip||r.vendor, rentalLine));
+  const MK = [['consumablesPerMH','Consumables $/MH'],['consumablesLump','Consumables lump $'],['salesTax','Sales tax %'],['matOP','Material O&P %'],['labOP','Labor O&P %'],['subOP','Sub O&P %'],['cleanup','Clean-up %'],['toolTruckPerDay','Tool & truck $/day'],['interOffice','Inter office $'],['escHours','Escalation MH'],['escRate','Escalation rate']];
+  const nice = v => +(+v||0).toFixed(4);
+  MK.forEach(([k,l])=>{ if(nice(j.markup[k])!==nice(x.markup[k])) out.push({t:'mk', s:`${l}: ${nice(j.markup[k])} → ${nice(x.markup[k])}`}); });
+  const ra = jobRates(j), rb = jobRates(x);
+  ['Project Manager / Supervision','General Foreman','Foreman','Journeyman','Helper','1st Yr Apprentice','5th Yr Apprentice'].forEach(c=>{
+    const p = rateFor(c, j), q = rateFor(c, x);
+    if(!riNear(p.st,q.st)) out.push({t:'rate', s:`${c} rate: ${f2(p.st)} → ${f2(q.st)}`});
+    if(!riNear(p.hw,q.hw)) out.push({t:'rate', s:`${c} H&W: ${f2(p.hw)} → ${f2(q.hw)}`}); });
+  if(Math.abs(ra.ins-rb.ins) > 1e-9) out.push({t:'rate', s:`Insurance & taxes: ${+(ra.ins*100).toFixed(4)}% → ${+(rb.ins*100).toFixed(4)}%`});
+  if(!!j.federal !== !!x.federal) out.push({t:'mk', s:`Federal job: ${j.federal?'Yes':'No'} → ${x.federal?'Yes':'No'}`});
+  return out;
+}
+const riHasBuilder = j => !!(j.quotes.length || j.subs.length || j.rentals.length || j.estLabor.length || j.estOther.length || +j.bidTotal);
+
+/* Entry point. j = the job to import into, or null to start a new bid from the recap. */
+function importRecap(j){
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.xlsx,.xlsm';
+  inp.onchange = async ()=>{ const f = inp.files[0]; if(!f) return;
+    toast('Reading ' + f.name + '…');
+    try{ const R = await riRead(await f.arrayBuffer()); riReview(j, riParse(R, f, j)); }
+    catch(e){ toast('Could not read that recap: ' + (e.message||e)); }
+  };
+  inp.click();
+}
+function riReview(j0, P){
+  const isNew = !j0;
+  const j = j0 || normalizeJob({id:'job-'+Date.now(), sv:P.hdr.sv, name:P.hdr.name || (P.hdr.file.replace(/\.xls[xm]$/i,'').replace(/\b(recap|rev\.?\s*\d+)\b/ig,'').replace(/\s{2,}/g,' ').trim().toUpperCase()), priority:'Normal', estStatus:'Complete', startDate:today(), bidStatus:'Estimating', recapLocation:P.hdr.loc, recapDesc:P.hdr.desc});
+  const st = {fed: isNew ? null : !!j.federal, adj:{mat:false, lab:false, sub:false}, useTotal: j.bidStatus!=='Awarded', saveRev: true,
+    note: `Imported from recap "${P.hdr.file}"`, name: j.name, sv: j.sv, open:{}};
+  const draw = ()=>{
+    // manual mapping choices made on this screen
+    P.maps.forEach(mp=>{ const arr = mp.kind==='sub' ? P.builder.subs : P.builder.estOther, line = arr[mp.idx];
+      if(mp.kind==='sub' && mp.pick) line.trade = mp.pick; if(mp.kind==='exp' && mp.pick) line.desc = mp.pick; });
+    const f2 = n => money(n,2);
+    const fedKnown = st.fed!==null, x = riApplied(j, P, !!st.fed, st.adj), {L, b} = riCompare(P, x);
+    const bad = L.filter(l=>!l.ok), totOk = riNear(P.recap.G95, b.suggested);
+    const secBad = {mat: !riNear(P.recap.G16, b.matPrice), lab: !riNear(P.recap.G66, b.labExpPrice), sub: !riNear(P.recap.G89, b.subPrice)};
+    const diffs = !isNew && riHasBuilder(j) ? riDiff(j, x) : null;
+    if(diffs && st.useTotal && !riNear(j.bidTotal, Math.round(P.recap.G95*100)/100)) diffs.unshift({t:'sum', s:`Bid total: ${f2(+j.bidTotal||0)} → ${f2(Math.round(P.recap.G95*100)/100)}`});
+    const svWarn = !isNew && P.hdr.sv && j.sv && riNorm(P.hdr.sv)!==riNorm(j.sv);
+    let sec = '';
+    const rows = L.map(l=>{ const h = l.sec!==sec ? `<tr class="risec"><td colspan="4">${esc(l.sec)}</td></tr>` : ''; sec = l.sec;
+      return h + `<tr class="${l.key==='tot'?'ritot':''} ${l.ok?'':'rino'}"><td>${esc(l.label)}</td><td class="num">${f2(l.rv)}</td><td class="num">${f2(l.av)}</td><td class="num">${l.ok?'✓':'✗ '+f2(l.av-l.rv)}</td></tr>`; }).join('');
+    const mapRows = P.maps.map((mp,i)=>{ const arr = mp.kind==='sub' ? P.builder.subs : P.builder.estOther, line = arr[mp.idx], cur = mp.kind==='sub' ? line.trade : line.desc;
+      const opts_ = mp.kind==='sub' ? TRADES : EXPENSES.filter(x=>x!=='Inter office expenses');
+      return `<div class="rimap"><span>Row ${mp.row} on the recap is renamed <b>${esc(mp.label)}</b> (${f2(line.amount)}). Bring it in as</span>
+        <select data-rimap="${i}">${opts(opts_, cur)}</select></div>`; }).join('');
+    $('#pickBox').innerHTML = `<h3>${isNew?'New bid from a recap':'Import recap'}</h3>
+      <div class="note">📄 <b>${esc(P.hdr.file)}</b>${P.hdr.rev?` · ${esc(P.hdr.rev)}`:''}${P.hdr.date?` · dated ${esc(P.hdr.date)}`:''}. Read only: the recap file is not changed.${isNew?'':` Goes into <b>${esc(j.sv||'no SV #')} · ${esc(j.name)}</b>.`}</div>
+      ${svWarn?`<div class="rccheck bad">⚠ This recap says <b>${esc(P.hdr.sv)}</b> but the job is <b>${esc(j.sv)}</b>. Make sure it's the right job.</div>`:''}
+      ${isNew?`<div class="form" style="margin-top:10px"><div class="f"><label>Job name</label><input id="riName" value="${esc(st.name)}"></div><div class="f"><label>SV number</label><input id="riSv" value="${esc(st.sv)}" placeholder="SV26-____"></div></div>`:''}
+      <div class="fedq" style="margin-top:10px"><b>Is this a federal job?</b>
+        <div class="note">${P.bondRecap?`The recap carries a bond of ${f2(P.bondRecap)}.`:'The recap has no bond on it.'} Federal jobs get the bond by your tiered formula, only over $150,000.</div>
+        <div class="yn"><label><input type="radio" name="riFed" value="yes" ${st.fed===true?'checked':''}> Yes, federal</label><label><input type="radio" name="riFed" value="no" ${st.fed===false?'checked':''}> No</label></div></div>
+      ${!fedKnown?`<div class="rccheck bad">Answer the federal question to finish the check.</div>`
+        : `<div class="rccheck ${bad.length?'bad':'ok'}">${!bad.length
+          ? `✓ Every line matches to the penny. The recap and the app both come to <b>${f2(b.suggested)}</b> (material ${f2(b.matPrice)}, labor &amp; expenses ${f2(b.labExpPrice)}, subs ${f2(b.subPrice)}${b.bond.total?`, bond ${f2(b.bond.total)}`:''}).`
+          : `<b>${totOk?'The totals match':'The totals don\'t match yet'}:</b> recap ${f2(P.recap.G95)}, app ${f2(b.suggested)}${totOk?'':` (${f2(b.suggested-P.recap.G95)})`}. ${bad.length} line${bad.length>1?'s are':' is'} marked ✗ below.
+            ${(secBad.mat||secBad.lab||secBad.sub||st.adj.mat||st.adj.lab||st.adj.sub)?`<div style="margin-top:6px">${[['mat','material'],['lab','labor & expenses'],['sub','subcontracts']].filter(([k])=>secBad[k]||st.adj[k]).map(([k,l])=>`<label style="display:block"><input type="checkbox" data-riadj="${k}" ${st.adj[k]?'checked':''}> Add a "Recap adjustment" line so ${l} matches the recap</label>`).join('')}</div>`:''}
+            ${!riNear(P.recap.G93, b.bond.total)?`<div style="margin-top:6px">Bond: the recap has ${f2(P.recap.G93)}, the app works out ${f2(b.bond.total)} (${st.fed?(b.price>MILLER_ACT?'tiered formula':'no bond at $150,000 or less'):'not federal'}).</div>`:''}`}</div>`}
+      ${P.flags.length?`<div class="riflags"><b>Worth a look</b><ul>${P.flags.map(f=>`<li class="ri-${f.kind}">${esc(f.msg)}</li>`).join('')}</ul></div>`:''}
+      ${mapRows?`<div class="riflags"><b>Renamed lines</b><div class="note">Pick where each one goes. The amount and its O&amp;P stay the same.</div>${mapRows}</div>`:''}
+      ${diffs?`<div class="riflags"><b>What changed from the working copy (${revName(j.revisions.length)})</b>${diffs.length?`<ul>${diffs.map(d=>`<li class="ri-${d.t}">${esc(d.s)}</li>`).join('')}</ul>`:'<div class="note">Nothing changed. The recap matches what the job already has.</div>'}</div>`:''}
+      <details ${st.open.cmp||bad.length?'open':''} id="riCmp"><summary><b>Recap vs app, line by line</b></summary>
+        <div style="overflow:auto"><table class="ritable"><thead><tr><th>Line</th><th class="num">Recap</th><th class="num">App</th><th class="num"></th></tr></thead><tbody>${rows}</tbody></table></div></details>
+      <div class="riopts">
+        <label><input type="checkbox" id="riUse" ${st.useTotal?'checked':''}> Use the recap's total, <b>${f2(P.recap.G95)}</b>, as the bid total${j.bidStatus==='Awarded'?' <span class="note">(this job is awarded: that changes its contract amount)</span>':''}</label>
+        <label><input type="checkbox" id="riRev" ${st.saveRev?'checked':''}> Save it as ${revName(j.revisions.length + (!isNew && riHasBuilder(j) && riChangedSinceRev(j) ? 1 : 0))} in the revision history</label>
+        ${st.saveRev?`<input id="riNote" value="${esc(st.note)}" style="width:100%;margin-top:4px">`:''}
+        ${!isNew && riHasBuilder(j) && riChangedSinceRev(j)?`<div class="note">The job's current bid builder is saved first as ${revName(j.revisions.length)}, so you can restore it from the revision history.</div>`:''}
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap"><button class="btn" id="riCancel">Cancel</button><button class="btn primary" id="riGo" ${fedKnown?'':'disabled'}>${isNew?'Create bid':'Import into bid builder'}</button></div>`;
+    $('#pickBox').parentElement.style.width = 'min(760px,96%)';
+    document.querySelectorAll('input[name=riFed]').forEach(r=>r.onchange = ()=>{ st.fed = r.value==='yes'; draw(); });
+    $('#pickBox').querySelectorAll('[data-riadj]').forEach(c=>c.onchange = ()=>{ st.adj[c.dataset.riadj] = c.checked; draw(); });
+    $('#pickBox').querySelectorAll('[data-rimap]').forEach(c=>c.onchange = ()=>{ P.maps[+c.dataset.rimap].pick = c.value; draw(); });
+    $('#riCmp').ontoggle = e=>{ st.open.cmp = e.target.open; };
+    $('#riUse').onchange = e=>{ st.useTotal = e.target.checked; draw(); };
+    $('#riRev').onchange = e=>{ st.saveRev = e.target.checked; draw(); };
+    if($('#riNote')) $('#riNote').oninput = e=>{ st.note = e.target.value; };
+    if($('#riName')) $('#riName').oninput = e=>{ st.name = e.target.value; };
+    if($('#riSv')) $('#riSv').oninput = e=>{ st.sv = e.target.value; };
+    $('#riCancel').onclick = ()=>$('#pick').classList.remove('open');
+    $('#riGo').onclick = ()=>{
+      if(st.fed===null) return toast('Answer: is this a federal job?');
+      if(isNew && !st.name.trim()) return toast('Enter a job name');
+      const x = riApplied(j, P, st.fed, st.adj);
+      if(isNew){ j.name = st.name.trim(); j.sv = st.sv.trim(); }
+      else if(riHasBuilder(j) && riChangedSinceRev(j))
+        j.revisions.push({n:j.revisions.length, date:today(), savedAt:Date.now(), note:`Bid builder before importing "${P.hdr.file}"`, sent:false, total:bidBuild(j).suggested, snap:snapOf(j)});
+      ['quotes','subs','rentals','estLabor','estOther','markup','rates','federal'].forEach(k=>j[k] = structuredClone(x[k]));
+      if(!(j.recapLocation||'').trim() && P.hdr.loc) j.recapLocation = P.hdr.loc;
+      if(!(j.recapDesc||'').trim() && P.hdr.desc) j.recapDesc = P.hdr.desc;
+      if(!(j.sv||'').trim() && P.hdr.sv) j.sv = P.hdr.sv;
+      if(st.useTotal) j.bidTotal = Math.round(P.recap.G95*100)/100;
+      const total = bidBuild(j).suggested;
+      j.recapImports = (j.recapImports||[]).concat({file:P.hdr.file, rev:P.hdr.rev, at:Date.now(), by:(typeof Cloud!=='undefined' && Cloud.email)||'', recapTotal:P.recap.G95, appTotal:total, matched:riNear(P.recap.G95,total), revision: st.saveRev ? j.revisions.length : null});
+      if(st.saveRev && riChangedSinceRev(j)) j.revisions.push({n:j.revisions.length, date:today(), savedAt:Date.now(), note: st.note.trim() || `Imported from recap "${P.hdr.file}"`, sent:false, total, snap:snapOf(j), source:{file:P.hdr.file, recapTotal:P.recap.G95}});
+      if(isNew){ Store.jobs.unshift(j); filter = 'Active'; }
+      $('#pick').classList.remove('open'); bidTab = 'bq';
+      if(isNew){ Store.save(); render(); openJob(j.id); } else changed();
+      toast(`Recap imported: ${money(total,2)}${riNear(P.recap.G95,total)?' (matches to the penny)':''}`);
+    };
+  };
+  draw(); $('#pick').classList.add('open');
+  $('#pick').onclick = e=>{ if(e.target.id==='pick') $('#pick').classList.remove('open'); };
+}
+/* true when the working copy differs from the last saved revision (or none saved yet) */
+function riChangedSinceRev(j){
+  const last = j.revisions[j.revisions.length-1]; if(!last) return true;
+  const a = snapOf(j), b = last.snap;
+  return SNAP_KEYS.some(k=>JSON.stringify(a[k]??null)!==JSON.stringify(b[k]??null));
 }
 
 /* ---------------- Job chat ----------------
