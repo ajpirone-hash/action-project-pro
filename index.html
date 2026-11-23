@@ -866,6 +866,12 @@ th{font-size:10.5px;font-weight:500;letter-spacing:.06em}
 .svrow input{flex:1;min-width:0}
 .svrow .svask{flex:none;white-space:nowrap;border-color:var(--accent);color:var(--accent);background:var(--accent-soft);font-weight:600}
 @media(max-width:400px){ .svrow{flex-wrap:wrap} .svrow .svask{width:100%;justify-content:center;min-height:40px} }
+.svcl{display:flex;flex-direction:column;margin:6px 0}
+.svci{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
+.svci>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.svcadd{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.svcadd input{flex:1 1 160px;min-width:0;background:var(--field,var(--panel));color:var(--ink);border:1px solid var(--line2);border-radius:var(--rs);padding:7px 10px;font:inherit}
+.svcadd input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--focus)}
 .ncofoot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
 @media(max-width:640px){ .ncofoot .btn{flex:1;justify-content:center;min-height:44px} .ncopicked .btn{min-height:36px} }
 /* v0.37 side menu title fits on every PC (Windows draws Arial Black wider) */
@@ -883,7 +889,7 @@ th{font-size:10.5px;font-weight:500;letter-spacing:.06em}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.40 (SV # email next to SV number)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.41 (SV # contacts drop-down)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -2195,7 +2201,19 @@ let ncoParent = null;
 function svRequestWire(boxId){
   const box = $('#'+(boxId||'newBox'));
   const keep = (id, key)=>{ const el=$('#'+id); try{ el.value = localStorage.getItem(key)||''; }catch(_){} el.addEventListener('input', ()=>{ try{ localStorage.setItem(key, el.value.trim()); }catch(_){} }); };
+  const list = Store.settings.svContacts || [];
+  box.querySelector('#svReq .form').insertAdjacentHTML('afterbegin', list.length
+    ? `<div class="f wide"><label>Send to</label><select id="svPick"><option value="">Choose a contact…</option>${list.map((x,i)=>`<option value="${i}">${esc(x.name)} · ${esc(x.email)}</option>`).join('')}<option value="other">Someone else (type below)</option></select></div>`
+    : `<div class="f wide note" style="margin:0">Tip: save the people you ask for SV numbers in <b>Rates &amp; settings</b> and pick them here.</div>`);
   keep('svFrom', 'apInviteFrom'); keep('svTo', 'apSvTo'); keep('svToEmail', 'apSvToEmail');
+  if($('#svPick')){
+    const cur = list.findIndex(x=>x.email.toLowerCase()===$('#svToEmail').value.trim().toLowerCase());
+    $('#svPick').value = cur>=0 ? String(cur) : '';
+    $('#svPick').onchange = ()=>{ const x = list[+$('#svPick').value];
+      if(x){ $('#svTo').value = x.name.split(/\s+/)[0]; $('#svToEmail').value = x.email; }
+      else if($('#svPick').value==='other'){ $('#svTo').value=''; $('#svToEmail').value=''; $('#svTo').focus(); }
+      ['svTo','svToEmail'].forEach(id=>$('#'+id).dispatchEvent(new Event('input',{bubbles:true}))); };
+  }
   const show = ()=>{ const m = svRequestEmail(); $('#svPrev').textContent = 'Subject: ' + m.subject + '\n\n' + m.body; };
   box.addEventListener('input', show); box.addEventListener('change', show); box.addEventListener('click', ()=>setTimeout(show,0)); show();
   $('#svMail').onclick = ()=>{
@@ -2232,6 +2250,10 @@ $('#btnSettings').onclick = ()=>{
     ${(s.rateSets||[]).length ? `<h4 style="margin:16px 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase">Saved locals</h4>
       ${(s.rateSets||[]).map((x,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0"><span>${esc(x.name)} <span class="note">JM ${money((x.list.find(r=>r.cls==='Journeyman')||{}).st,2)} · H&amp;W ${money((x.list.find(r=>r.cls==='Journeyman')||{}).hw,2)} · ins. ${+(x.ins*100).toFixed(2)}%</span></span><button class="btn ghost sm" data-rsdel="${i}">Remove</button></div>`).join('')}
       <div class="note">Removing one here doesn't change jobs already using it.</div>` : ''}
+    <h4 style="margin:16px 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase">SV # request contacts</h4>
+    <div class="note">The people you email for a new SV #. They show up as a drop-down in New bid and New change order.</div>
+    <div class="svcl">${(s.svContacts||[]).map((x,i)=>`<div class="svci"><span><b>${esc(x.name)}</b> <span class="note">${esc(x.email)}</span></span><button class="btn ghost sm" data-svcdel="${i}">Remove</button></div>`).join('') || '<div class="note" style="padding:6px 0">No contacts saved yet.</div>'}</div>
+    <div class="svcadd"><input id="svcName" placeholder="Name" autocomplete="off"><input id="svcEmail" type="email" placeholder="name@actioncontractors.com" autocomplete="off"><button class="btn sm" id="svcAdd">+ Add</button></div>
     <h4 style="margin:16px 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase">Recap form</h4>
     <div id="rtBox"><div class="note">Loading…</div></div>
     <div style="display:flex;justify-content:space-between;margin-top:16px">
@@ -2246,6 +2268,14 @@ $('#btnSettings').onclick = ()=>{
     s.laborRates[+el.dataset.r][el.dataset.rk] = +el.value; Store.save(); render(); if(openId) renderDrawer(); $('#btnSettings').onclick();
   });
   $('#settingsBox').querySelectorAll('[data-rsdel]').forEach(b=>b.onclick=()=>{ s.rateSets.splice(+b.dataset.rsdel,1); Store.save(); render(); if(openId) renderDrawer(); $('#btnSettings').onclick(); });
+  $('#settingsBox').querySelectorAll('[data-svcdel]').forEach(b=>b.onclick=()=>{ s.svContacts.splice(+b.dataset.svcdel,1); Store.save(); $('#btnSettings').onclick(); });
+  $('#svcAdd').onclick = ()=>{
+    const name = $('#svcName').value.trim(), email = $('#svcEmail').value.trim();
+    if(!name){ toast('Type their name'); return $('#svcName').focus(); }
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ toast('Type a valid email'); return $('#svcEmail').focus(); }
+    s.svContacts = (s.svContacts||[]).filter(x=>x.email.toLowerCase()!==email.toLowerCase()).concat([{name, email}]);
+    Store.save(); $('#btnSettings').onclick(); toast(name+' added');
+  };
   $('#sDone').onclick = ()=>$('#settings').classList.remove('open');
   $('#sReset').onclick = async ()=>{ if(await askSure('Reset all data?','Every job and change will be replaced with the original data from the spreadsheet, and Recently deleted will be emptied. This cannot be undone.','Reset')){ Store.settings=structuredClone(DEFAULT_SETTINGS); Store.jobs=structuredClone(SEED).map(normalizeJob); Store.trash=[]; Store.save(); $('#settings').classList.remove('open'); closeJob(); render(); toast('Demo data restored'); } };
 };
