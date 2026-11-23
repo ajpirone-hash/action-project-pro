@@ -412,6 +412,11 @@ header .btn:not(#btnAccount),header input{order:3}
 .pill.done{background:#e6f0fb;color:#1b3a66}
 .donerow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
 .viewonly .qedit{display:none!important}
+/* v0.44 Ask Claude to read the intake */
+.iask{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;padding:10px 12px;border:1px solid #e9d29a;background:#fdf6e4;border-radius:10px;font-size:13px;line-height:1.5}
+.iask span{flex:1;min-width:220px}
+.dark .iask{background:rgba(232,163,23,.12);border-color:rgba(232,163,23,.35)}
+.viewonly .iask{display:none!important}
 /* v0.43 Quote letter */
 .ltform textarea{width:100%;resize:vertical;font:inherit;line-height:1.45}
 .lthint{text-transform:none;letter-spacing:0;font-weight:400;opacity:.85;margin-left:4px}
@@ -912,7 +917,7 @@ th{font-size:10.5px;font-weight:500;letter-spacing:.06em}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.43 (Quote letters)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.44 (Ask Claude to read)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -4166,7 +4171,8 @@ function renderIntake(){
     ${last?`<div class="iconn" style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;gap:10px"><span>Last filed: <b>${esc(last.savedAs)}</b> → ${esc(last.sv||'')} ${esc(last.job)} <span class="note">(${new Date(last.at).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})})</span></span><button class="btn sm" id="iUndo">↶ Undo</button></div>`:''}
     ${FileLayer.connected?`<div class="tscroll" style="margin-top:12px"><table><thead><tr><th>PDF in _Intake</th><th>Supplier / doc</th><th class="num">Total</th><th>Job</th><th>Status</th></tr></thead>
       <tbody>${rows || `<tr><td colspan="5" class="note">The drop folder is empty.</td></tr>`}</tbody></table></div>
-      <p class="note" style="margin:8px 0 0">New PDFs show “Waiting for Claude to read it” until you ask Claude to read your intake. PDFs for an awarded job move to that job's <b>04 Material Quotes &amp; POs</b> folder and fill Material Orders and Material on Job.</p>
+      ${askClaudeBlock()}
+      <p class="note" style="margin:8px 0 0">New PDFs show “Waiting for Claude to read it” until Claude reads them. <b>Ask Claude to read</b> copies the request and opens your Claude project: paste it, send, and this window picks up the results on its own. PDFs for an awarded job move to that job's <b>04 Material Quotes &amp; POs</b> folder and fill Material Orders and Material on Job.</p>
       ${filed?`<h4 style="margin:16px 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase;display:flex;justify-content:space-between;align-items:center">Recently filed</h4><div class="tscroll"><table><tbody>${filed}</tbody></table></div>`:''}`:''}
     ${FileLayer.connected && (Store.intake.cleared||[]).length?`<h4 style="margin:16px 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase">Cleared from intake</h4>${Store.intake.cleared.map(c=>`<div class="note" style="display:flex;justify-content:space-between;align-items:center;padding:4px 0">${new Date(c.at).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}: ${c.n} PDF${c.n===1?'':'s'} · ${Store.daysLeft({deletedAt:c.at})} days left to restore <button class="btn sm" data-restore="${esc(c.batch)}">Restore</button></div>`).join('')}`:''}
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px">${FileLayer.connected && Intake.rows.length?`<button class="btn danger" id="iClear" style="margin-right:auto">🗑 Clear intake (${Intake.rows.length} PDF${Intake.rows.length>1?'s':''})</button>`:''}${FileLayer.connected?`<button class="btn" id="iSync">↻ Check folder now</button>`:''}<button class="btn primary" id="iDone">Done</button></div>`;
@@ -4184,10 +4190,38 @@ function renderIntake(){
     if(!await askSure('Undo the last filing?', `${f.savedAs} goes back to the _Intake folder, and what it added to ${f.sv||''} ${f.job} (Material Orders and Material on Job) is taken back out. Then pick the right job for it.`, 'Undo')) return;
     try{ await undoLastFiling(); }catch(e){ toast('Could not undo: '+(e.message||e)); } renderIntake(); };
   if($('#iSync')) $('#iSync').onclick = ()=>Intake.sync();
+  if($('#iAsk')) $('#iAsk').onclick = askClaudeToRead;
   $('#iDone').onclick = ()=>$('#intake').classList.remove('open');
   $('#intakeBox').querySelectorAll('[data-ijob]').forEach(s=>s.onchange=()=>{ const r = Intake.rows[+s.dataset.ijob]; if(s.value) Store.intake.assign[r.name]=s.value; else delete Store.intake.assign[r.name]; Store.save(); Intake.sync(); });
   $('#intakeBox').querySelectorAll('[data-iok]').forEach(b=>b.onclick=()=>{ const r = Intake.rows[+b.dataset.iok]; Store.intake.assign[r.name]=r.job.id; Store.save(); Intake.sync(); });
 }
+/* v0.44 Ask Claude to read: a web page can't start a Claude chat by itself, so the button
+   copies the request and opens the Claude project in a new tab. While this window is open and
+   PDFs are still waiting, it re-checks the folder every 30 s, so Claude's results show up here. */
+const CLAUDE_PROJECT_URL = 'https://claude.ai/code/project/chan_01V1GRgiRFWY5CCELnFJfVj5';
+const AskClaude = {
+  askedAt(){ try{ return +localStorage.getItem('apClaudeAsked')||0; }catch(_){ return 0; } },
+  mark(){ try{ localStorage.setItem('apClaudeAsked', String(Date.now())); }catch(_){} }
+};
+function askClaudeBlock(){
+  const unread = Intake.rows.filter(r=>r.status==='unread');
+  if(!unread.length) return '';
+  const at = AskClaude.askedAt(), recent = at && Date.now()-at < 3*3600e3;
+  const when = recent ? new Date(at).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}) : '';
+  return `<div class="iask"><span>${unread.length} PDF${unread.length>1?'s are':' is'} waiting for Claude.${recent?` You asked Claude at ${esc(when)}. This window checks for the results every 30 seconds.`:''}</span>
+    <button class="btn primary sm" id="iAsk">✨ ${recent?'Ask Claude again':'Ask Claude to read'} (${unread.length})</button></div>`;
+}
+async function askClaudeToRead(){
+  const unread = Intake.rows.filter(r=>r.status==='unread').map(r=>r.name);
+  const msg = `Read my intake (${unread.length} new PDF${unread.length>1?'s':''} in _Intake: ${unread.join('; ')})`;
+  window.open(CLAUDE_PROJECT_URL, '_blank', 'noopener');
+  let copied = false;
+  try{ await navigator.clipboard.writeText(msg); copied = true; }catch(_){}
+  AskClaude.mark();
+  toast(copied ? 'Request copied. Paste it in the Claude chat (Ctrl+V) and send.' : 'Type “Read my intake” in the Claude chat and send.');
+  renderIntake();
+}
+setInterval(()=>{ if(FileLayer.connected && !Intake.busy && $('#intake').classList.contains('open') && Intake.rows.some(r=>r.status==='unread')) Intake.sync(); }, 30000);
 $('#btnIntake').onclick = async ()=>{ $('#intake').classList.add('open'); renderIntake(); if(FileLayer.connected) Intake.sync(); };
 $('#intake').onclick = e=>{ if(e.target.id==='intake') $('#intake').classList.remove('open'); };
 
