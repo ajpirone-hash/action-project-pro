@@ -917,7 +917,7 @@ th{font-size:10.5px;font-weight:500;letter-spacing:.06em}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.44 (Ask Claude to read)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.45 (recap apprentice check)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -2701,7 +2701,15 @@ function recapPlan(j, book){
   // the form's own fixed math has to agree with the app's settings
   need(+s.otMultiplier===1.5, `Rates & settings: the recap figures overtime at 1.5×; the app is set to ${s.otMultiplier}×.`);
   ['Project Manager / Supervision','General Foreman','Foreman'].forEach(c=>need(+rate(c).hw===+rate('Journeyman').hw, `Rates & settings: the recap uses one H&W rate for PM, foremen and journeymen; ${c} is different.`));
-  Object.entries(RECAP_MAP.pct).forEach(([c,p])=>{ need(Math.abs((+rate(c).pctJ||0)-p)<1e-9, `Rates & settings: the recap pays ${c} ${p*100}% of journeyman.`); need(+rate(c).hw===+rate('1st Yr Apprentice').hw, `Rates & settings: the recap uses one apprentice H&W rate; ${c} is different.`); });
+  // v0.45: the form figures every apprentice rate as a % of journeyman. Only the apprentices this bid has hours for
+  // change the price, so only those have to agree; a typed $/hr is fine when it equals that %.
+  const usedCls = c => j.estLabor.some(l=>l.cls===c && +l.hours>0);
+  Object.entries(RECAP_MAP.pct).forEach(([c,p])=>{
+    if(!usedCls(c)) return;
+    const pctTxt = +(p*100).toFixed(2), want = p*(+rate('Journeyman').st||0), has = +rateFor(c, j).st||0;
+    need(Math.abs(has-want)<1e-6, `Rates & settings: the recap pays ${c} ${pctTxt}% of journeyman ($${want.toFixed(3)}/hr), but this job's rates pay $${has.toFixed(2)}/hr. In Edit rates, set ${c} to ${pctTxt}% of journeyman.`);
+    need(+rate(c).hw===+rate('1st Yr Apprentice').hw, `Rates & settings: the recap uses one apprentice H&W rate; ${c} is different.`);
+  });
   need(+m.toolTruckPerDay===100, `Bid builder: the recap figures tool & truck at $100/day; this bid uses $${m.toolTruckPerDay}.`);
   // III. job expenses
   const ex = {}, label = (r, t) => { rc['C'+r] = String(t).toUpperCase().slice(0,40); };
