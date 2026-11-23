@@ -412,6 +412,15 @@ header .btn:not(#btnAccount),header input{order:3}
 .pill.done{background:#e6f0fb;color:#1b3a66}
 .donerow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
 .viewonly .qedit{display:none!important}
+/* v0.43 Quote letter */
+.ltform textarea{width:100%;resize:vertical;font:inherit;line-height:1.45}
+.lthint{text-transform:none;letter-spacing:0;font-weight:400;opacity:.85;margin-left:4px}
+.ltsv{display:flex;align-items:center;gap:8px}.ltsv b{flex:none;font-family:'Geist Mono',ui-monospace,Consolas,monospace;font-size:13px}.ltsv input{flex:1;min-width:0}
+.ltamt{display:flex;flex-direction:column;justify-content:flex-start;gap:6px}
+.ltprint{font-weight:700;text-decoration:underline;font-size:13.5px;padding:8px 0 2px;font-variant-numeric:tabular-nums}
+.ltamt .btn{align-self:flex-start}
+.ltclar{margin-top:12px;font-size:13px;color:var(--muted)}.ltclar summary{cursor:pointer;font-weight:600}.ltclar ul{margin:6px 0 0;padding-left:18px}
+.viewonly #letterBtn{display:none!important}
 /* v0.42 Documents card */
 .dlist{display:flex;flex-direction:column;gap:6px}
 .drow{display:flex;gap:12px;align-items:center;border:1px solid var(--line);border-radius:var(--rs,8px);padding:9px 10px;background:var(--panel,#fff)}
@@ -903,7 +912,7 @@ th{font-size:10.5px;font-weight:500;letter-spacing:.06em}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.42 (Documents card)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.43 (Quote letters)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -1749,6 +1758,7 @@ function bidBuilderCard(j){
         <button class="btn primary" id="useBid">Use as bid total</button>
         <button class="btn" id="recapImp">📥 Import a recap (.xlsx)</button>
         <button class="btn" id="recapBtn">📄 Fill recap sheet</button>
+        <button class="btn" id="letterBtn">✉️ Quote letter</button>
       </div>
       ${(j.recapImports||[]).length?`<div class="riimp">Last import: ${esc(j.recapImports[j.recapImports.length-1].file)} on ${fdate(new Date(j.recapImports[j.recapImports.length-1].at).toISOString().slice(0,10))}${j.recapImports.length>1?` · ${j.recapImports.length} imports in all, see Revision history`:''}</div>`:''}
       ${j.bidTotal? `<div class="note" style="margin-top:6px;text-align:center">Current bid total ${money(j.bidTotal)}${b.suggested>0 && Math.abs(diff)>=1?` (${diff>0?'+':''}${money(diff)} vs suggested)`:''}</div>`:''}
@@ -1881,6 +1891,7 @@ function renderDrawer(){
   $('#revSave').onclick = ()=>saveRevision(j);
   if($('#revOpen')) $('#revOpen').onclick = ()=>revHistory(j);
   if($('#recapBtn')) $('#recapBtn').onclick = ()=>openRecap(j);
+  if($('#letterBtn')) $('#letterBtn').onclick = ()=>openLetter(j);
   if($('#recapImp')) $('#recapImp').onclick = ()=>importRecap(j);
   if($('#rateSel')) $('#rateSel').onchange = e=>{ const v = e.target.value;
     if(v==='std') j.rates = null; else if(v==='own') return; else j.rates = structuredClone((Store.settings.rateSets||[])[+v]);
@@ -2271,10 +2282,12 @@ $('#btnSettings').onclick = ()=>{
     <div class="svcadd"><input id="svcName" placeholder="Name" autocomplete="off"><input id="svcEmail" type="email" placeholder="name@actioncontractors.com" autocomplete="off"><button class="btn sm" id="svcAdd">+ Add</button></div>
     <h4 style="margin:16px 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase">Recap form</h4>
     <div id="rtBox"><div class="note">Loading…</div></div>
+    <h4 style="margin:16px 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase">Quote letter form</h4>
+    <div id="ltBox"><div class="note">Loading…</div></div>
     <div style="display:flex;justify-content:space-between;margin-top:16px">
       <button class="btn ghost" id="sReset">Reset demo data</button>
       <button class="btn primary" id="sDone">Done</button></div>`;
-  $('#settings').classList.add('open'); RecapTpl.box();
+  $('#settings').classList.add('open'); RecapTpl.box(); LetterTpl.box();
   $('#settingsBox').querySelectorAll('[data-s]').forEach(el=>el.onchange=()=>{
     const k=el.dataset.s; s[k] = k==='rootFolder' ? el.value : (+el.value)/(el.dataset.pct!==undefined?100:1);
     Store.save(); render(); if(openId) renderDrawer(); $('#btnSettings').onclick();
@@ -2831,6 +2844,177 @@ async function openRecap(j){
         }
         $('#pick').classList.remove('open'); toast(where + ': ' + name);
       }catch(e){ toast('Could not make the recap: ' + (e.message||e)); $('#rcGo').disabled = false; $('#rcGo').textContent = 'Save recap'; }
+    };
+  };
+  draw(); $('#pick').classList.add('open');
+}
+
+/* ==========================================================================
+   QUOTE LETTER
+   Fills a copy of your blank quote letter (Word .docx) for a job. Only the
+   text is swapped: DATE, ADDRESS (one line each), the bold SV line, the scope
+   bullets (each a copy of the "Test to ensure" bullet) and the total. The
+   logo, header, footer, fonts, spacing, clarifications and signature are the
+   blank's own. The blank itself is never changed.
+   ========================================================================== */
+const LetterTpl = {
+  W: 'http://schemas.openxmlformats.org/wordprocessingml/2006/main',
+  cloud(){ return RecapTpl.cloud(); },
+  async get(){
+    const local = await IDB.get('letterTemplate').catch(()=>null), col = this.cloud();
+    if(!col) return local || null;
+    const meta = await col.doc('letter-meta').get().catch(()=>null);
+    if(!meta || !meta.exists) return local || null;
+    const md = meta.data();
+    if(local && local.at === md.at) return local;
+    let s = ''; for(let i=0;i<md.parts;i++){ const d = await col.doc('letter-'+i).get(); s += d.data().b64; }
+    const rec = {name:md.name, at:md.at, size:md.size, by:md.by||'', buf:RecapTpl.unb64(s)};
+    await IDB.set('letterTemplate', rec).catch(()=>{}); return rec;
+  },
+  async check(buf){ await this.parts(buf); },
+  async upload(file){
+    const buf = await file.arrayBuffer(); await this.check(buf);
+    const rec = {name:file.name, at:new Date().toISOString(), size:buf.byteLength, by:(typeof Cloud!=='undefined' && Cloud.email) || '', buf};
+    const col = this.cloud();
+    if(col){
+      const s = RecapTpl.b64(buf), N = 700000, parts = Math.ceil(s.length/N);
+      for(let i=0;i<parts;i++) await col.doc('letter-'+i).set({b64: s.slice(i*N,(i+1)*N)});
+      await col.doc('letter-meta').set({name:rec.name, at:rec.at, size:rec.size, by:rec.by, parts});
+    }
+    await IDB.set('letterTemplate', rec); return rec;
+  },
+  /* opens the blank and finds the paragraphs that get filled */
+  async parts(buf){
+    let ents; try{ ents = Zip.read(buf); }catch(_){ throw new Error('That file is not a Word document (.docx).'); }
+    const ent = ents.find(x=>x.name==='word/document.xml');
+    if(!ent) throw new Error('That file is not a Word document (.docx).');
+    const doc = new DOMParser().parseFromString(await Zip.text(ent), 'application/xml');
+    const body = doc.getElementsByTagNameNS(this.W,'body')[0];
+    const ps = Array.from(body.children).filter(e=>e.localName==='p');
+    const T = p => Array.from(p.getElementsByTagNameNS(this.W,'t')).map(t=>t.textContent).join('');
+    const find = (fn, what) => { const p = ps.find(x=>fn(T(x).trim())); if(!p) throw new Error(`This doesn't look like the blank quote letter: it needs a "${what}" line.`); return p; };
+    const P = {ents, ent, doc, body, T,
+      date: find(t=>t==='DATE','DATE'), addr: find(t=>t==='ADDRESS','ADDRESS'), sv: find(t=>/^SV\s?\d/.test(t),'SV26-'),
+      test: find(t=>t.startsWith('Test to ensure'),'Test to ensure “Leak Free”'), total: find(t=>/Lump Sum/.test(t),'Total Project Lump Sum'),
+      close: find(t=>t.startsWith('This estimate'),'This estimate is an approximation')};
+    const i = ps.indexOf(P.test); P.empty = i>0 && !T(ps[i-1]).trim() && ps[i-1].getElementsByTagNameNS(this.W,'numPr').length ? ps[i-1] : null;
+    P.ps = ps; return P;
+  },
+  setText(p, text){
+    const W = this.W, runs = Array.from(p.children).filter(e=>e.localName==='r');
+    const keep = (runs[0] || p.ownerDocument.createElementNS(W,'w:r')).cloneNode(true);
+    Array.from(p.children).filter(e=>e.localName==='r'||e.localName==='proofErr').forEach(e=>p.removeChild(e));
+    Array.from(keep.children).filter(e=>e.localName!=='rPr').forEach(e=>keep.removeChild(e));
+    const t = p.ownerDocument.createElementNS(W,'w:t'); t.setAttributeNS('http://www.w3.org/XML/1998/namespace','xml:space','preserve'); t.textContent = text;
+    keep.appendChild(t); p.appendChild(keep); return p;
+  },
+  async build(tpl, L){
+    const P = await this.parts(tpl.buf), W = this.W;
+    this.setText(P.date, L.date);
+    const lines = L.address.length ? L.address : [''];
+    this.setText(P.addr, lines[0]); let prev = P.addr;
+    lines.slice(1).forEach(ln=>{ const n = this.setText(P.addr.cloneNode(true), ln); prev.after(n); prev = n; });
+    this.setText(P.sv, L.svLine);
+    L.scope.forEach(s=>P.test.before(this.setText(P.test.cloneNode(true), s)));
+    if(P.empty) P.empty.remove();
+    this.setText(P.total, `${L.label}: $${L.total.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2})}`);
+    // keep the closing paragraph and the signature together on one page
+    const all = Array.from(P.body.children).filter(e=>e.localName==='p'), c = all.indexOf(P.close);
+    all.slice(c, -1).forEach(p=>{
+      let pPr = Array.from(p.children).find(e=>e.localName==='pPr');
+      if(!pPr){ pPr = P.doc.createElementNS(W,'w:pPr'); p.insertBefore(pPr, p.firstChild); }
+      if(Array.from(pPr.children).some(e=>e.localName==='keepNext')) return;
+      const st = Array.from(pPr.children).find(e=>e.localName==='pStyle'), at = st ? st.nextSibling : pPr.firstChild;
+      const kn = P.doc.createElementNS(W,'w:keepNext'), kl = P.doc.createElementNS(W,'w:keepLines');
+      pPr.insertBefore(kl, at); pPr.insertBefore(kn, kl);
+    });
+    let xml = new XMLSerializer().serializeToString(P.doc);
+    if(!xml.startsWith('<?xml')) xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n' + xml;
+    await Zip.setText(P.ent, xml);
+    return new Blob([await Zip.write(P.ents).arrayBuffer()], {type:DOC_TYPES.docx});
+  },
+  async box(){
+    const el = $('#ltBox'); if(!el) return;
+    const t = await this.get().catch(()=>null);
+    el.innerHTML = `<div class="note">${t ? `✓ Using <b>${esc(t.name)}</b> (${Math.round(t.size/1024)} KB, uploaded ${new Date(t.at).toLocaleDateString()}). Each quote letter is a filled copy of it; this file itself is never changed.` : 'Upload your blank quote letter once (Blank quote letter-Austin Pirone.docx). The app fills a copy of it for each job.'}</div>
+      <div style="margin-top:6px"><button class="btn sm" id="ltUp">${t?'Upload a new version':'Upload blank quote letter'}</button><input type="file" id="ltFile" accept=".docx" hidden></div>`;
+    $('#ltUp').onclick = ()=>$('#ltFile').click();
+    $('#ltFile').onchange = async e=>{ const f = e.target.files[0]; if(!f) return;
+      try{ await this.upload(f); toast('Quote letter form saved'); this.box(); }catch(err){ toast(err.message||String(err)); } };
+  }
+};
+const LETTER_LABELS = ['Total Project Lump Sum','Budgetary Lump Sum','Credit Lump Sum'];
+const LETTER_CLAR = ['No permit or engineered drawings included.','AEMC is not responsible for hazardous material abatement if any are discovered.','No additional work is to be performed under this proposal.','No overtime or holiday rates are included in this proposal.','AEMC is not responsible for the condition of existing pipes and fittings.'];
+/* typed ' and " become the curly marks Word puts in your letters (4’ of 2” pipe) */
+const smartQ = s => String(s||'').replace(/'/g,'’').replace(/(^|[\s(\[{])"/g,'$1“').replace(/"/g,'”');
+const letterDate = iso => { const [y,m,d] = String(iso).split('-'); return `${m}/${d}/${y}`; };
+
+async function openLetter(j){
+  let tpl = await LetterTpl.get().catch(()=>null);
+  const par = parentOf(j);
+  if(!j.letter) j.letter = {};
+  const L = j.letter;
+  // a change order starts from its original bid's address
+  if(!(L.address||'').trim() && par && par.letter && (par.letter.address||'').trim()) L.address = par.letter.address;
+  if(!L.label) L.label = LETTER_LABELS[0];
+  const today = new Date(), iso = new Date(today - today.getTimezoneOffset()*6e4).toISOString().slice(0,10);
+  let date = iso;
+  const amount = () => L.total!=null && L.total!=='' ? +L.total : (+j.bidTotal||0);
+  const lines = s => String(s||'').split(/\r?\n/).map(x=>x.trim().replace(/^[-•*]\s*/,'')).filter(Boolean);
+  const draw = ()=>{
+    const scope = lines(L.scope), addr = lines(L.address), tot = amount();
+    const issues = [];
+    if(!tpl) issues.push('Upload your blank quote letter (one time). It is saved for everyone who signs in.');
+    if(!j.sv) issues.push('This job has no SV #.');
+    if(!addr.length) issues.push('Add the address.');
+    if(!scope.length) issues.push('Add at least one scope line.');
+    if(!(tot>0)) issues.push('The total is $0. Enter a bid total or type the amount here.');
+    const ok = !issues.length;
+    $('#pickBox').innerHTML = `<h3>Quote letter</h3>
+      <div class="note">Made from your blank quote letter. Everything below is saved on this job, so a revision only needs the changes.</div>
+      <div class="form ltform" style="margin-top:10px">
+        <div class="f"><label for="ltDate">Date</label><input type="date" id="ltDate" value="${esc(date)}"></div>
+        <div class="f"><label for="ltLabel">Total line</label><select id="ltLabel">${LETTER_LABELS.map(x=>`<option ${x===L.label?'selected':''}>${x}</option>`).join('')}</select></div>
+        <div class="f wide"><label for="ltAddr">Address <span class="lthint">one line each</span></label><textarea id="ltAddr" rows="4" placeholder="Company&#10;Street&#10;City, ST ZIP">${esc(L.address||'')}</textarea></div>
+        <div class="f wide"><label for="ltTitle">Proposal line</label><div class="ltsv"><b>${esc(j.sv||'SV26-____')}</b><input id="ltTitle" value="${esc(L.title||'')}" placeholder="Proposal to install …"></div></div>
+        <div class="f wide"><label for="ltScope">Scope of work <span class="lthint">one bullet per line. “Test to ensure Leak Free” is added last</span></label><textarea id="ltScope" rows="8" placeholder="Provide and install up to 200' of 4&quot; sch 40 PVC pipe&#10;Provide and install 2 floor drains">${esc(L.scope||'')}</textarea></div>
+        <div class="f"><label for="ltTotal">Amount</label><input id="ltTotal" type="number" step="0.01" min="0" value="${tot ? tot.toFixed(2) : ''}" placeholder="0.00"></div>
+        <div class="f ltamt"><label>Prints as</label><div class="ltprint">${esc(L.label)}: $${tot.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>${L.total!=null && L.total!=='' && +L.total!==+j.bidTotal ? `<button class="btn ghost sm" id="ltReset" type="button">Use bid total ${money(j.bidTotal||0)}</button>`:''}</div>
+      </div>
+      <details class="ltclar"><summary>Clarifications (standard, from your blank)</summary><ul>${LETTER_CLAR.map(c=>`<li>${esc(c)}</li>`).join('')}</ul></details>
+      <div class="rccheck ${ok?'ok':'bad'}">${ok ? `✓ Ready: ${scope.length} scope line${scope.length>1?'s':''} plus “Test to ensure Leak Free”, ${addr.length}-line address.` : `<b>Before it can be made:</b><ul>${issues.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>`}
+        ${!tpl ? `<div style="margin-top:8px"><button class="btn sm" id="ltUp2" type="button">Upload blank quote letter (.docx)</button><input type="file" id="ltFile2" accept=".docx" hidden></div>`:''}</div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button class="btn" id="ltClose">Close</button><button class="btn primary" id="ltGo" ${ok?'':'disabled'}>Make quote letter</button></div>`;
+    $('#pickBox').style.width = 'min(680px,96%)';
+    const keep = (id, k, fn = v=>v) => $('#'+id).onchange = e=>{ L[k] = fn(e.target.value); Store.save(); draw(); };
+    keep('ltAddr','address', v=>v.replace(/\s+$/,'')); keep('ltTitle','title', v=>v.trim()); keep('ltScope','scope', v=>v.replace(/\s+$/,'')); keep('ltLabel','label');
+    $('#ltTotal').onchange = e=>{ const v = e.target.value; L.total = v==='' || +v===+j.bidTotal ? null : Math.round(+v*100)/100; Store.save(); draw(); };
+    $('#ltDate').onchange = e=>{ date = e.target.value || iso; draw(); };
+    if($('#ltReset')) $('#ltReset').onclick = ()=>{ L.total = null; Store.save(); draw(); };
+    if($('#ltUp2')){ $('#ltUp2').onclick = ()=>$('#ltFile2').click();
+      $('#ltFile2').onchange = async e=>{ const f = e.target.files[0]; if(!f) return;
+        try{ tpl = await LetterTpl.upload(f); toast('Quote letter form saved'); draw(); }catch(err){ toast(err.message||String(err)); } }; }
+    $('#ltClose').onclick = ()=>{ $('#pick').classList.remove('open'); $('#pickBox').style.width = 'min(520px,94%)'; };
+    $('#ltGo').onclick = async ()=>{
+      $('#ltGo').disabled = true; $('#ltGo').textContent = 'Making…';
+      try{
+        const blob = await LetterTpl.build(tpl, {date: letterDate(date), address: lines(L.address).map(smartQ), svLine: (j.sv + ' ' + smartQ((L.title||'').trim())).trim(),
+          scope: lines(L.scope).map(smartQ), label: L.label, total: amount()});
+        const rv = j.revisions.length, name = safeName(`${j.sv} ${j.name} Quote Letter${rv?' '+revName(rv):''}`) + '.docx';
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+        let where = 'Downloaded';
+        const home = par || j;
+        if(FileLayer.connected && home.folder && home.folder.status==='created'){
+          try{ await FileLayer.writeFile([FileLayer.folderName(home), par ? '03 Change Orders' : '01 Bid Documents', name], blob);
+            where += ` and saved to ${FileLayer.folderName(home)}\\${par ? '03 Change Orders' : '01 Bid Documents'}`; }catch(_){}
+        }
+        L.made = {at:new Date().toISOString(), name, total:amount()}; Store.save();
+        $('#pick').classList.remove('open'); $('#pickBox').style.width = 'min(520px,94%)'; toast(where + ': ' + name);
+        if(JobDocs.avail() && typeof Cloud!=='undefined' && Cloud.canEdit()){
+          try{ await JobDocs.upload(j, new File([blob], name, {type:DOC_TYPES.docx}), 'letter', 'generated'); changed(); }
+          catch(err){ toast('Letter made, but its copy was not saved to Documents: ' + JobDocs.why(err)); }
+        }
+      }catch(e){ toast('Could not make the quote letter: ' + (e.message||e)); $('#ltGo').disabled = false; $('#ltGo').textContent = 'Make quote letter'; }
     };
   };
   draw(); $('#pick').classList.add('open');
