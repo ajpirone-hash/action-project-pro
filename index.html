@@ -879,7 +879,7 @@ th{font-size:10.5px;font-weight:500;letter-spacing:.06em}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.38 (new change order)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.39 (SV # request on change orders)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -2057,6 +2057,7 @@ function pickParent(j){
 
 /* ---------------- New bid (asks: federal job?) ---------------- */
 $('#btnNew').onclick = ()=>{
+  $('#newCOBox').innerHTML = '';
   $('#newBox').innerHTML = `<h3>New bid</h3>
     <div class="form">
       <div class="f"><label>Job name</label><input id="nName" placeholder="e.g. VA HOSPITAL RESTROOMS"></div>
@@ -2081,9 +2082,9 @@ $('#btnNew').onclick = ()=>{
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
       <button class="btn" id="nCancel">Cancel</button><button class="btn primary" id="nCreate">Create bid</button></div>`;
   $('#newBox h3').insertAdjacentHTML('afterend', `<div class="note" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px"><span>Already have a recap for this job?</span><button class="btn sm" id="nFromRecap">📥 Start from a recap (.xlsx)</button></div>`);
-  $('#newBid').classList.add('open'); setTimeout(()=>$('#nName').focus(),50);
+  $('#newBid').classList.add('open'); setTimeout(()=>{ if($('#nName')) $('#nName').focus(); },50);
   $('#nFromRecap').onclick = ()=>{ $('#newBid').classList.remove('open'); importRecap(null); };
-  svRequestWire();
+  svRequestWire('newBox');
   $('#nCancel').onclick = ()=>$('#newBid').classList.remove('open');
   $('#nCreate').onclick = ()=>{
     const name = $('#nName').value.trim(), fed = document.querySelector('input[name=nFed]:checked');
@@ -2122,8 +2123,20 @@ function newChangeOrder(preId){
       <div class="note" id="ncoFedNote">Federal jobs get the payment &amp; performance bond added to the bid automatically.</div>
       <div class="yn"><label><input type="radio" name="ncoFed" value="yes"> Yes, federal</label><label><input type="radio" name="ncoFed" value="no"> No</label></div>
     </div>
+    <details class="svreq" id="svReq"><summary>✉ Need an SV # for this change order? Email a request</summary>
+      <div class="form">
+        <div class="f"><label>Send to (name)</label><input id="svTo" placeholder="e.g. Sarah"></div>
+        <div class="f"><label>Their email (optional)</label><input id="svToEmail" type="email" placeholder="name@actioncontractors.com"></div>
+        <div class="f wide"><label>Your name</label><input id="svFrom" placeholder="Your name"></div>
+      </div>
+      <div class="note" style="margin:0 0 6px">Uses the change order name and short description above.</div>
+      <div class="svprev" id="svPrev"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap"><button class="btn" id="svCopy">Copy email</button><button class="btn primary" id="svMail">Open in Outlook</button></div>
+    </details>
     <div class="ncofoot"><button class="btn" id="ncoCancel">Cancel</button><button class="btn primary" id="ncoCreate">Create change order</button></div>`;
+  $('#newBox').innerHTML = '';
   const drawJob = ()=>{
+    ncoParent = chosen;
     const P = chosen && Store.get(chosen);
     if(P){
       $('#ncoJob').innerHTML = `<div class="ncopicked"><span class="dot" style="background:${sColor(P.bidStatus)}"></span><div class="pkmain"><b>${esc(P.name)}</b><span class="note">${idLine(P)} · Revised ${money(totals(P).revised)}${childrenOf(P.id).length?` · this will be CO ${childrenOf(P.id).length+1}`:' · this will be CO 1'}</span></div>${jobs.length>1?'<button class="btn sm" id="ncoChange">Change</button>':''}</div>`;
@@ -2140,7 +2153,7 @@ function newChangeOrder(preId){
     };
     $('#ncoQ').oninput = list; list();
   };
-  drawJob();
+  drawJob(); svRequestWire('newCOBox');
   $('#newCO').classList.add('open');
   setTimeout(()=>{ const f = chosen ? $('#ncoName') : $('#ncoQ'); if(f) f.focus(); },50);
   $('#ncoCancel').onclick = ()=>$('#newCO').classList.remove('open');
@@ -2162,17 +2175,24 @@ $('#newCO').onclick = e=>{ if(e.target.id==='newCO') $('#newCO').classList.remov
 /* "Need an SV #?" in the New bid box: a simple request email built from what's typed in. */
 function svRequestEmail(){
   const v = id => ($('#'+id) ? $('#'+id).value.trim() : '');
-  const job = v('nName') || '(job name)';
-  const lines = `Job name: ${job}\nDescription: ${v('svDesc') || '(short description)'}`;
-  const subject = `SV # request: ${job}`;
-  const body = `Hi ${v('svTo') || '(name)'},\n\nCould you please set up an SV number for a new bid?\n\n${lines}\n\nPlease reply with the SV number when it's ready.\n\nThanks,\n${v('svFrom') || '(your name)'}`;
+  // same tool in the New change order box: it names the awarded job the CO goes on
+  const co = !!$('#ncoName'), P = co && ncoParent ? Store.get(ncoParent) : null;
+  const job = v(co ? 'ncoName' : 'nName') || (co ? '(change order name)' : '(job name)');
+  const desc = v(co ? 'ncoDesc' : 'svDesc') || '(short description)';
+  const lines = co
+    ? `Main job: ${P ? P.name + ' (' + [jnum(P) ? 'Job ' + jnum(P) : '', P.sv].filter(Boolean).join(' / ') + ')' : '(pick the awarded job)'}\nChange order: ${job}\nDescription: ${desc}`
+    : `Job name: ${job}\nDescription: ${desc}`;
+  const subject = co ? `SV # request: change order ${job}${P ? ' on ' + (jnum(P) || P.name) : ''}` : `SV # request: ${job}`;
+  const body = `Hi ${v('svTo') || '(name)'},\n\nCould you please set up an SV number for ${co ? 'a change order' : 'a new bid'}?\n\n${lines}\n\nPlease reply with the SV number when it's ready.\n\nThanks,\n${v('svFrom') || '(your name)'}`;
   return {subject, body, to: v('svToEmail')};
 }
-function svRequestWire(){
+let ncoParent = null;
+function svRequestWire(boxId){
+  const box = $('#'+(boxId||'newBox'));
   const keep = (id, key)=>{ const el=$('#'+id); try{ el.value = localStorage.getItem(key)||''; }catch(_){} el.addEventListener('input', ()=>{ try{ localStorage.setItem(key, el.value.trim()); }catch(_){} }); };
   keep('svFrom', 'apInviteFrom'); keep('svTo', 'apSvTo'); keep('svToEmail', 'apSvToEmail');
   const show = ()=>{ const m = svRequestEmail(); $('#svPrev').textContent = 'Subject: ' + m.subject + '\n\n' + m.body; };
-  $('#newBox').addEventListener('input', show); $('#newBox').addEventListener('change', show); show();
+  box.addEventListener('input', show); box.addEventListener('change', show); box.addEventListener('click', ()=>setTimeout(show,0)); show();
   $('#svMail').onclick = ()=>{
     if(!$('#svTo').value.trim()) { toast('Type who the request is going to'); return $('#svTo').focus(); }
     const m = svRequestEmail(); location.href = `mailto:${encodeURIComponent(m.to).replace(/%40/g,'@')}?subject=${encodeURIComponent(m.subject)}&body=${encodeURIComponent(m.body)}`;
