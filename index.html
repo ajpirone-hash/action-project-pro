@@ -382,7 +382,7 @@ header .btn:not(#btnAccount),header input{order:3}
 }
 .cloudbanner[hidden]{display:none}
 .cloudbanner{background:#fff8e6;border:1px solid #f0d58a;border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-.viewonly #btnNew,.viewonly #btnImport,.viewonly #btnIntake,.viewonly #sReset,.viewonly .btn.danger{display:none!important}
+.viewonly #btnNew,.viewonly #btnNewCO,.viewonly #btnImport,.viewonly #btnIntake,.viewonly #sReset,.viewonly .btn.danger{display:none!important}
 .cloud #sReset{display:none!important}
 .viewonly #drawer .btn.primary{display:none!important}
 /* Material Quotes tab (online copies of quote PDFs) */
@@ -643,17 +643,17 @@ tfoot td{border-top:1px solid var(--line2)}
 
 /* phone bottom bar */
 .iostab{display:none}
-.viewonly .iostab [data-t=new],.nofs .iostab [data-t=intake]{display:none!important}
+.viewonly .iostab [data-t=new],.viewonly .iostab [data-t=newco],.nofs .iostab [data-t=intake]{display:none!important}
 .iostab .ibadge{position:absolute;top:-2px;right:8px;font-size:10px;padding:0 5px}
 @media(max-width:640px){
   .iostab{display:flex!important;position:fixed;left:0;right:0;bottom:0;z-index:9;justify-content:space-around;padding:7px 0 max(20px,env(safe-area-inset-bottom));
     background:var(--tab-bg);-webkit-backdrop-filter:blur(18px) saturate(170%);backdrop-filter:blur(18px) saturate(170%);border-top:1px solid var(--line)}
-  .iostab button{border:0;background:none;cursor:pointer;padding:0 10px;min-width:64px;position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;font:600 10.5px/1.1 var(--font);color:var(--muted)}
+  .iostab button{border:0;background:none;cursor:pointer;padding:0 6px;min-width:58px;position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;font:600 10.5px/1.1 var(--font);color:var(--muted)}
   .iostab button i{font-style:normal;font-size:20px;line-height:26px;filter:grayscale(1);opacity:.55}
   .iostab button.on{color:var(--accent)} .iostab button.on i{filter:none;opacity:1}
   main{padding-bottom:110px}
   /* thinner header: the bottom bar already has New bid, Intake, Settings */
-  header #btnIntake,header #btnSettings,header #btnNew{display:none}
+  header #btnIntake,header #btnSettings,header #btnNew,header #btnNewCO{display:none}
   header{row-gap:10px}
   header .btn{font-size:12.5px;padding:6px 10px}
   .drawer{border-radius:18px 18px 0 0;top:10px;height:calc(100% - 10px);border-left:0}
@@ -718,6 +718,9 @@ body{font-size:13.5px;letter-spacing:-.005em}
   header .btn:hover{background:rgba(255,255,255,.06);color:#fff}
   header .btn#btnNew{order:1;background:var(--gold);color:#0b0f17;font-weight:700;justify-content:center;margin-bottom:10px;box-shadow:0 1px 0 rgba(255,255,255,.25) inset}
   header .btn#btnNew:hover{background:#f2b53a;color:#0b0f17}
+  header .btn#btnNew{margin-bottom:6px}
+  header .btn#btnNewCO{order:1;justify-content:center;margin-bottom:10px;border:1px solid rgba(232,163,23,.5);color:#f2c46a;font-weight:600}
+  header .btn#btnNewCO:hover{background:rgba(232,163,23,.1);color:#ffd27a}
   header .btn#btnExport{margin-top:auto}
   header .btn#btnExport,header .btn#btnImport{font-size:12.5px;color:#8b93a3}
   header #syncPill{order:9;align-self:flex-start;margin-top:10px}
@@ -844,6 +847,23 @@ th{font-size:10.5px;font-weight:500;letter-spacing:.06em}
 }
 
 
+/* v0.38 New change order box */
+.ncostep{font:600 11px/1.2 var(--font);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+.ncostep:first-of-type{margin-top:2px}
+#ncoList{max-height:min(300px,38vh)}
+#ncoList .pkitem{min-height:48px}
+#ncoList .pkitem .pkmain{display:flex;flex-direction:column;gap:2px;min-width:0}
+#ncoList .pkitem .pkmain b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#ncoList .pkitem .pkid{font:500 12px/1.2 var(--font);color:var(--muted)}
+#ncoList .pkitem .pkr{margin-left:auto;text-align:right;font-size:12px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+#ncoList .pkitem.on{border-color:var(--accent);background:var(--accent-soft)}
+.ncopicked{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--accent);background:var(--accent-soft);border-radius:var(--rs)}
+.ncopicked .pkmain{min-width:0;flex:1}
+.ncopicked b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ncoempty{padding:18px 12px;text-align:center;color:var(--muted);border:1px dashed var(--line2);border-radius:var(--rs)}
+[data-log=co] [data-del]{display:none}
+.ncofoot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+@media(max-width:640px){ .ncofoot .btn{flex:1;justify-content:center;min-height:44px} .ncopicked .btn{min-height:36px} }
 /* v0.37 side menu title fits on every PC (Windows draws Arial Black wider) */
 @media (min-width:1181px){
   header .wm{font-size:16.5px;letter-spacing:0;flex-wrap:wrap;row-gap:6px;gap:8px;max-width:100%}
@@ -859,7 +879,7 @@ th{font-size:10.5px;font-weight:500;letter-spacing:.06em}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.37 (side menu title fit)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.38 (new change order)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -873,6 +893,7 @@ th{font-size:10.5px;font-weight:500;letter-spacing:.06em}
   <button class="btn" id="btnImport">Import backup</button>
   <input type="file" id="fileImport" accept="application/json" hidden>
   <button class="btn primary" id="btnNew">+ New bid</button>
+  <button class="btn" id="btnNewCO" title="Price a change order on an awarded job">+ New change order</button>
 </header>
 
 <main>
@@ -886,6 +907,7 @@ th{font-size:10.5px;font-weight:500;letter-spacing:.06em}
 <aside class="drawer" id="drawer" aria-hidden="true"></aside>
 
 <div class="modal" id="newBid"><div class="box" id="newBox"></div></div>
+<div class="modal" id="newCO"><div class="box" style="width:min(560px,94%)" id="newCOBox"></div></div>
 <div class="modal" id="settings"><div class="box" id="settingsBox"></div></div>
 <div class="modal" id="pick"><div class="box" style="width:min(520px,94%)" id="pickBox"></div></div>
 <div class="modal" id="ask"><div class="box" style="width:min(420px,94%)">
@@ -935,7 +957,7 @@ th{font-size:10.5px;font-weight:500;letter-spacing:.06em}
     <div class="lg-secure"><span>🔒</span><span>Private to Action E&amp;M. Only people the owner has invited can sign in.</span></div>
   </div></section>
 </div>
-<nav class="iostab" id="iostab"><button data-t="jobs" class="on"><i>📋</i>Jobs</button><button data-t="new"><i>➕</i>New bid</button><button data-t="intake"><i>📥</i>Intake</button><button data-t="settings"><i>⚙️</i>Settings</button></nav>
+<nav class="iostab" id="iostab"><button data-t="jobs" class="on"><i>📋</i>Jobs</button><button data-t="new"><i>➕</i>New bid</button><button data-t="newco"><i>🧾</i>New CO</button><button data-t="intake"><i>📥</i>Intake</button><button data-t="settings"><i>⚙️</i>Settings</button></nav>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1172,7 +1194,7 @@ function askSure(title, msg, yesLabel='Delete'){
 }
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),2200); }
 
-let filter = 'Active', query = '', sortBy = 'recent', openId = null, openTab = 'co';
+let filter = 'Active', query = '', sortBy = 'recent', openId = null, openTab = 'mat';
 
 function renderKPIs(){
   const J = topJobs();
@@ -1354,7 +1376,7 @@ function askJobNo(j){
 function openJob(id){ openId=id; renderDrawer(); $('#drawer').classList.add('open'); $('#scrim').classList.add('open'); }
 function closeJob(){ closeIdMenu(); JobChat.stop(); ToolReq.stop(); openId=null; $('#drawer').classList.remove('open'); $('#scrim').classList.remove('open'); }
 $('#scrim').onclick = closeJob;
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeIdMenu(); closeJob(); $('#settings').classList.remove('open'); $('#newBid').classList.remove('open'); $('#pick').classList.remove('open'); $('#intake').classList.remove('open'); }});
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeIdMenu(); closeJob(); $('#settings').classList.remove('open'); $('#newBid').classList.remove('open'); $('#newCO').classList.remove('open'); $('#pick').classList.remove('open'); $('#intake').classList.remove('open'); }});
 
 const fld = (label,key,val,type='text',extra='') => `<div class="f ${type==='textarea'?'wide':''}"><label>${label}</label>${
   type==='textarea' ? `<textarea rows="2" data-k="${key}">${esc(val)}</textarea>`
@@ -1423,7 +1445,7 @@ function logTable(j, tabKey){
     if(t==='number') return `<td class="num">${r[k]??''}</td>`;
     return `<td>${esc(r[k])}</td>`;
   };
-  const linked = tabKey==='co' ? childrenOf(j.id) : [];
+  const linked = [];   // linked CO jobs show in the CO switcher at the top of the job
   const linkedRows = linked.map(c=>`<tr class="linked"><td>${esc(jid(c))||'—'}</td><td>${fdate(c.sentDate||c.startDate)}</td><td>${esc(c.name)} <span class="pill co">linked job</span></td><td>${coStatus(c.bidStatus)}</td><td class="num">${money(c.bidTotal,2)}</td><td class="note">From its own bid</td><td class="num">${money(c.materials.reduce((a,m)=>a+(+m.cost||0),0),2)}</td><td><button class="btn sm" data-openjob="${esc(c.id)}">Open</button></td></tr>`).join('');
   const isMat = tabKey==='mat', T = isMat ? moveTargets() : null;
   const tagCell = (r,ri,c) => { const td = cell(r,ri,c);
@@ -1441,7 +1463,7 @@ function logTable(j, tabKey){
     <tbody>${body}</tbody>
     <tfoot><tr><td colspan="${heads.length-1}" style="text-align:right">${L.totalLabel}</td><td class="num">${money(L.total(j),2)}</td>${isMat?'<td class="mvcol"></td>':''}<td></td></tr></tfoot></table></div>
     ${isMat && totals(j).coMat ? `<div class="note" style="margin-top:6px">Job financials also count ${money(totals(j).coMat,2)} of material logged on this job's change-order jobs.</div>` : ''}
-    <div class="addform"><div class="addhead">Add ${L.label.replace(/s$/,'').toLowerCase()}</div><div class="addgrid">${add}<div class="f addbtn"><button class="btn primary" data-addrow>+ Add</button></div></div></div></div>`;
+    ${tabKey==='co' ? `<div class="note" style="margin-top:8px">These were typed in before change orders got their own builder. They still count in the CO total. New change orders: use <b>+ New change order</b> in the menu.</div>` : `<div class="addform"><div class="addhead">Add ${L.label.replace(/s$/,'').toLowerCase()}</div><div class="addgrid">${add}<div class="f addbtn"><button class="btn primary" data-addrow>+ Add</button></div></div></div>`}</div>`;
 }
 
 /* ---------------- Moving material orders ----------------
@@ -1538,7 +1560,7 @@ function bindLog(j, wrap){
   if(wrap.dataset.log==='mat'){ const T = moveTargets();
     wrap.querySelectorAll('[data-move]').forEach(s=>s.onchange=()=>moveMaterial(j, +s.dataset.move, T[+s.value])); }
   wrap.querySelectorAll('[data-edit]').forEach(s=>s.onchange=()=>{ j[L.key][+s.dataset.edit][s.dataset.ek] = s.type==='number' ? +s.value : s.value; changed(); if(L.key==='materialItems') writeMaterialList(j).catch(()=>{}); });
-  wrap.querySelector('[data-addrow]').onclick = ()=>{
+  if(wrap.querySelector('[data-addrow]')) wrap.querySelector('[data-addrow]').onclick = ()=>{
     const row = {}; let filled = false;
     wrap.querySelectorAll('[data-add]').forEach(el=>{
       const k=el.dataset.add, col=L.cols.find(c=>c[1]===k), t=col[2];
@@ -1713,12 +1735,13 @@ function bidBuilderCard(j){
 const MAT_TABS = ['mat','items','quotes'];
 let matSub = 'mat';
 function jobTabCount(j,k){
-  return k==='quotes' ? (j.quotePdfs||[]).length : k==='tools' ? ToolReq.countFor(j) : j[LOGS[k].key].length + (k==='co'?childrenOf(j.id).length:0);
+  return k==='quotes' ? (j.quotePdfs||[]).length : k==='tools' ? ToolReq.countFor(j) : j[LOGS[k].key].length;
 }
 function jobTabs(j){
   if(MAT_TABS.includes(openTab)) matSub = openTab;
   const inMat = MAT_TABS.includes(openTab);
-  const top = [['co','Change Orders','Change Orders'],['matg','Material','Material orders, material on job and quotes'],['lab','Labor','Labor Hours'],['trav','Hotel & Per Diem','Hotel & Per Diem'],['tools','🧰 Tools','Tool Requests']];
+  if(openTab==='co' && !(j.changeOrders||[]).length) openTab = 'mat';
+  const top = [...((j.changeOrders||[]).length ? [['co','Earlier COs','Change orders typed in before v0.38']] : []),['matg','Material','Material orders, material on job and quotes'],['lab','Labor','Labor Hours'],['trav','Hotel & Per Diem','Hotel & Per Diem'],['tools','🧰 Tools','Tool Requests']];
   const n = k => k==='matg' ? MAT_TABS.reduce((s,x)=>s+jobTabCount(j,x),0) : jobTabCount(j,k);
   const on = k => k==='matg' ? inMat : k===openTab;
   const sub = [['mat','Orders'],['items','On job'],['quotes','Quotes']];
@@ -1772,7 +1795,7 @@ function renderDrawer(){
 
     <div class="lockwrap ${awarded?'':'locked'}">
       <div class="lockover"><div class="lockbox"><div class="ic">🔒</div><b>Job tracking is locked</b>
-        <p>Change orders, material, labor and travel open up once this bid is marked <b>Awarded</b>.</p>
+        <p>Material, labor, travel and change orders open up once this bid is marked <b>Awarded</b>.</p>
         <button class="btn primary" id="unlock">Mark as Awarded</button></div></div>
       <div class="lockbody" style="display:flex;flex-direction:column;gap:14px">
         <div class="card"><h4>Job financials ${awarded&&j.awardDate?`<span class="pill ok">Awarded ${fdate(j.awardDate)}</span>`:''} ${folderJob(j).completedDate?`<span class="pill done">✓ Completed ${fdate(folderJob(j).completedDate)}</span>`:''}</h4>
@@ -1792,7 +1815,7 @@ function renderDrawer(){
         </div>
         <div class="card">
           ${jobTabs(j)}
-          ${openTab==='quotes' ? (awarded ? quotesTab(j) : logTable(j,'co')) : openTab==='tools' ? (awarded ? ToolReq.tab(j) : logTable(j,'co')) : logTable(j,openTab)}
+          ${openTab==='quotes' ? (awarded ? quotesTab(j) : logTable(j,'mat')) : openTab==='tools' ? (awarded ? ToolReq.tab(j) : logTable(j,'mat')) : logTable(j,openTab)}
         </div>
       </div>
     </div>
@@ -2073,6 +2096,68 @@ $('#btnNew').onclick = ()=>{
   };
 };
 $('#newBid').onclick = e=>{ if(e.target.id==='newBid') $('#newBid').classList.remove('open'); };
+
+/* ---------------- New change order (side menu, next to + New bid) ----------------
+   Only awarded main jobs can get one. It becomes a linked change-order job
+   (parentId) with its own bid builder, like the MLK water heater CO.          */
+function newChangeOrder(preId){
+  const done = j => !!folderJob(j).completedDate;
+  const jobs = topJobs().filter(x=>x.bidStatus==='Awarded')
+    .sort((a,b)=>(done(a)-done(b)) || String(b.awardDate||'').localeCompare(String(a.awardDate||'')) || a.name.localeCompare(b.name));
+  let chosen = preId && jobs.find(x=>x.id===preId) ? preId : (jobs.length===1 ? jobs[0].id : null);
+  const idLine = x => `${esc(jid(x))||'No SV #'}${jnum(x)&&x.sv?` · ${esc(x.sv)}`:''}`;
+  const right = x => { const n = childrenOf(x.id).length;
+    return `${n?`${n} CO${n>1?'s':''} · `:''}${money(totals(x).revised)}${done(x)?'<br>Completed':''}`; };
+  $('#newCOBox').innerHTML = `<h3>New change order</h3>
+    <div class="ncostep">1 · Awarded job</div>
+    <div id="ncoJob"></div>
+    <div class="ncostep">2 · Change order</div>
+    <div class="form">
+      <div class="f wide"><label>Change order name</label><input id="ncoName" placeholder="e.g. ADD 2 FLOOR DRAINS"></div>
+      <div class="f"><label>SV number</label><input id="ncoSv" placeholder="SV26-____"></div>
+      <div class="f"><label>Priority</label><select id="ncoPri">${opts(['Low','Normal','High'],'Normal')}</select></div>
+      <div class="f wide"><label>Short description</label><textarea id="ncoDesc" rows="2" placeholder="What changed and why"></textarea></div>
+    </div>
+    <div class="fedq"><b>Is this a federal job?</b>
+      <div class="note" id="ncoFedNote">Federal jobs get the payment &amp; performance bond added to the bid automatically.</div>
+      <div class="yn"><label><input type="radio" name="ncoFed" value="yes"> Yes, federal</label><label><input type="radio" name="ncoFed" value="no"> No</label></div>
+    </div>
+    <div class="ncofoot"><button class="btn" id="ncoCancel">Cancel</button><button class="btn primary" id="ncoCreate">Create change order</button></div>`;
+  const drawJob = ()=>{
+    const P = chosen && Store.get(chosen);
+    if(P){
+      $('#ncoJob').innerHTML = `<div class="ncopicked"><span class="dot" style="background:${sColor(P.bidStatus)}"></span><div class="pkmain"><b>${esc(P.name)}</b><span class="note">${idLine(P)} · Revised ${money(totals(P).revised)}${childrenOf(P.id).length?` · this will be CO ${childrenOf(P.id).length+1}`:' · this will be CO 1'}</span></div>${jobs.length>1?'<button class="btn sm" id="ncoChange">Change</button>':''}</div>`;
+      if($('#ncoChange')) $('#ncoChange').onclick = ()=>{ chosen=null; drawJob(); setTimeout(()=>$('#ncoQ')&&$('#ncoQ').focus(),30); };
+      $('#ncoFedNote').textContent = `The main job is ${P.federal?'federal':'not federal'}. Federal jobs get the payment & performance bond added to the bid automatically.`;
+      return;
+    }
+    if(!jobs.length){ $('#ncoJob').innerHTML = `<div class="ncoempty">No awarded jobs yet. Mark a bid <b>Awarded</b> first, then you can add change orders to it.</div>`; return; }
+    $('#ncoJob').innerHTML = `<div class="f"><input id="ncoQ" placeholder="Search job name, job # or SV #" autocomplete="off" aria-label="Search awarded jobs"></div><div class="pklist" id="ncoList"></div>`;
+    const list = ()=>{ const q = $('#ncoQ').value.trim().toLowerCase();
+      const hits = jobs.filter(x=>(x.name+' '+x.sv+' '+jnum(x)).toLowerCase().includes(q));
+      $('#ncoList').innerHTML = hits.map(x=>`<button class="pkitem" data-nco="${esc(x.id)}"><span class="dot" style="background:${sColor(x.bidStatus)}"></span><span class="pkmain"><b>${esc(x.name)}</b><span class="pkid">${idLine(x)}</span></span><span class="pkr">${right(x)}</span></button>`).join('') || '<div class="note">No awarded job matches.</div>';
+      $('#ncoList').querySelectorAll('[data-nco]').forEach(b=>b.onclick=()=>{ chosen=b.dataset.nco; drawJob(); $('#ncoName').focus(); });
+    };
+    $('#ncoQ').oninput = list; list();
+  };
+  drawJob();
+  $('#newCO').classList.add('open');
+  setTimeout(()=>{ const f = chosen ? $('#ncoName') : $('#ncoQ'); if(f) f.focus(); },50);
+  $('#ncoCancel').onclick = ()=>$('#newCO').classList.remove('open');
+  $('#ncoCreate').onclick = ()=>{
+    const P = chosen && Store.get(chosen), name = $('#ncoName').value.trim(), fed = document.querySelector('input[name=ncoFed]:checked');
+    if(!P){ toast('Pick the awarded job this change order is for'); return; }
+    if(!name){ toast('Enter a change order name'); return $('#ncoName').focus(); }
+    if(!fed){ toast('Answer: is this a federal job?'); return; }
+    const j = normalizeJob({id:'job-'+Date.now(), sv:$('#ncoSv').value.trim(), name, priority:$('#ncoPri').value, estStatus:'In Progress', startDate:today(), bidStatus:'Estimating',
+      federal: fed.value==='yes', parentId: P.id, recapLocation: P.recapLocation||'', recapDesc:($('#ncoDesc').value||'').trim()});
+    Store.jobs.unshift(j); Store.save();
+    $('#newCO').classList.remove('open'); bidTab='bq'; render(); openJob(j.id);
+    toast(`Change order ${childrenOf(P.id).length} added to ${P.name}`);
+  };
+}
+$('#btnNewCO').onclick = ()=>{ const o = Store.get(openId); newChangeOrder(o ? folderJob(o).id : null); };
+$('#newCO').onclick = e=>{ if(e.target.id==='newCO') $('#newCO').classList.remove('open'); };
 
 /* "Need an SV #?" in the New bid box: a simple request email built from what's typed in. */
 function svRequestEmail(){
@@ -4153,7 +4238,7 @@ if(Cloud.on){
   if(mq){ var f=function(){ if(cur()==='system') apply('system'); }; mq.addEventListener?mq.addEventListener('change',f):mq.addListener(f); }
   apply(cur());
   var go={jobs:function(){ if(typeof closeJob==='function') closeJob(); window.scrollTo({top:0,behavior:'smooth'}); },
-          new:function(){ document.getElementById('btnNew').click(); }, intake:function(){ document.getElementById('btnIntake').click(); },
+          new:function(){ document.getElementById('btnNew').click(); }, newco:function(){ document.getElementById('btnNewCO').click(); }, intake:function(){ document.getElementById('btnIntake').click(); },
           settings:function(){ document.getElementById('btnSettings').click(); }};
   document.querySelectorAll('#iostab button').forEach(function(b){ b.onclick=function(){ go[b.dataset.t]&&go[b.dataset.t](); }; });
   var bi=document.getElementById('btnIntake'), ti=document.querySelector('#iostab [data-t=intake]');
