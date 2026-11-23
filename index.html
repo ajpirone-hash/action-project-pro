@@ -412,6 +412,20 @@ header .btn:not(#btnAccount),header input{order:3}
 .pill.done{background:#e6f0fb;color:#1b3a66}
 .donerow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
 .viewonly .qedit{display:none!important}
+/* v0.42 Documents card */
+.dlist{display:flex;flex-direction:column;gap:6px}
+.drow{display:flex;gap:12px;align-items:center;border:1px solid var(--line);border-radius:var(--rs,8px);padding:9px 10px;background:var(--panel,#fff)}
+.drow .dmain{flex:1;min-width:0}
+.drow .dmain a,.drow .dmain b{font-weight:600;color:var(--ink,#16202c);word-break:break-word;text-decoration:none}
+.drow .dmain a:hover{text-decoration:underline;color:var(--accent,#1b3a66)}
+.drow .dsub{font-size:12px;color:var(--muted);margin-top:2px;word-break:break-word}
+.drow .dbtn{flex:none}
+.drow a.dbtn{text-decoration:none}
+.dtag{flex:none;width:38px;height:38px;border-radius:8px;display:grid;place-items:center;font:700 10.5px/1 'Geist Mono',ui-monospace,Consolas,monospace;letter-spacing:.04em;color:#fff;background:#5b6472}
+.dtag.w{background:#2b579a}.dtag.x{background:#217346}.dtag.p{background:#b3261e}
+.dsec{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:16px 0 8px}
+.dempty{font-size:13px;color:var(--muted);border:1px dashed var(--line);border-radius:var(--rs,8px);padding:14px 12px}
+@media (max-width:640px){ .drow{flex-wrap:wrap} .drow .dmain{flex-basis:calc(100% - 50px)} .drow .dbtn:not(.ghost){flex:1 1 auto;text-align:center} }
 @media (max-width:640px){ .qrow{padding:10px} .qbar .btn{flex:1 1 auto;text-align:center} }
 </style>
 <script>/* v0.32 appearance: light / dark / system, remembered per device */
@@ -889,7 +903,7 @@ th{font-size:10.5px;font-weight:500;letter-spacing:.06em}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.41 (SV # contacts drop-down)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.42 (Documents card)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -1029,7 +1043,7 @@ function normalizeJob(j){
   const s = (typeof Store!=='undefined' && Store.settings) || DEFAULT_SETTINGS;
   return Object.assign({sv:'', name:'', priority:'Normal', estStatus:'Not Started', startDate:'', sentDate:'', pct:0, notes:'',
     bidTotal:0, bidStatus:'Estimating', awardDate:'', federal:false, parentId:null, revisions:[], bidBond:{req:'No', pct:20},
-    changeOrders:[], materials:[], materialItems:[], labor:[], travel:[], quotePdfs:[], completedDate:'',
+    changeOrders:[], materials:[], materialItems:[], labor:[], travel:[], quotePdfs:[], docFiles:[], completedDate:'',
     quotes:[], subs:[], rentals:[], estLabor:[], estOther:[],
     markup:{}}, j, {markup: Object.assign({}, DEFAULT_SETTINGS.recap, s.recap, j.markup||{})});
 }
@@ -1847,6 +1861,7 @@ function renderDrawer(){
   });
   JobChat.wire(j);
   QuoteTab.wire(j);
+  DocTab.wire(j);
   ToolReq.wire(j);
   if($('#dComplete')) $('#dComplete').onclick = ()=>completeJob(j);
   if($('#dReopen')) $('#dReopen').onclick = ()=>reopenJob(j);
@@ -3081,7 +3096,7 @@ function importRecap(j){
   const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.xlsx,.xlsm';
   inp.onchange = async ()=>{ const f = inp.files[0]; if(!f) return;
     toast('Reading ' + f.name + '…');
-    try{ const R = await riRead(await f.arrayBuffer()); riReview(j, riParse(R, f, j)); }
+    try{ const R = await riRead(await f.arrayBuffer()), P = riParse(R, f, j); P.src = f; riReview(j, P); }
     catch(e){ toast('Could not read that recap: ' + (e.message||e)); }
   };
   inp.click();
@@ -3110,7 +3125,7 @@ function riReview(j0, P){
       return `<div class="rimap"><span>Row ${mp.row} on the recap is renamed <b>${esc(mp.label)}</b> (${f2(line.amount)}). Bring it in as</span>
         <select data-rimap="${i}">${opts(opts_, cur)}</select></div>`; }).join('');
     $('#pickBox').innerHTML = `<h3>${isNew?'New bid from a recap':'Import recap'}</h3>
-      <div class="note">📄 <b>${esc(P.hdr.file)}</b>${P.hdr.rev?` · ${esc(P.hdr.rev)}`:''}${P.hdr.date?` · dated ${esc(P.hdr.date)}`:''}. Read only: the recap file is not changed.${isNew?'':` Goes into <b>${esc(j.sv||'no SV #')} · ${esc(j.name)}</b>.`}</div>
+      <div class="note">📄 <b>${esc(P.hdr.file)}</b>${P.hdr.rev?` · ${esc(P.hdr.rev)}`:''}${P.hdr.date?` · dated ${esc(P.hdr.date)}`:''}. Read only: the recap file is not changed.${JobDocs.avail()?' A copy is saved to the job\'s Documents.':''}${isNew?'':` Goes into <b>${esc(j.sv||'no SV #')} · ${esc(j.name)}</b>.`}</div>
       ${svWarn?`<div class="rccheck bad">⚠ This recap says <b>${esc(P.hdr.sv)}</b> but the job is <b>${esc(j.sv)}</b>. Make sure it's the right job.</div>`:''}
       ${isNew?`<div class="form" style="margin-top:10px"><div class="f"><label>Job name</label><input id="riName" value="${esc(st.name)}"></div><div class="f"><label>SV number</label><input id="riSv" value="${esc(st.sv)}" placeholder="SV26-____"></div></div>`:''}
       <div class="fedq" style="margin-top:10px"><b>Is this a federal job?</b>
@@ -3164,6 +3179,7 @@ function riReview(j0, P){
       $('#pick').classList.remove('open'); bidTab = 'bq';
       if(isNew){ Store.save(); render(); openJob(j.id); } else changed();
       toast(`Recap imported: ${money(total,2)}${riNear(P.recap.G95,total)?' (matches to the penny)':''}`);
+      if(P.src) JobDocs.saveRecap(j, P.src);
     };
   };
   draw(); $('#pick').classList.add('open');
@@ -3641,20 +3657,103 @@ const Intake = {
   }
 };
 
-/* Recaps in Documents: read-only links to the recap workbooks Claude found in the
-   user's Documents job folders (j.recaps = [{label,file,folder,path,total,date,note}]).
-   The app never opens or changes those files; it shows where they are. */
+/* ---------------- Documents (v0.42) ----------------
+   One card per job:
+   - Saved copies (Firebase Storage, docs/{ws}/{job}/{id}.{ext}): the quote / proposal
+     letter (Word) people upload, and a copy of every recap imported into the bid builder.
+     Anyone signed in can download them; only editors add or delete.
+     j.docFiles = [{id, path, url, name, size, kind:'letter'|'recap'|'file', at, by, from}]
+   - In your Documents folder: read-only links to the recap workbooks Claude found in the
+     user's Documents job folders (j.recaps = [{label,file,folder,path,total,date,note}]).
+   The app never opens the user's original files for writing. */
+const DOC_TYPES = {docx:'application/vnd.openxmlformats-officedocument.wordprocessingml.document', doc:'application/msword',
+  xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', xlsm:'application/vnd.ms-excel.sheet.macroEnabled.12', pdf:'application/pdf'};
+const JobDocs = {
+  MAX: 25*1024*1024,
+  avail(){ return QuotePdfs.avail(); },
+  ext: n => ((String(n).match(/\.([a-z0-9]+)$/i)||[])[1]||'').toLowerCase(),
+  kindOf(n){ const x = this.ext(n); return x==='xlsx'||x==='xlsm' ? 'recap' : x==='docx'||x==='doc' ? 'letter' : 'file'; },
+  has(j, name, size){ return (j.docFiles||[]).some(e=>e.name===name && (!size || !e.size || +e.size===+size)); },
+  async upload(j, file, kind, from){
+    const name = file.name || 'document', x = this.ext(name);
+    if(!DOC_TYPES[x]) throw new Error(`${name} is not a Word, Excel or PDF file`);
+    if(file.size > this.MAX) throw new Error(`${name} is over 25 MB`);
+    const id = Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+    const path = `docs/${QuotePdfs.key(CLOUD_CONFIG.workspace||'main')}/${QuotePdfs.key(j.id)}/${id}.${x}`;
+    const ref = Cloud.storage.ref(path), ascii = name.replace(/[^\x20-\x7e]|"/g,'_');
+    await ref.put(file, {contentType:DOC_TYPES[x], contentDisposition:`attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(name)}`,
+      customMetadata:{file:String(name).slice(0,200), job:String(j.sv||j.name||'').slice(0,100), kind}});
+    let url = ''; try{ url = await ref.getDownloadURL(); }catch(_){}
+    const e = {id, path, url, name, size:file.size, kind: kind || this.kindOf(name), at:new Date().toISOString(), by:Cloud.email||'', from:from||'upload'};
+    (j.docFiles = j.docFiles||[]).push(e);
+    return e;
+  },
+  /* called after a recap import; quiet unless it fails */
+  async saveRecap(j, file){
+    if(!this.avail() || !Cloud.canEdit() || this.has(j, file.name, file.size)) return;
+    try{ await this.upload(j, file, 'recap', 'import'); changed(); toast('Recap copy saved to Documents'); }
+    catch(err){ toast('Recap imported, but its copy was not saved to Documents: ' + this.why(err)); }
+  },
+  why(err){ return (err && err.code==='storage/unauthorized') ? "Firebase Storage rules need the Documents update (or your login can't add files)." : QuotePdfs.why(err); }
+};
+const DOC_LBL = {letter:'Quote letter', recap:'Recap', file:'File'};
+function docTag(name){ const x = JobDocs.ext(name); const c = x==='docx'||x==='doc' ? 'w' : x==='xlsx'||x==='xlsm' ? 'x' : x==='pdf' ? 'p' : '';
+  return `<span class="dtag ${c}" aria-hidden="true">${esc((x||'file').toUpperCase().slice(0,4))}</span>`; }
 function recapsCard(j){
-  const R = j.recaps||[]; if(!R.length) return '';
-  const rows = R.map(r=>{ const full = r.path || (r.folder + '\\' + r.file);
-    return `<tr><td>${esc(r.label||'Recap')}${r.note?`<div style="font-size:11px;color:var(--muted)">${esc(r.note)}</div>`:''}</td>
-      <td style="word-break:break-word">${esc(r.file)}<div style="font-size:11px;color:var(--muted)">Documents\\${esc(r.folder)}</div></td>
-      <td>${r.date?esc(r.date):''}</td><td style="text-align:right">${r.total!=null?money(r.total,2):'—'}</td>
-      <td><button class="btn sm" data-copypath="${esc(full)}" title="${esc(full)}">Copy path</button></td></tr>`; }).join('');
-  return `<div class="card"><h4>Recaps in Documents</h4>
-    <table><thead><tr><th>Recap</th><th>File</th><th>Saved</th><th style="text-align:right">Total w/ bond</th><th></th></tr></thead><tbody>${rows}</tbody></table>
-    <div style="font-size:11px;color:var(--muted);margin-top:6px">Read only. These are your original recap files; the app does not change them.</div></div>`;
+  const on = JobDocs.avail();
+  const L = (j.docFiles||[]).slice().sort((a,b)=>String(b.at).localeCompare(String(a.at)));
+  const R = j.recaps||[];
+  const saved = L.map(e=>{
+    const sub = [DOC_LBL[e.kind]||'File', 'added '+fdate(String(e.at).slice(0,10))+(e.by?' by '+Cloud.nameOf(e.by):''), kb(e.size)].filter(Boolean);
+    return `<div class="drow">${docTag(e.name)}<div class="dmain"><a href="${esc(e.url||'#')}" rel="noopener" data-dopen="${esc(e.id)}" title="Download a copy">${esc(e.name)}</a><div class="dsub">${sub.map(esc).join(' · ')}</div></div>
+      <a class="btn sm dbtn" href="${esc(e.url||'#')}" rel="noopener" data-dopen="${esc(e.id)}" aria-label="Download ${esc(e.name)}">Download</a>
+      <button class="btn ghost sm qedit dbtn" data-ddel="${esc(e.id)}" title="Delete the saved copy" aria-label="Delete the saved copy">✕</button></div>`;
+  }).join('');
+  const local = R.map(r=>{ const full = r.path || (r.folder + '\\' + r.file);
+    const sub = [r.label||'Recap', r.date||'', r.total!=null ? money(r.total,2)+' w/ bond' : '', 'Documents\\'+r.folder].filter(Boolean);
+    return `<div class="drow">${docTag(r.file)}<div class="dmain"><b>${esc(r.file)}</b><div class="dsub">${sub.map(esc).join(' · ')}</div>${r.note?`<div class="dsub">${esc(r.note)}</div>`:''}</div>
+      <button class="btn sm dbtn" data-copypath="${esc(full)}" title="${esc(full)}">Copy path</button></div>`; }).join('');
+  const body = on
+    ? `<div class="dlist">${saved || `<div class="dempty">No saved copies yet. Upload the quote letter, and recaps you import into the bid builder land here on their own.</div>`}</div>
+       <div class="qbar"><label class="btn qedit">⬆ Upload quote letter<input type="file" accept=".docx,.doc,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/msword,application/pdf" multiple id="dFile" style="display:none"></label>
+         <span class="note qedit">Word or PDF. Imported recaps are saved here automatically.</span></div>
+       <div class="note qmsg" id="dMsg"></div>`
+    : `<div class="note">Saved copies live online, so they show up in the online app: <a href="https://ajpirone-hash.github.io/action-project-pro/" target="_blank" rel="noopener">Action Project PRO online</a>.</div>`;
+  return `<div class="card doccard" id="docCard"><h4>Documents <span class="n" style="font-weight:400;color:var(--muted)">${L.length||''}</span></h4>
+    ${body}
+    ${R.length ? `<div class="dsec">In your Documents folder</div><div class="dlist">${local}</div>
+    <div class="note" style="margin-top:6px">Read only. These are your original files; the app does not change them.</div>` : ''}</div>`;
 }
+const DocTab = {
+  msg(t, err){ const m = $('#dMsg'); if(m){ m.textContent = t||''; m.classList.toggle('err', !!err); } },
+  wire(j){
+    const box = $('#docCard'); if(!box) return;
+    box.querySelectorAll('[data-dopen]').forEach(a=>a.onclick = async ev=>{
+      const e = (j.docFiles||[]).find(x=>x.id===a.dataset.dopen); if(!e || e.url) return;
+      ev.preventDefault();
+      try{ e.url = await Cloud.storage.ref(e.path).getDownloadURL(); location.href = e.url; }catch(err){ toast('Could not download it: '+JobDocs.why(err)); }
+    });
+    box.querySelectorAll('[data-ddel]').forEach(b=>b.onclick = async ()=>{
+      const e = (j.docFiles||[]).find(x=>x.id===b.dataset.ddel); if(!e) return;
+      if(!await askSure('Delete this saved copy?', `${e.name} will be removed from Documents for everyone. Your original file in Documents on the PC is not touched.`, 'Delete')) return;
+      try{ await QuotePdfs.remove(e); j.docFiles = j.docFiles.filter(x=>x!==e); changed(); toast('Saved copy deleted'); }
+      catch(err){ toast('Could not delete it: '+JobDocs.why(err)); }
+    });
+    const inp = $('#dFile');
+    if(inp) inp.onchange = async ()=>{
+      const fs = [...inp.files]; inp.value = ''; let n = 0; const bad = [];
+      for(const [i,f] of fs.entries()){
+        if(!DOC_TYPES[JobDocs.ext(f.name)]){ bad.push(`${f.name} is not a Word or PDF file`); continue; }
+        if(JobDocs.has(j, f.name, f.size)){ bad.push(`${f.name} is already saved`); continue; }
+        this.msg(`Uploading ${i+1} of ${fs.length}: ${f.name}…`);
+        try{ await JobDocs.upload(j, f, JobDocs.kindOf(f.name)==='recap' ? 'recap' : 'letter', 'upload'); n++; }
+        catch(err){ bad.push(`${f.name}: ${JobDocs.why(err)}`); }
+      }
+      if(n){ changed(); toast(`Saved ${n} file${n>1?'s':''} to Documents`); }
+      this.msg(bad.join(' · '), bad.length>0);
+    };
+  }
+};
 
 /* _system\job-imports.json: jobs Claude built from a job's existing folder
    (proposal, takeoff, material list). Each import is applied once: a new job is
