@@ -862,6 +862,10 @@ th{font-size:10.5px;font-weight:500;letter-spacing:.06em}
 .ncopicked b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ncoempty{padding:18px 12px;text-align:center;color:var(--muted);border:1px dashed var(--line2);border-radius:var(--rs)}
 [data-log=co] [data-del]{display:none}
+.svrow{display:flex;gap:8px;align-items:stretch}
+.svrow input{flex:1;min-width:0}
+.svrow .svask{flex:none;white-space:nowrap;border-color:var(--accent);color:var(--accent);background:var(--accent-soft);font-weight:600}
+@media(max-width:400px){ .svrow{flex-wrap:wrap} .svrow .svask{width:100%;justify-content:center;min-height:40px} }
 .ncofoot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
 @media(max-width:640px){ .ncofoot .btn{flex:1;justify-content:center;min-height:44px} .ncopicked .btn{min-height:36px} }
 /* v0.37 side menu title fits on every PC (Windows draws Arial Black wider) */
@@ -879,7 +883,7 @@ th{font-size:10.5px;font-weight:500;letter-spacing:.06em}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.39 (SV # request on change orders)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.40 (SV # email next to SV number)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -2115,13 +2119,9 @@ function newChangeOrder(preId){
     <div class="ncostep">2 · Change order</div>
     <div class="form">
       <div class="f wide"><label>Change order name</label><input id="ncoName" placeholder="e.g. ADD 2 FLOOR DRAINS"></div>
-      <div class="f"><label>SV number</label><input id="ncoSv" placeholder="SV26-____"></div>
+      <div class="f"><label>SV number</label><div class="svrow"><input id="ncoSv" placeholder="SV26-____"><button type="button" class="btn sm svask" id="ncoSvAsk" aria-controls="svReq">✉ Email for SV #</button></div></div>
       <div class="f"><label>Priority</label><select id="ncoPri">${opts(['Low','Normal','High'],'Normal')}</select></div>
       <div class="f wide"><label>Short description</label><textarea id="ncoDesc" rows="2" placeholder="What changed and why"></textarea></div>
-    </div>
-    <div class="fedq"><b>Is this a federal job?</b>
-      <div class="note" id="ncoFedNote">Federal jobs get the payment &amp; performance bond added to the bid automatically.</div>
-      <div class="yn"><label><input type="radio" name="ncoFed" value="yes"> Yes, federal</label><label><input type="radio" name="ncoFed" value="no"> No</label></div>
     </div>
     <details class="svreq" id="svReq"><summary>✉ Need an SV # for this change order? Email a request</summary>
       <div class="form">
@@ -2133,6 +2133,10 @@ function newChangeOrder(preId){
       <div class="svprev" id="svPrev"></div>
       <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap"><button class="btn" id="svCopy">Copy email</button><button class="btn primary" id="svMail">Open in Outlook</button></div>
     </details>
+    <div class="fedq"><b>Is this a federal job?</b>
+      <div class="note" id="ncoFedNote">Federal jobs get the payment &amp; performance bond added to the bid automatically.</div>
+      <div class="yn"><label><input type="radio" name="ncoFed" value="yes"> Yes, federal</label><label><input type="radio" name="ncoFed" value="no"> No</label></div>
+    </div>
     <div class="ncofoot"><button class="btn" id="ncoCancel">Cancel</button><button class="btn primary" id="ncoCreate">Create change order</button></div>`;
   $('#newBox').innerHTML = '';
   const drawJob = ()=>{
@@ -2154,6 +2158,7 @@ function newChangeOrder(preId){
     $('#ncoQ').oninput = list; list();
   };
   drawJob(); svRequestWire('newCOBox');
+  $('#ncoSvAsk').onclick = ()=>{ const d = $('#svReq'); d.open = !d.open; if(d.open){ d.scrollIntoView({block:'nearest', behavior:'smooth'}); setTimeout(()=>$('#svTo').focus({preventScroll:true}),250); } };
   $('#newCO').classList.add('open');
   setTimeout(()=>{ const f = chosen ? $('#ncoName') : $('#ncoQ'); if(f) f.focus(); },50);
   $('#ncoCancel').onclick = ()=>$('#newCO').classList.remove('open');
