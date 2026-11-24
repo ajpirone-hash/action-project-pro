@@ -287,3 +287,13 @@ html.t3d .t3dhost.hero.narrow .t3dui .bar>*{flex-shrink:0}
 .t3dhost.hero.narrow .t3dread .ral button{flex:1 1 auto}
 .t3dhost.hero.narrow .t3dread .ral button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .t3dstat .dt{font-style:normal}
+/* short screens: readouts as tight as possible so the dial gets the room */
+.t3dhost.hero.narrow.short .t3dread{bottom:8px}
+.t3dhost.hero.narrow.short .t3dread .rp{padding:8px 10px 7px}
+.t3dhost.hero.narrow.short .t3dread h4{font-size:10.5px;margin-bottom:2px;padding-bottom:4px}
+.t3dhost.hero.narrow.short .t3dread .rr{padding:2px 0}
+.t3dhost.hero.narrow.short .t3dread .rr b{font-size:13px}
+.t3dhost.hero.narrow.short .t3dread .ral{margin-top:5px}
+.t3dhost.hero.narrow.short .t3dread .ral button{flex-direction:row;align-items:baseline;gap:8px;padding:3px 7px 3px 9px;white-space:nowrap;overflow:hidden}
+.t3dhost.hero.narrow.short .t3dread .ral button b{flex:0 1 auto;min-width:0}
+.t3dhost.hero.narrow.short .t3dread .ral button span{flex:0 1 auto;min-width:0}

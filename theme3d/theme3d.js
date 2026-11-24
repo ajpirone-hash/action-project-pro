@@ -209,7 +209,7 @@ function fitAuto(cam, scene, topPad = 64, botPad = 34, margin = .96, sidePad = 0
   fit.center = i => { const b = new THREE.Box3().setFromPoints(by[i] || pts), c = b.getCenter(new THREE.Vector3()); c.y = .2; return c; };
   return fit;
 }
-const heroTop = () => { const u = hero.querySelector('.t3dui'); return u ? u.offsetTop + u.offsetHeight + (narrow() ? 18 : 46) : 64; };
+const heroTop = () => { const u = hero.querySelector('.t3dui'); return u ? u.offsetTop + u.offsetHeight + (narrow() ? 4 : 46) : 64; };
 const heroBot = () => narrow() ? (read.offsetHeight || 120) + 16 : 40;
 const heroSide = () => narrow() ? 6 : 246;
 function ground(scene) { // a floor that fades into the background so the board sits in a space, not in the void
@@ -267,7 +267,7 @@ function hudCore(scene, labels, title, sub) {
     ring.rotation.x = Math.PI / 2 + tilt * .25; ring.position.y = .05 + k * .04; ring.userData.spin = (k % 2 ? -1 : 1) * (.25 + k * .15); core.add(ring);
   });
   const hub = new THREE.Mesh(new THREE.CircleGeometry(.7, 6).rotateX(-Math.PI / 2), glow(HUD.cyan, .25)); hub.position.y = .03; core.add(hub);
-  const ctr = new THREE.Object3D(); ctr.position.set(0, .2, -2.4); core.add(ctr);
+  const ctr = new THREE.Object3D(); ctr.position.set(0, .2, -1.2); core.add(ctr);
   labels.push({ obj: ctr, html: `${title}<small>${sub}</small>`, cls: 'core' });
   return core;
 }
@@ -351,7 +351,9 @@ function boardD() {
   });
   tagStations(scene);
   // narrow screens look more straight down so the dial fills the width
-  const tall = hero.clientWidth / Math.max(hero.clientHeight, 1) < 1;
+  // pick the camera from the space the dial really gets (between the controls and the readouts):
+  // tall space -> look more straight down; wide, short space -> a lower angle so the dial spreads sideways
+  const tall = hero.clientWidth / Math.max(hero.clientHeight - heroTop() - heroBot(), 1) < 1.15;
   const cam = persp(38, tall ? new THREE.Vector3(0, 19, 7.5) : new THREE.Vector3(0, 16, 12.5), new THREE.Vector3(0, 0, tall ? .2 : .4));
   const v = { scene, camera: cam, host: hero, labels, pick, turn: orbitTurn(cam), fit: fitAuto(cam, scene, heroTop, heroBot, .97, heroSide) };
   let ph = 0;
@@ -434,6 +436,7 @@ function layout() { // fit the scene between the app's header/rail and the phone
   const rail = h.height > innerHeight * .8, tb = tab && getComputedStyle(tab).display !== 'none' ? tab.getBoundingClientRect().top : innerHeight;
   Object.assign(hero.style, { left: (rail ? h.right : 0) + 'px', top: (rail ? 0 : h.bottom) + 'px', bottom: (innerHeight - tb) + 'px' });
   hero.classList.toggle('narrow', narrow());
+  hero.classList.toggle('short', narrow() && hero.clientHeight < 720);   // little room: readouts go to one line each
   read.style.top = narrow() ? '' : (ui.offsetTop + ui.offsetHeight + 14) + 'px';
 }
 let lastCols = 0;
@@ -444,8 +447,8 @@ function drawHero() {
   if (pend) return; pend = true;
   requestAnimationFrame(() => { pend = false;
     root.classList.toggle('t3trash', filter === 'Trash');
-    layout(); lastCols = gridOf(1, 1).cols; disposeView(heroView); heroView = BUILD[0](); ring = null;
-    drawPanels(); drawStat(); lastNarrow = narrow(); layout();
+    layout(); drawPanels(); drawStat(); lastNarrow = narrow(); layout();
+    lastCols = gridOf(1, 1).cols; disposeView(heroView); heroView = BUILD[0](); ring = null;
     const play = activity(heroView); drawStops();
     if (!document.getElementById('drawer').classList.contains('open')) { show(heroView); if (!booted && !reduce) { hero.classList.add('boot'); setTimeout(() => hero.classList.remove('boot'), 2600); } heroView.boot(); play(); if (selId && Store.get(selId)) select(selId); else select(null); }
   });
