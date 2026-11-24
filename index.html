@@ -1014,7 +1014,7 @@ th{font-size:10.5px;font-weight:500;letter-spacing:.06em}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.54 (Shop Stock Ticket for consumables)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.55 (one line per tool on the Tool Request)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -2360,7 +2360,7 @@ const ToolForms = {
       <span class="tfkey"><i class="k"></i>filled from the tool list or job</span><span class="tfkey"><i class="n"></i>needs your answer</span></div>`; },
   draw(){
     const j = this.job, l = this.list, f = this.fld.bind(this), n = (l.lines||[]).length;
-    const nT = this.kind.filter(k=>k==='tool').length, nS = n - nT;
+    const nS = this.kind.filter(k=>k==='stock').length, nT = this.toolRows().length;
     $('#tfBox').innerHTML = `<div class="tfhead"><div><h3>Warehouse forms</h3>
         <p class="tfsum">${esc([jid(j), j.name].filter(Boolean).join(' '))} · ${esc(l.requestedBy||'Crew')}'s list from ${esc(JobChat.when(l.at))}</p></div>
         <button class="btn ghost sm" id="tfX" aria-label="Close">✕</button></div>
@@ -2392,7 +2392,7 @@ const ToolForms = {
       <div class="ncostep">4 · Which form each line goes on</div>
       <div class="note" style="margin-bottom:6px">Tools go on the Tool Request. Consumables (the gang box list's Consumables section) go on the Shop Stock Ticket. Tap to switch any line.</div>
       <div class="tfsplit">${(l.lines||[]).map((i,k)=>`<div class="tfsrow"><span class="tfsn"><b>${esc(i.qty)} ×</b> ${esc(this.itemText(i))}</span><span class="seg" role="group" aria-label="Form for ${esc(i.tool)}"><button type="button" class="${this.kind[k]==='tool'?'on':''}" data-tfk="${k}" data-v="tool">Tool request</button><button type="button" class="${this.kind[k]==='stock'?'on':''}" data-tfk="${k}" data-v="stock">Shop stock</button></span></div>`).join('')}</div>
-      ${nT ? `<div class="ncostep">5 · Tool &amp; Equipment Requisition (${nT} line${nT===1?'':'s'})</div>
+      ${nT ? `<div class="ncostep">5 · Tool &amp; Equipment Requisition (${nT} line${nT===1?'':'s'}, one per tool for serial #s)</div>
       <div class="form">${f('addr','Job address')}${f('deliv','Delivery instructions','area')}</div>
       ${nT>19?`<p class="tfitems"><b>More than 19 tools, so it makes ${Math.ceil(nT/19)} pages.</b></p>`:''}` : ''}
       ${nS ? `<div class="ncostep">${nT?6:5} · Shop Stock Ticket (${nS} line${nS===1?'':'s'})</div>
@@ -2496,8 +2496,10 @@ const ToolForms = {
     }
     return Zip.write(ents);
   },
+  /* each tool gets its own serial number, so a tool with qty 3 goes on 3 lines of qty 1 */
+  toolRows(){ return this.linesOf('tool').flatMap(i=>Array.from({length:Math.max(1, Math.min(200, +i.qty||1))}, ()=>Object.assign({}, i, {qty:1}))); },
   toolPages(v){
-    const L = this.linesOf('tool'), pages = [];
+    const L = this.toolRows(), pages = [];
     for(let p=0; p*19 < L.length; p++){
       const c = {D2:v.jobName, H2:v.jobNo, D3:v.crew, H3:this.usd(v.reqDate), D4:v.addr, D5:v.deliv + (L.length>19 ? ` (page ${p+1} of ${Math.ceil(L.length/19)})` : '')};
       L.slice(p*19, p*19+19).forEach((i,k)=>{ c['A'+(9+k)] = +i.qty||1; c['B'+(9+k)] = this.itemText(i); });
