@@ -1,0 +1,267 @@
+/* 3D theme (beta) — tokens only, so light and dark both work */
+.t3dhost{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:16px;
+  background:radial-gradient(120% 90% at 50% 0%,var(--panel) 0%,var(--fill,var(--bg)) 100%)}
+html.dark .t3dhost{background:radial-gradient(120% 100% at 50% 0%,#1a1f2b 0%,#0d1016 100%)}
+html.t3d-C .t3dhost{background:linear-gradient(180deg,#f7f9fc,#eef2f8)}
+html.dark.t3d-C .t3dhost{background:linear-gradient(180deg,#0f1a2c,#0a1220)}
+.t3dhost.hero{height:380px;margin-bottom:16px}
+.t3dhost.strip{flex:none;height:250px;margin:0 22px 10px;border-radius:14px}
+.t3dcv{position:absolute;inset:0;display:block;touch-action:pan-y;cursor:grab}
+.t3dcv:active{cursor:grabbing}
+.t3dlbls{position:absolute;inset:0;pointer-events:none;z-index:1}
+.t3dl{position:absolute;left:0;top:0;white-space:nowrap;font:600 11.5px/1.25 Geist,system-ui,sans-serif;padding:4px 8px;border-radius:8px;
+  background:color-mix(in srgb,var(--panel) 88%,transparent);border:1px solid var(--line);color:var(--ink);box-shadow:0 4px 14px -6px rgba(0,0,0,.35);backdrop-filter:blur(6px)}
+.t3dl small{font:500 11px 'Geist Mono',ui-monospace,monospace;color:var(--muted);margin-left:6px}
+.t3dl b{font:600 11px 'Geist Mono',ui-monospace,monospace;margin-left:6px;color:var(--ink)}
+.t3dl.st{background:transparent;border:0;box-shadow:none;backdrop-filter:none;color:var(--muted);font:600 10.5px 'Geist Mono',ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;transform-origin:center}
+.t3dl.st.on{color:var(--ink);background:var(--panel);border:1px solid var(--line2);box-shadow:0 2px 8px -4px rgba(0,0,0,.3)}
+.t3dl.st.done{color:var(--won,#16a34a)}
+.t3dl.side{font-weight:500}
+.t3dl.side.l{margin-left:110px}
+.t3dl.side.r{margin-left:-110px}
+.t3dl.t3tag{border-radius:3px;border-color:var(--accent);font-family:'Geist Mono',ui-monospace,monospace;font-weight:500}
+.t3dl.t3tag.st{border:0}
+.t3dl.t3tag.co{border-color:#f59e0b}
+.t3dcap{position:absolute;left:14px;top:12px;z-index:2;display:flex;flex-direction:column;gap:1px;pointer-events:none;max-width:60%}
+.t3dcap b{font-size:13px;color:var(--ink)}
+.t3dcap span{font-size:11.5px;color:var(--muted)}
+.strip .t3dcap{max-width:46%}
+/* the appearance switch gets a 4th choice for the beta account */
+#appear button[data-ap="3d"] sup{font-size:9px;margin-left:1px;color:var(--gold,#e8a317)}
+html.t3d #appear button[data-ap="3d"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.2)}
+html.t3d #appear button:not([data-t3d]){background:transparent!important;box-shadow:none!important;color:inherit!important}
+/* tiles keep working; a slim stage chip ties each card to the 3D view */
+html.t3d .tile{transition:transform .15s}
+@media (hover:hover){html.t3d .tile:hover{transform:translateY(-2px)}}
+@media (max-width:1180px){.t3dhost.hero{height:320px}.t3dhost.strip{height:210px;margin:0 14px 8px}}
+@media (max-width:640px){
+  .t3dhost.hero{height:250px;border-radius:14px;margin-bottom:12px}
+  .t3dhost.strip{height:185px;margin:0 12px 8px}
+  .t3dcap span{display:none}
+  .t3dl{font-size:10.5px;padding:3px 6px}.t3dl small{font-size:10px;margin-left:4px}
+  .t3dl.st{font-size:9px;letter-spacing:.04em}
+  .t3dl.side.l{margin-left:70px}
+}
+html.has3d #appear{display:grid;grid-template-columns:repeat(4,1fr)}
+html.has3d #appear button{padding-left:2px;padding-right:2px;font-size:12px;min-width:0;white-space:nowrap}
+.t3dl em{display:block;font:500 10.5px 'Geist Mono',ui-monospace,monospace;font-style:normal;color:var(--ink2);letter-spacing:0;text-align:center}
+.t3dl.st{text-align:center}
+.t3dl .short{display:none}
+@media (max-width:640px){
+  .t3dl .full{display:none}.t3dl .short{display:inline}
+  .strip .t3dl.st:not(.on){display:none}
+  .strip .t3dl.st.on .short{display:none}.strip .t3dl.st.on .full{display:inline}
+  .t3dl.st b{margin-left:3px}.t3dl em{font-size:9.5px}
+}
+
+/* ===== whole dashboard in 3D ===== */
+html.t3d:not(.t3trash) main::before{display:none}
+html.t3d:not(.t3trash) #grid{display:none}
+html.t3d main .t3dhost.hero{position:fixed;left:0;top:0;right:0;bottom:0;height:auto;margin:0;border:0;border-radius:0;z-index:1;
+  background-size:cover;background-position:center}
+html.t3d.t3trash main .t3dhost.hero{position:relative;inset:auto;height:auto;background:none;border:0}
+html.t3d.t3trash .t3dhost.hero>.t3dcv,html.t3d.t3trash .t3dhost.hero>.t3dlbls,html.t3d.t3trash .t3dhost.hero>.t3dcap,html.t3d.t3trash #t3dSel{display:none}
+html.t3d.t3trash .t3dui{position:static;padding:0}
+.t3dhost.hero.frozen>.t3dlbls,.t3dhost.hero.frozen>.t3dcap{visibility:hidden}
+.t3dhost.hero>.t3dcap{top:auto;bottom:16px;left:20px;max-width:46%}
+.t3dui{position:absolute;left:20px;right:20px;top:18px;z-index:3;display:flex;flex-direction:column;gap:10px;pointer-events:none}
+.t3dui>*{pointer-events:auto}
+.t3dui .t3dtitle{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;pointer-events:none}
+.t3dui .t3dtitle h1{font:600 26px/1.1 Geist,system-ui,sans-serif;letter-spacing:-.02em;color:var(--ink)}
+.t3dui .t3dsum{display:flex;gap:8px;flex-wrap:wrap}
+.t3dui .t3dsum span{font-size:12px;color:var(--muted);background:color-mix(in srgb,var(--panel) 80%,transparent);border:1px solid var(--line);border-radius:999px;padding:4px 10px;backdrop-filter:blur(8px)}
+.t3dui .t3dsum b{font:600 12.5px 'Geist Mono',ui-monospace,monospace;color:var(--ink);margin-left:4px}
+html.t3d .t3dui #kpis{display:none}
+html.t3d .t3dui .bar{margin:0;align-self:flex-start;max-width:100%;padding:6px;border-radius:16px;background:color-mix(in srgb,var(--panel) 78%,transparent);
+  border:1px solid var(--line);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 10px 30px -18px rgba(0,0,0,.4);gap:6px}
+html.t3d .t3dui .bar .chip{background:transparent;border-color:transparent}
+html.t3d .t3dui .bar .chip.on{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+html.t3d .t3dui .bar .search{min-width:220px}
+/* hover tag */
+.t3dtip{position:absolute;left:0;top:0;z-index:4;pointer-events:none;display:flex;flex-direction:column;padding:7px 10px;border-radius:10px;
+  background:var(--panel);border:1px solid var(--line2);box-shadow:0 10px 24px -12px rgba(0,0,0,.45);font-size:12.5px}
+.t3dtip span{font:500 11.5px 'Geist Mono',ui-monospace,monospace;color:var(--muted)}
+/* selected job card */
+#t3dSel{position:absolute;right:20px;bottom:20px;z-index:4;width:340px;padding:16px 16px 14px;border-radius:18px;background:color-mix(in srgb,var(--panel) 92%,transparent);
+  border:1px solid var(--line2);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 24px 50px -24px rgba(0,0,0,.55)}
+#t3dSel .x{position:absolute;right:10px;top:10px;border:0;background:var(--fill);color:var(--muted);width:26px;height:26px;border-radius:99px;cursor:pointer}
+#t3dSel .k{font:500 11.5px 'Geist Mono',ui-monospace,monospace;color:var(--muted)}
+#t3dSel h3{font-size:16px;margin:4px 30px 12px 0;letter-spacing:-.01em}
+#t3dSel .nums{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+#t3dSel .nums b{display:block;font:600 14.5px 'Geist Mono',ui-monospace,monospace;letter-spacing:-.02em}
+#t3dSel .nums b.pos{color:var(--won,#16a34a)}#t3dSel .nums b.neg{color:var(--lost,#dc2626)}
+#t3dSel .nums span{font-size:11px;color:var(--muted)}
+#t3dSel .steps{display:flex;gap:4px;margin-bottom:12px}
+#t3dSel .steps i{flex:1;height:5px;border-radius:9px;background:var(--line2)}
+#t3dSel .steps i.d{background:var(--won,#16a34a)}#t3dSel .steps i.on{background:var(--accent)}
+#t3dSel .open{width:100%;border:0;border-radius:11px;padding:10px;font:600 13.5px Geist,system-ui,sans-serif;background:var(--accent);color:var(--accent-ink);cursor:pointer}
+/* open job: narrower drawer so the scene stays visible behind it */
+html.t3d .scrim{background:rgba(6,10,18,.12)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+@media (min-width:1181px){html.t3d .drawer{width:min(880px,calc(100% - 600px))}}
+@media (max-width:640px){
+  .t3dui{left:10px;right:10px;top:10px;gap:8px}
+  .t3dui .t3dtitle h1{font-size:22px}
+  .t3dui .t3dsum span{font-size:11px;padding:3px 8px}
+  html.t3d .t3dui .bar{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;border-radius:14px;padding:5px;align-self:stretch}
+  html.t3d .t3dui .bar .search{min-width:170px}
+  .t3dhost.hero>.t3dcap{display:none}
+  #t3dSel{left:10px;right:10px;bottom:10px;width:auto;padding:14px}
+}
+
+/* ===== v3: stage rooms, activity light, instant frame, auto quality, depth ===== */
+.t3dcv{transition:opacity .6s ease}
+.t3dstops{display:flex;gap:4px;align-self:flex-start;padding:4px;border-radius:14px;background:color-mix(in srgb,var(--panel) 78%,transparent);
+  border:1px solid var(--line);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);max-width:100%;overflow-x:auto;scrollbar-width:none}
+.t3dstops button{border:0;background:transparent;color:var(--ink2);font:500 12.5px Geist,system-ui,sans-serif;padding:6px 10px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.t3dstops button i{width:8px;height:8px;border-radius:3px;display:inline-block}
+.t3dstops button b{font:500 11px 'Geist Mono',ui-monospace,monospace;color:var(--muted)}
+.t3dstops button.on{background:var(--ink);color:var(--panel)}
+.t3dstops button.on b{color:inherit;opacity:.7}
+.t3dstops .short{display:none}
+.t3dl.move{background:#e8a317;color:#1a1300;border-color:transparent;font-weight:700}
+.t3dl.move small{color:#3b2a00}
+html.t3dlow .t3dl:not(.st):not(.move){display:none}
+/* soft glow + depth behind the scene */
+html.t3d .t3dhost.hero::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(60% 50% at 55% 55%,color-mix(in srgb,var(--accent) 14%,transparent),transparent 70%)}
+html.t3d .t3dhost.hero>.t3dcv{z-index:0}
+@media (max-width:640px){
+  .t3dstops{align-self:stretch}
+  .t3dstops button{padding:5px 8px;font-size:12px}
+  .t3dstops .full{display:none}.t3dstops .short{display:inline}
+}
+
+/* ===== D · Holo HUD (original holographic heads-up look; always dark inside the scene) ===== */
+html.t3d-D{--hud:#4fd8ff;--hud2:#9eeaff;--hudbg:rgba(4,14,22,.62);--hudline:rgba(79,216,255,.38)}
+html.t3d-D .t3dhost{background:radial-gradient(90% 80% at 50% 45%,#08202e 0%,#040b13 55%,#02050a 100%)!important;border-color:var(--hudline)}
+html.t3d-D .t3dhost::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:2;
+  background:repeating-linear-gradient(180deg,rgba(79,216,255,.045) 0 1px,transparent 1px 3px);mix-blend-mode:screen}
+html.t3d-D .t3dhost.hero::before{background:radial-gradient(40% 38% at 50% 52%,rgba(79,216,255,.16),transparent 70%)}
+html.t3d-D .t3dl{background:rgba(3,14,22,.72);border:1px solid var(--hudline);color:#d9f6ff;border-radius:2px;
+  font-family:'Geist Mono',ui-monospace,monospace;font-weight:500;letter-spacing:.04em;text-transform:uppercase;font-size:10.5px;
+  box-shadow:0 0 12px -2px rgba(79,216,255,.35);text-shadow:0 0 6px rgba(79,216,255,.55)}
+html.t3d-D .t3dl small,html.t3d-D .t3dl b,html.t3d-D .t3dl em{color:var(--hud)}
+html.t3d-D .t3dl.st{background:transparent;border:0;box-shadow:none;color:var(--hud2)}
+html.t3d-D .t3dl.st.on{background:rgba(79,216,255,.14);border:1px solid var(--hud);color:#fff}
+html.t3d-D .t3dl.st.done{color:#3dfcb0}
+html.t3d-D .t3dl.core{background:transparent;border:0;box-shadow:none;font-size:13px;color:#fff;text-align:center;display:flex;flex-direction:column;align-items:center}
+html.t3d-D .t3dl.core small{margin:2px 0 0;font-size:10.5px}
+html.t3d-D .t3dl.move{background:rgba(255,226,122,.16);border-color:#ffe27a;color:#fff3c4}
+html.t3d-D .t3dl.move small{color:#ffe27a}
+html.t3d-D .t3dcap b,html.t3d-D .t3dcap span{color:var(--hud2)}
+html.t3d-D .t3dcap b{font-family:'Geist Mono',ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase}
+/* HUD panels: see-through, thin glowing edge, cut corners */
+html.t3d-D .t3dui .t3dtitle h1{color:#e9fbff;font-family:'Geist Mono',ui-monospace,monospace;font-weight:500;letter-spacing:.18em;text-transform:uppercase;font-size:22px;text-shadow:0 0 14px rgba(79,216,255,.6)}
+html.t3d-D .t3dui .t3dsum span{background:var(--hudbg);border-color:var(--hudline);color:var(--hud2);border-radius:2px;font-family:'Geist Mono',ui-monospace,monospace;text-transform:uppercase;letter-spacing:.06em;font-size:10.5px}
+html.t3d-D .t3dui .t3dsum b{color:#fff;text-shadow:0 0 8px rgba(79,216,255,.7)}
+html.t3d-D .t3dui .bar,html.t3d-D .t3dstops,html.t3d-D #t3dSel{background:var(--hudbg)!important;border:1px solid var(--hudline)!important;border-radius:0!important;
+  clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);box-shadow:inset 0 0 24px rgba(79,216,255,.08)!important;color:#d9f6ff}
+html.t3d-D .t3dui .bar .chip{color:var(--hud2)!important;font-family:'Geist Mono',ui-monospace,monospace;font-size:11.5px;letter-spacing:.04em;text-transform:uppercase}
+html.t3d-D .t3dui .bar .chip .n{background:rgba(79,216,255,.12);color:var(--hud)}
+html.t3d-D .t3dui .bar .chip.on{background:rgba(79,216,255,.18)!important;color:#fff!important;box-shadow:inset 0 0 0 1px var(--hud)}
+html.t3d-D .t3dui .bar .search,html.t3d-D .t3dui .bar .sort{background:rgba(2,10,16,.7)!important;border:1px solid var(--hudline)!important;color:#d9f6ff!important;border-radius:0!important}
+html.t3d-D .t3dstops button{color:var(--hud2);font-family:'Geist Mono',ui-monospace,monospace;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;border-radius:0}
+html.t3d-D .t3dstops button b{color:var(--hud)}
+html.t3d-D .t3dstops button.on{background:rgba(79,216,255,.18);color:#fff;box-shadow:inset 0 0 0 1px var(--hud)}
+html.t3d-D #t3dSel{color:#d9f6ff}
+html.t3d-D #t3dSel .k{color:var(--hud);letter-spacing:.06em;text-transform:uppercase}
+html.t3d-D #t3dSel h3{color:#fff;font-family:'Geist Mono',ui-monospace,monospace;letter-spacing:.04em;text-shadow:0 0 10px rgba(79,216,255,.5)}
+html.t3d-D #t3dSel .nums b{color:#fff}html.t3d-D #t3dSel .nums b.pos{color:#3dfcb0}html.t3d-D #t3dSel .nums span{color:var(--hud2);text-transform:uppercase;letter-spacing:.06em;font-size:10px}
+html.t3d-D #t3dSel .steps i{background:#17384a;border-radius:0}html.t3d-D #t3dSel .steps i.d{background:#3dfcb0}html.t3d-D #t3dSel .steps i.on{background:var(--hud);box-shadow:0 0 10px var(--hud)}
+html.t3d-D #t3dSel .open{background:transparent;color:#fff;border:1px solid var(--hud);border-radius:0;font-family:'Geist Mono',ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;box-shadow:inset 0 0 18px rgba(79,216,255,.25),0 0 14px rgba(79,216,255,.25)}
+html.t3d-D #t3dSel .x{background:transparent;color:var(--hud);border:1px solid var(--hudline);border-radius:0}
+html.t3d-D .t3dtip{background:var(--hudbg);border:1px solid var(--hud);color:#fff;border-radius:0;font-family:'Geist Mono',ui-monospace,monospace;text-transform:uppercase;letter-spacing:.04em;backdrop-filter:blur(8px)}
+html.t3d-D .t3dtip span{color:var(--hud)}
+/* the whole Jobs area goes dark in HUD mode so the scene reads as a display */
+html.t3d-D:not(.t3trash) body{background:#02050a}
+html.t3d-D .drawer{border-left:1px solid var(--hudline)!important;box-shadow:-30px 0 80px -20px rgba(79,216,255,.25)!important}
+html.t3d-D .drawer .dh h2,html.t3d-D .drawer .dh .nm{letter-spacing:.02em}
+
+/* ===== D v5: readout panels, status strip, alerts, sci-fi type, power-up ===== */
+html.t3d-D{--red:#ff4d5e;--amber:#ffb020;--sq:Orbitron,'Geist Mono',ui-monospace,monospace;
+  --brk:linear-gradient(var(--hud),var(--hud)) left top/14px 1.5px,linear-gradient(var(--hud),var(--hud)) left top/1.5px 14px,
+        linear-gradient(var(--hud),var(--hud)) right top/14px 1.5px,linear-gradient(var(--hud),var(--hud)) right top/1.5px 14px,
+        linear-gradient(var(--hud),var(--hud)) left bottom/14px 1.5px,linear-gradient(var(--hud),var(--hud)) left bottom/1.5px 14px,
+        linear-gradient(var(--hud),var(--hud)) right bottom/14px 1.5px,linear-gradient(var(--hud),var(--hud)) right bottom/1.5px 14px}
+html.t3d-D .t3dui .t3dtitle{align-items:center;justify-content:space-between;flex-wrap:nowrap;gap:12px}
+html.t3d-D .t3dui .t3dtitle h1{font-family:var(--sq);font-weight:700;letter-spacing:.22em;font-size:21px}
+/* status strip */
+.t3dstat{display:flex;gap:6px;align-items:stretch;pointer-events:auto;font:500 10.5px 'Geist Mono',ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--hud2)}
+.t3dstat>span{display:flex;align-items:center;gap:7px;padding:5px 10px;background:var(--hudbg);border:1px solid var(--hudline);white-space:nowrap;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.t3dstat .clk b{font:700 15px var(--sq);letter-spacing:.06em;color:#fff;text-shadow:0 0 10px rgba(79,216,255,.7)}
+.t3dstat .clk small{font-size:9px;margin-left:2px;color:var(--hud)}
+.t3dstat .sy i{width:7px;height:7px;border-radius:50%;background:#3dfcb0;box-shadow:0 0 8px #3dfcb0;animation:t3blink 2.4s infinite}
+.t3dstat .sy.bad i{background:var(--red);box-shadow:0 0 8px var(--red)}
+.t3dstat .sy em{font-style:normal;opacity:.65}
+.t3dstat .ch.on{color:#fff;border-color:var(--amber);box-shadow:inset 0 0 14px rgba(255,176,32,.25)}
+@keyframes t3blink{50%{opacity:.35}}
+/* readout panels */
+.t3dread{position:absolute;z-index:3;pointer-events:none;display:flex;justify-content:space-between;left:20px;right:20px;top:200px;bottom:20px;align-items:flex-start}
+.t3dread .rp{pointer-events:auto;width:236px;padding:14px 14px 10px;color:#d9f6ff;background:var(--brk),var(--hudbg);background-repeat:no-repeat;
+  border:1px solid rgba(79,216,255,.16);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:inset 0 0 30px rgba(79,216,255,.06)}
+.t3dread h4{display:flex;align-items:center;justify-content:space-between;font:700 12px var(--sq);letter-spacing:.24em;text-transform:uppercase;color:#fff;
+  margin:0 0 8px;padding-bottom:8px;border-bottom:1px solid var(--hudline);text-shadow:0 0 10px rgba(79,216,255,.6)}
+.t3dread h4 span{display:flex;gap:4px}
+.t3dread h4 i,.t3dal{font:600 10px 'Geist Mono',ui-monospace,monospace;font-style:normal;letter-spacing:.04em;padding:2px 6px;color:#fff}
+.t3dread h4 i.red,.t3dal.red{background:rgba(255,77,94,.22);box-shadow:inset 0 0 0 1px var(--red)}
+.t3dread h4 i.amber,.t3dal.amber{background:rgba(255,176,32,.18);box-shadow:inset 0 0 0 1px var(--amber)}
+.t3dread .rr{display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:0 10px;padding:5px 0;border-bottom:1px dashed rgba(79,216,255,.14)}
+.t3dread .rr span{font:500 10.5px 'Geist Mono',ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--hud2)}
+.t3dread .rr b{font:600 16px 'Geist Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;color:#fff;text-shadow:0 0 8px rgba(79,216,255,.55);text-align:right}
+.t3dread .rr i{grid-column:1/-1;font:500 10px 'Geist Mono',ui-monospace,monospace;font-style:normal;color:var(--hud);opacity:.75;text-align:right;margin-top:-2px}
+.t3dread .ral{display:flex;flex-direction:column;gap:5px;margin-top:9px}
+.t3dread .ral button{all:unset;cursor:pointer;display:flex;flex-direction:column;gap:1px;padding:6px 9px 6px 11px;position:relative;background:rgba(255,77,94,.08);border-left:2px solid var(--red)}
+.t3dread .ral button.amber{background:rgba(255,176,32,.07);border-left-color:var(--amber)}
+.t3dread .ral button b{font:600 11px 'Geist Mono',ui-monospace,monospace;letter-spacing:.04em;text-transform:uppercase;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t3dread .ral button span{font:500 10px 'Geist Mono',ui-monospace,monospace;letter-spacing:.04em;text-transform:uppercase;color:var(--red)}
+.t3dread .ral button.amber span{color:var(--amber)}
+.t3dread .ral button:hover{background:rgba(79,216,255,.1)}
+.t3dread .ral em{font:500 10px 'Geist Mono',ui-monospace,monospace;font-style:normal;letter-spacing:.06em;text-transform:uppercase;color:var(--hud2);opacity:.7}
+.t3dread .ral em.ok{color:#3dfcb0;opacity:1}
+html.t3d-D .t3dl.core.red{color:#ffd0d5;text-shadow:0 0 8px var(--red)}html.t3d-D .t3dl.core.red small{color:var(--red)}
+html.t3d-D .t3dl.core.amber small{color:var(--amber)}
+html.t3d-D .t3dl.core{font-family:var(--sq);font-weight:700;letter-spacing:.1em}
+html.t3d-D .t3dl.core small{font-family:'Geist Mono',ui-monospace,monospace;font-weight:500}
+html.t3d-D .t3dl.st{font-family:var(--sq);font-weight:500;letter-spacing:.14em;font-size:10px}
+html.t3d-D .t3dl.st b,html.t3d-D .t3dl.st em{font-family:'Geist Mono',ui-monospace,monospace}
+html.t3d-D .t3dcap b{font-family:var(--sq)}
+.t3dal{display:inline-block;margin-top:5px;align-self:flex-start;text-transform:uppercase}
+html.t3d-D #t3dSel h3{font-family:var(--sq);font-weight:700;letter-spacing:.08em;font-size:15px}
+html.t3d-D #t3dSel .open{font-family:var(--sq)}
+/* corner brackets on the select card too (it keeps its cut corners) */
+html.t3d-D #t3dSel{background:var(--brk),var(--hudbg)!important;background-repeat:no-repeat!important}
+/* power-up: panels draw in once */
+.t3dhost.hero.boot .t3dread .rp,.t3dhost.hero.boot .t3dstat>span,.t3dhost.hero.boot .t3dstops,.t3dhost.hero.boot .t3dui .bar{animation:t3draw .9s cubic-bezier(.2,.8,.2,1) both}
+.t3dhost.hero.boot .t3dread .rp:nth-child(1){animation-delay:.35s}.t3dhost.hero.boot .t3dread .rp:nth-child(2){animation-delay:.6s}
+.t3dhost.hero.boot .t3dstat>span:nth-child(2){animation-delay:.12s}.t3dhost.hero.boot .t3dstat>span:nth-child(3){animation-delay:.24s}
+.t3dhost.hero.boot .t3dread .rr,.t3dhost.hero.boot .t3dread .ral{animation:t3type .5s steps(6) both;animation-delay:.9s}
+@keyframes t3draw{0%{clip-path:inset(0 100% 100% 0);opacity:0}40%{clip-path:inset(0 0 calc(100% - 2px) 0);opacity:1}100%{clip-path:inset(0 0 0 0);opacity:1}}
+@keyframes t3type{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.t3dhost.hero.boot *{animation:none!important}}
+/* narrow (phones, tablets in portrait): panels become a swipe strip at the bottom */
+.t3dhost.hero.narrow .t3dread{top:auto;left:0;right:0;bottom:10px;justify-content:flex-start;gap:8px;padding:0 10px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;pointer-events:auto}
+.t3dhost.hero.narrow .t3dread::-webkit-scrollbar{display:none}
+.t3dhost.hero.narrow .t3dread .rp{flex:0 0 min(86%,340px);scroll-snap-align:center;padding:10px 12px 8px;display:grid;grid-template-columns:1fr 1fr;gap:0 12px;align-content:start}
+.t3dhost.hero.narrow .t3dread h4{grid-column:1/-1;font-size:11px;margin-bottom:4px;padding-bottom:6px}
+.t3dhost.hero.narrow .t3dread .rr{padding:3px 0}
+.t3dhost.hero.narrow .t3dread .rr b{font-size:14px}
+.t3dhost.hero.narrow .t3dread .rr i{display:none}
+.t3dhost.hero.narrow .t3dread .ral{grid-column:1/-1;margin-top:6px;flex-direction:row;overflow:hidden;gap:5px}
+.t3dhost.hero.narrow .t3dread .ral button{flex:1 1 0;min-width:0;padding:4px 7px 4px 9px}
+.t3dhost.hero.narrow .t3dread .ral button:nth-child(n+3),.t3dhost.hero.narrow .t3dread .ral em:not(.ok){display:none}
+.t3dhost.hero.narrow #t3dSel:not([hidden])+.t3dread{display:none}
+@media (max-width:640px){
+  html.t3d-D .t3dui .t3dtitle h1{font-size:17px;letter-spacing:.18em}
+  .t3dstat{gap:4px;font-size:9.5px}
+  .t3dstat>span{padding:4px 7px}
+  .t3dstat .sy em,.t3dstat .clk{display:none}
+  .t3dstat .ch:not(.on){display:none}
+  .t3dstat .sy{max-width:120px;overflow:hidden;text-overflow:ellipsis}
+  html.t3d-D .t3dl.core{font-size:11px}html.t3d-D .t3dl.core small{font-size:9.5px}
+  .t3dhost.hero .t3dl.move{display:none}
+  html.t3d-D .t3dl.st{font-size:8.5px;letter-spacing:.08em}
+  .t3dhost.strip{height:230px}
+  .strip .t3dl.side{font-size:9.5px;padding:2px 5px}
+}
+.t3dhost.hero .t3dl.move{animation:t3fade 1.2s 7s forwards}
+@keyframes t3fade{to{opacity:0;visibility:hidden}}
