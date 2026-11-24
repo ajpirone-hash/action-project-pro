@@ -968,7 +968,7 @@ th{font-size:10.5px;font-weight:500;letter-spacing:.06em}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.51 (add tools to a crew list)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.52 (None option for pick up / deliver to)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -2246,7 +2246,7 @@ const ToolAdd = {
    TOOLFORM_TPL) from a list the crew sent back. Anything the list or job doesn't say is asked in a window.
    Remembers: per job j.truckTrip (T&M, timesheet, delivery contact/phone, truck needs),
    per pickup place Store.settings.truckSpots[place] (contact, phone, street, city), and j.toolForms[listId] = {at, by}. */
-const TRUCK_PLACES = ['ACTION WAREHOUSE','SHEET METAL SHOP','MILLWRIGHT SHOP','PIPE FITTER SHOP','JOB SITE','SUPPLIER - SEE NOTES'];
+const TRUCK_PLACES = ['ACTION WAREHOUSE','SHEET METAL SHOP','MILLWRIGHT SHOP','PIPE FITTER SHOP','JOB SITE','SUPPLIER - SEE NOTES','NONE'];
 const WAREHOUSE_EMAIL = 'whs@actioncontractors.com';
 const ToolForms = {
   job:null, list:null, v:{},
@@ -2301,7 +2301,9 @@ const ToolForms = {
   },
   srcOK(k){ const s = this.start(this.job, this.list); return String(this.v[k]??'')===String(s[k]??''); },
   blanks(){ const all = ['tm','sheet','hazards','pickContact','pickPhone','pickDate','pickTime','pickStreet','pickCity','pickTruck','delContact','delPhone','delDate','delTime','delStreet','delCity','delTruck'];
-    return {all: all.filter(k=>!String(this.v[k]??'').trim()), need: this.NEED.filter(k=>!String(this.v[k]??'').trim())}; },
+    const off = k => (k.startsWith('pick') && this.v.pickFrom==='NONE') || (k.startsWith('del') && this.v.delTo==='NONE');
+    const blank = k => !off(k) && !String(this.v[k]??'').trim();
+    return {all: all.filter(blank), need: this.NEED.filter(blank)}; },
   bar(){ const b = this.blanks();
     return `<div class="tfbar" id="tfBar">${b.all.length ? `<span><b>${b.all.length}</b> answer${b.all.length===1?'':'s'} still blank${b.need.length?`, <b>${b.need.length}</b> needed`:''}.</span>` : '<span>✓ Every box is filled.</span>'}
       <span class="tfkey"><i class="k"></i>filled from the tool list or job</span><span class="tfkey"><i class="n"></i>needs your answer</span></div>`; },
@@ -2324,17 +2326,17 @@ const ToolForms = {
       </div>
       <div class="ncostep">2 · Pick up from</div>
       <div class="form">
-        ${f('pickFrom','Pick up from','place')}${f('pickContact','Onsite contact name')}${f('pickPhone','Phone #','tel')}
+        ${f('pickFrom','Pick up from','place')}${this.v.pickFrom==='NONE' ? `<div class="f wide note">No pickup, so the Pick Up From part of the form is left blank.</div>` : `${f('pickContact','Onsite contact name')}${f('pickPhone','Phone #','tel')}
         ${f('pickDate','Date to pick up','date')}${f('pickTime','Time to pick up','time')}
         ${f('pickStreet','Pickup street address')}${f('pickCity','Pickup city, state, zip')}
-        ${f('pickTruck','Type of truck / loading (dock height? ground only? forklift?)','area')}
+        ${f('pickTruck','Type of truck / loading (dock height? ground only? forklift?)','area')}`}
       </div>
       <div class="ncostep">3 · Deliver to</div>
       <div class="form">
-        ${f('delTo','Deliver to','place')}${f('delContact','Onsite contact name')}${f('delPhone','Phone #','tel')}
+        ${f('delTo','Deliver to','place')}${this.v.delTo==='NONE' ? `<div class="f wide note">No delivery, so the Deliver To part of the form is left blank.</div>` : `${f('delContact','Onsite contact name')}${f('delPhone','Phone #','tel')}
         ${f('delDate','Date to deliver','date')}${f('delTime','Time to deliver','time')}
         ${f('delStreet','Delivery street address')}${f('delCity','Delivery city, state, zip')}
-        ${f('delTruck','Type of truck / loading (dock height? ground only? forklift?)','area')}
+        ${f('delTruck','Type of truck / loading (dock height? ground only? forklift?)','area')}`}
       </div>
       <div class="ncostep">4 · Tool &amp; Equipment Requisition</div>
       <div class="form">${f('addr','Job address')}${f('deliv','Delivery instructions','area')}</div>
@@ -2363,10 +2365,13 @@ const ToolForms = {
   /* changing a pick-up / delivery place swaps in what's saved for that place */
   placeChanged(k){
     const v = this.v, [st, city] = this.splitAddr(v.addr);
-    if(k==='pickFrom'){ const sp = this.spot(v.pickFrom);
+    const P = ['Contact','Phone','Date','Time','Street','City','Truck'];
+    if(k==='pickFrom' && v.pickFrom==='NONE') P.forEach(x=>v['pick'+x]='');
+    else if(k==='delTo' && v.delTo==='NONE') P.forEach(x=>v['del'+x]='');
+    else if(k==='pickFrom'){ const sp = this.spot(v.pickFrom);
       v.pickContact = sp.contact||''; v.pickPhone = sp.phone||''; v.pickTruck = sp.truck||'';
       v.pickStreet = sp.street || (v.pickFrom==='JOB SITE' ? st : v.pickFrom==='ACTION WAREHOUSE' ? 'ACTION WAREHOUSE' : ''); v.pickCity = sp.city || (v.pickFrom==='JOB SITE' ? city : ''); }
-    else { if(v.delTo==='JOB SITE'){ v.delStreet = st; v.delCity = city; v.delContact = (this.job.truckTrip||{}).delContact || this.list.requestedBy || ''; }
+    else { if(v.delTo==='JOB SITE'){ v.delStreet = st; v.delCity = city; v.delContact = (this.job.truckTrip||{}).delContact || this.list.requestedBy || ''; if(!v.delDate) v.delDate = this.list.dateNeeded||''; }
       else { const sp = this.spot(v.delTo); v.delStreet = sp.street || (v.delTo==='ACTION WAREHOUSE' ? 'ACTION WAREHOUSE' : ''); v.delCity = sp.city||''; v.delContact = sp.contact||''; v.delPhone = sp.phone||''; } }
     const keep = $('#tfBox').scrollTop; this.draw(); $('#tfBox').scrollTop = keep;
   },
@@ -2379,6 +2384,9 @@ const ToolForms = {
     return Zip.write(ents);
   },
   truckCells(v){
+    const P = ['Contact','Phone','Date','Time','Street','City','Truck'];
+    v = Object.assign({}, v);
+    if(v.pickFrom==='NONE') P.forEach(x=>v['pick'+x]=''); if(v.delTo==='NONE') P.forEach(x=>v['del'+x]='');
     return {C3:v.pickFrom, F3:v.delTo, A6:v.reqBy, H6:this.usd(v.reqDate), A8:v.jobNo, C8:v.jobName, H8:this.hm(v.reqTime), B10:v.tm, H10:v.sheet,
       C11:v.desc, C12:v.hazards, A15:v.pickContact, G15:v.pickPhone, A17:this.usd(v.pickDate), D17:this.hm(v.pickTime), A19:v.pickStreet, F19:v.pickCity, A21:v.pickTruck,
       A25:v.delContact, G25:v.delPhone, A27:this.usd(v.delDate), D27:this.hm(v.delTime), A29:v.delStreet, F29:v.delCity, A31:v.delTruck};
@@ -2409,7 +2417,7 @@ const ToolForms = {
       if(can){
         j.truckTrip = {tm:v.tm, sheet:v.sheet, delContact:v.delContact, delPhone:v.delPhone, delTruck:v.delTruck, pickFrom:v.pickFrom};
         const spots = Store.settings.truckSpots = Store.settings.truckSpots || {};
-        if(v.pickFrom!=='JOB SITE') spots[v.pickFrom] = {contact:v.pickContact, phone:v.pickPhone, street:v.pickStreet, city:v.pickCity, truck:v.pickTruck};
+        if(v.pickFrom!=='JOB SITE' && v.pickFrom!=='NONE') spots[v.pickFrom] = {contact:v.pickContact, phone:v.pickPhone, street:v.pickStreet, city:v.pickCity, truck:v.pickTruck};
         (j.toolForms = j.toolForms || {})[l.id] = {at:new Date().toISOString(), by:(typeof Cloud!=='undefined' && Cloud.email)||''};
       }
       let saved = 0, why = '';
@@ -2423,10 +2431,10 @@ const ToolForms = {
     const v = this.v, job = [v.jobNo, v.jobName].filter(Boolean).join(' ');
     const subject = `Truck trip request: ${job}${v.delDate?` (deliver ${this.usd(v.delDate)})`:''}`;
     const body = `Hi,\n\nPlease see the attached Truck Trip Request and Tool & Equipment Requisition for ${job}.\n\n`
-      + `Pick up from: ${v.pickFrom}${v.pickStreet&&v.pickStreet!==v.pickFrom?', '+v.pickStreet:''}${v.pickCity?', '+v.pickCity:''}\n`
-      + `Deliver to: ${v.delTo}${v.delStreet?', '+v.delStreet:''}${v.delCity?', '+v.delCity:''}\n`
+      + (v.pickFrom==='NONE' ? 'Pick up from: none\n' : `Pick up from: ${v.pickFrom}${v.pickStreet&&v.pickStreet!==v.pickFrom?', '+v.pickStreet:''}${v.pickCity?', '+v.pickCity:''}\n`)
+      + (v.delTo==='NONE' ? 'Deliver to: none\n' : `Deliver to: ${v.delTo}${v.delStreet?', '+v.delStreet:''}${v.delCity?', '+v.delCity:''}\n`
       + `Deliver on: ${this.usd(v.delDate)||'(date not set)'}${v.delTime?' at '+this.hm(v.delTime):''}\n`
-      + `Onsite contact: ${[v.delContact, v.delPhone].filter(Boolean).join(', ')||'(not set)'}\n`
+      + `Onsite contact: ${[v.delContact, v.delPhone].filter(Boolean).join(', ')||'(not set)'}\n`)
       + `Items: ${v.desc}\n\nThanks,\n${v.reqBy}`;
     location.href = `mailto:${WAREHOUSE_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   },
