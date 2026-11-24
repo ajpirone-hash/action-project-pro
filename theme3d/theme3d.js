@@ -209,7 +209,7 @@ function fitAuto(cam, scene, topPad = 64, botPad = 34, margin = .96, sidePad = 0
   fit.center = i => { const b = new THREE.Box3().setFromPoints(by[i] || pts), c = b.getCenter(new THREE.Vector3()); c.y = .2; return c; };
   return fit;
 }
-const heroTop = () => { const u = hero.querySelector('.t3dui'); return u ? u.offsetTop + u.offsetHeight + (phone() ? 22 : 46) : 64; };
+const heroTop = () => { const u = hero.querySelector('.t3dui'); return u ? u.offsetTop + u.offsetHeight + (narrow() ? 18 : 46) : 64; };
 const heroBot = () => narrow() ? (read.offsetHeight || 120) + 16 : 40;
 const heroSide = () => narrow() ? 6 : 246;
 function ground(scene) { // a floor that fades into the background so the board sits in a space, not in the void
@@ -228,7 +228,7 @@ function gridOf(px, pz, snake) {
 }
 const top = () => (filter === 'Trash' ? [] : visibleJobs()).filter(j => !isChild(j) && stageOf(j) >= 0);
 const allMax = () => Math.max(...topJobs().map(j => val(j)), 1);   // stable sizes while filtering
-const LBL = () => phone() ? 0 : 1;                 // more name tags when the scene is full screen
+const LBL = () => narrow() ? 0 : 1;                 // more name tags when the scene is full screen
 function slots(n, W, D) {
   const cols = Math.max(1, Math.ceil(Math.sqrt(n * W / D))), rows = Math.ceil(n / cols), step = Math.min(W / cols, D / rows);
   return k => ({ x: ((k % cols) - (cols - 1) / 2) * step, z: (Math.floor(k / cols) - (rows - 1) / 2) * step, size: step });
@@ -425,6 +425,10 @@ const sel = document.createElement('div'); sel.id = 't3dSel'; sel.hidden = true;
 const read = document.createElement('div'); read.className = 't3dread';
 hero.append(ui, sel, read);
 const narrow = () => hero.clientWidth < 900;
+// the floating controls and readouts change height (fonts arriving, chips wrapping): refit the dial when they do
+{ const refit = () => { if (view && view === heroView) { layout(); sizeTo(view); request(); } };
+  const ro = new ResizeObserver(refit); ro.observe(ui); ro.observe(read);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(refit); }
 function layout() { // fit the scene between the app's header/rail and the phone tab bar
   const h = document.querySelector('header').getBoundingClientRect(), tab = document.getElementById('iostab');
   const rail = h.height > innerHeight * .8, tb = tab && getComputedStyle(tab).display !== 'none' ? tab.getBoundingClientRect().top : innerHeight;
@@ -507,7 +511,7 @@ function drawStat() {
   const st = pill && !pill.hidden && pill.textContent ? pill.textContent : 'This device';
   const bad = pill && /off/.test(pill.className);
   let chat = 0; try { chat = typeof JobChat !== 'undefined' && JobChat.count ? JobChat.count() : 0; } catch (e) { }
-  el.innerHTML = `<span class="clk"><b>${hm(now).replace(/ (AM|PM)/, '<small>$1</small>')}</b>${now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>`
+  el.innerHTML = `<span class="clk"><b>${hm(now).replace(/ (AM|PM)/, '<small>$1</small>')}</b><i class="dt">${now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</i></span>`
     + `<span class="sy ${bad ? 'bad' : ''}"><i></i>${esc(st)}<em>· synced ${hm(new Date(lastSync))}</em></span>`
     + `<span class="ch ${chat ? 'on' : ''}">${chat ? chat + ' new message' + (chat > 1 ? 's' : '') : 'No new messages'}</span>`;
 }

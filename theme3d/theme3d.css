@@ -265,3 +265,25 @@ html.t3d-D #t3dSel{background:var(--brk),var(--hudbg)!important;background-repea
 }
 .t3dhost.hero .t3dl.move{animation:t3fade 1.2s 7s forwards}
 @keyframes t3fade{to{opacity:0;visibility:hidden}}
+/* narrow screens (phones, foldables, tablets in portrait): one-row controls, short stage names, compact readouts */
+.t3dhost.hero.narrow .t3dui{left:10px;right:10px;top:10px;gap:8px}
+html.t3d .t3dhost.hero.narrow .t3dui .bar{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;align-self:stretch;padding:5px}
+html.t3d .t3dhost.hero.narrow .t3dui .bar::-webkit-scrollbar,.t3dhost.hero.narrow .t3dstops::-webkit-scrollbar{display:none}
+html.t3d .t3dhost.hero.narrow .t3dui .bar .search{min-width:190px;flex:0 0 auto}
+html.t3d .t3dhost.hero.narrow .t3dui .bar>*{flex-shrink:0}
+.t3dhost.hero.narrow .t3dstops{align-self:stretch}
+.t3dhost.hero.narrow .t3dstops .full{display:none}.t3dhost.hero.narrow .t3dstops .short{display:inline}
+.t3dhost.hero.narrow .t3dstat .sy em,.t3dhost.hero.narrow .t3dstat .dt{display:none}
+.t3dhost.hero.narrow .t3dstat{min-width:0;overflow:hidden}
+.t3dhost.hero.narrow .t3dl.move{display:none}
+/* readouts: side by side when two fit, a swipe strip on phones */
+@media (min-width:600px){
+  .t3dhost.hero.narrow .t3dread{overflow:visible;scroll-snap-type:none}
+  .t3dhost.hero.narrow .t3dread .rp{flex:1 1 0;min-width:0}
+}
+.t3dhost.hero.narrow .t3dread .rr{min-width:0}
+.t3dhost.hero.narrow .t3dread .rr span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t3dhost.hero.narrow .t3dread .ral button:nth-child(n+2){display:none}
+.t3dhost.hero.narrow .t3dread .ral button{flex:1 1 auto}
+.t3dhost.hero.narrow .t3dread .ral button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t3dstat .dt{font-style:normal}
