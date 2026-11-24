@@ -430,6 +430,32 @@ html.dark #tfBox .f.need label .src{color:var(--gold,#e8a317)}
 .tfdone{display:flex;flex-direction:column;gap:8px;margin-top:6px}
 .tfdone .drow{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
 .tritem .trforms{font-size:12px;color:var(--muted);margin-top:6px}
+/* Add tools to a returned list (v0.51) */
+.tradd{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--accent,#1b3a66);background:var(--accent-soft,#e8eef7);border-radius:999px;padding:1px 7px;margin-left:6px;vertical-align:1px}
+#taBox .tasearch{width:100%;margin:4px 0 10px}
+.tatray{display:flex;flex-direction:column;gap:6px;margin-bottom:6px}
+.tarow{display:grid;grid-template-columns:auto 1fr auto;gap:6px 10px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--panel,#fff)}
+.tarow.new{border-color:var(--accent,#1b3a66);box-shadow:0 0 0 1px var(--accent,#1b3a66) inset}
+.tarow .tanm{font-weight:600;min-width:0;word-break:break-word}
+.tarow .tanm small{display:block;font-weight:500;color:var(--muted);font-size:11.5px}
+.taqty{display:inline-flex;align-items:center;gap:4px}
+.taqty button{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--field,#fff);color:var(--ink);font-weight:700;cursor:pointer}
+.taqty b{min-width:26px;text-align:center;font-variant-numeric:tabular-nums}
+.tarow .taex{grid-column:2/-1;display:flex;gap:6px;flex-wrap:wrap}
+.tarow .taex input{flex:1;min-width:140px}
+.tarow .taex select{flex:none;width:auto}
+.tacat{border:1px solid var(--line);border-radius:10px;margin-top:6px;overflow:hidden}
+.tacat>button{all:unset;box-sizing:border-box;display:flex;justify-content:space-between;align-items:center;width:100%;padding:10px 12px;font-weight:600;cursor:pointer;background:var(--fill,#f5f7fa)}
+.tacat>button .n{font-size:11px;color:var(--muted);font-weight:500}
+.tacat .tagrid{display:none;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:6px;padding:8px}
+.tacat.open .tagrid{display:grid}
+.tagrid button{text-align:left;border:1px solid var(--line);border-radius:8px;background:var(--panel,#fff);color:var(--ink);padding:8px 10px;font:inherit;font-size:13px;cursor:pointer;line-height:1.25}
+.tagrid button:hover{border-color:var(--accent,#1b3a66)}
+.tagrid button.on{border-color:var(--accent,#1b3a66);background:var(--accent-soft,#e8eef7)}
+.tagrid button .plus{color:var(--accent,#1b3a66);font-weight:700;margin-right:4px}
+.tacustom{display:flex;gap:6px;margin-top:10px}
+.tacustom input{flex:1}
+#taBox .tasearch,#taBox .tacustom input,#taBox .taex input,#taBox .taex select{border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--field,#fff);color:var(--ink);font:inherit;font-size:14px;min-height:38px;box-sizing:border-box}
 #drawer .tab .n:empty{display:none}
 .qmsg{margin-top:8px}
 .qmsg.err{color:var(--lost)}
@@ -942,7 +968,7 @@ th{font-size:10.5px;font-weight:500;letter-spacing:.06em}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.50 (warehouse forms from tool lists)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.51 (add tools to a crew list)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -973,6 +999,7 @@ th{font-size:10.5px;font-weight:500;letter-spacing:.06em}
 <div class="modal" id="newCO"><div class="box" style="width:min(560px,94%)" id="newCOBox"></div></div>
 <div class="modal" id="settings"><div class="box" id="settingsBox"></div></div>
 <div class="modal" id="pick"><div class="box" style="width:min(520px,94%)" id="pickBox"></div></div>
+<div class="modal" id="taModal"><div class="box" style="width:min(680px,96%)" id="taBox"></div></div>
 <div class="modal" id="tfModal"><div class="box" style="width:min(760px,96%)" id="tfBox"></div></div>
 <div class="modal" id="ask"><div class="box" style="width:min(420px,94%)">
   <h3 id="askTitle">Are you sure?</h3><p id="askMsg" style="margin:0 0 18px;color:var(--muted)"></p>
@@ -1440,7 +1467,7 @@ function askJobNo(j){
 function openJob(id){ openId=id; renderDrawer(); $('#drawer').classList.add('open'); $('#scrim').classList.add('open'); }
 function closeJob(){ closeIdMenu(); JobChat.stop(); ToolReq.stop(); openId=null; $('#drawer').classList.remove('open'); $('#scrim').classList.remove('open'); }
 $('#scrim').onclick = closeJob;
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeIdMenu(); closeJob(); $('#settings').classList.remove('open'); $('#newBid').classList.remove('open'); $('#newCO').classList.remove('open'); $('#pick').classList.remove('open'); $('#intake').classList.remove('open'); $('#tfModal').classList.remove('open'); }});
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeIdMenu(); closeJob(); $('#settings').classList.remove('open'); $('#newBid').classList.remove('open'); $('#newCO').classList.remove('open'); $('#pick').classList.remove('open'); $('#intake').classList.remove('open'); $('#tfModal').classList.remove('open'); $('#taModal').classList.remove('open'); }});
 
 const fld = (label,key,val,type='text',extra='') => `<div class="f ${type==='textarea'?'wide':''}"><label>${label}</label>${
   type==='textarea' ? `<textarea rows="2" data-k="${key}">${esc(val)}</textarea>`
@@ -2043,23 +2070,34 @@ const ToolReq = {
     (l.lines||[]).forEach(i=>rows.push([l.jobNumber,l.jobName,l.jobAddress,l.requestedBy,l.dateNeeded?fdate(l.dateNeeded):'',l.container,i.category,i.tool,i.option,i.qty,i.note]));
     return '﻿' + rows.map(r=>r.map(c).join(',')).join('\r\n') + '\r\n';
   },
+  /* the crew's list plus tools the office added (j.toolAdds[listId], v0.51) */
+  adds(l){ return (((Store.get(this.jobFor)||{}).toolAdds||{})[l.id]) || []; },
+  full(l){
+    const A = this.adds(l); if(!A.length) return l;
+    const lines = [...(l.lines||[]), ...A.map(a=>Object.assign({added:true}, a))];
+    const text = `Gang box list (${lines.length} items)\n\n` + [l.jobNumber?`Job #: ${l.jobNumber}`:'', l.jobName?`Job: ${l.jobName}`:'', l.jobAddress?`Address: ${l.jobAddress}`:'', l.requestedBy?`Requested by: ${l.requestedBy}`:'', l.dateNeeded?`Needed: ${ToolForms.usd(l.dateNeeded)}`:'', l.container?`Send in: ${l.container}`:''].filter(Boolean).join('\n')
+      + '\n\n' + lines.map(i=>`- ${i.qty} x ${i.tool}${i.option?', '+i.option:''}${i.note?' ('+i.note+')':''}${i.added?' [added by office]':''}`).join('\n') + '\n';
+    return Object.assign({}, l, {lines, text});
+  },
   draw(){
     const box = $('#trLists'); if(!box) return;
     if(this.err){ box.innerHTML = `<div class="note">${esc(this.err)}</div>`; return; }
     if(!this.t){ box.innerHTML = `<div class="note">No link sent for this job yet.</div>`; return; }
     if(this.loading){ box.innerHTML = `<div class="note">Loading…</div>`; return; }
     if(!this.lists.length){ box.innerHTML = `<div class="note">Nothing back yet. Lists the crew sends from the link show up here.</div>`; return; }
-    box.innerHTML = this.lists.map(l=>{
+    box.innerHTML = this.lists.map(l0=>{
+      const l = this.full(l0);
       const meta = [l.requestedBy ? '<b>'+esc(l.requestedBy)+'</b>' : '<b>Crew</b>', esc(JobChat.when(l.at)), l.dateNeeded ? 'needed '+esc(fdate(l.dateNeeded)) : '', l.container ? esc(l.container) : '', l.jobAddress ? esc(l.jobAddress) : '',
         l.done ? `<span class="pill done">✓ Pulled${l.doneBy?' by '+esc(Cloud.nameOf(l.doneBy)):''}</span>` : ''].filter(Boolean).join(' · ');
-      const items = (l.lines||[]).map(i=>`<li><b>${esc(i.qty)} ×</b> ${esc(i.tool)}${i.option?', <b>'+esc(i.option)+'</b>':''}${i.note?` <span class="note">(${esc(i.note)})</span>`:''}</li>`).join('');
+      const items = (l.lines||[]).map(i=>`<li><b>${esc(i.qty)} ×</b> ${esc(i.tool)}${i.option?', <b>'+esc(i.option)+'</b>':''}${i.note?` <span class="note">(${esc(i.note)})</span>`:''}${i.added?`<span class="tradd" title="Added by ${esc(Cloud.nameOf(i.by||''))}">added</span>`:''}</li>`).join('');
       return `<div class="tritem ${l.done?'done':''}"><div class="trmeta">${meta}</div><ul>${items || '<li>(no tools)</li>'}</ul>
         ${(()=>{ const fm = ((Store.get(this.jobFor)||{}).toolForms||{})[l.id]; return fm ? `<div class="trforms">📄 Warehouse forms made ${esc(fdate(String(fm.at).slice(0,10)))}${fm.by?' by '+esc(Cloud.nameOf(fm.by)):''}</div>` : ''; })()}
-        <div class="qbar"><button class="btn sm primary tredit" data-trforms="${esc(l.id)}">📄 Warehouse forms</button><button class="btn sm" data-trcsv="${esc(l.id)}">⬇ Spreadsheet</button><button class="btn sm" data-trcopy="${esc(l.id)}">⧉ Copy</button>
+        <div class="qbar"><button class="btn sm primary tredit" data-trforms="${esc(l.id)}">📄 Warehouse forms</button><button class="btn sm tredit" data-tradd="${esc(l.id)}">＋ Add tools</button><button class="btn sm" data-trcsv="${esc(l.id)}">⬇ Spreadsheet</button><button class="btn sm" data-trcopy="${esc(l.id)}">⧉ Copy</button>
           <button class="btn sm tredit" data-trdone="${esc(l.id)}">${l.done?'↩ Not pulled yet':'✓ Mark pulled'}</button>
           <button class="btn ghost sm tredit" data-trdel="${esc(l.id)}" title="Delete this list" aria-label="Delete this list">✕</button></div></div>`;
     }).join('');
-    const find = id => this.lists.find(l=>l.id===id), t = this.t;
+    const find = id => { const l = this.lists.find(l=>l.id===id); return l && this.full(l); }, t = this.t;
+    box.querySelectorAll('[data-tradd]').forEach(b=>b.onclick=()=>{ const l = this.lists.find(x=>x.id===b.dataset.tradd), x = Store.get(this.jobFor); if(l && x) ToolAdd.open(x, l); });
     box.querySelectorAll('[data-trforms]').forEach(b=>b.onclick=()=>{ const l = find(b.dataset.trforms), x = Store.get(this.jobFor); if(l && x) ToolForms.open(x, l); });
     box.querySelectorAll('[data-trcsv]').forEach(b=>b.onclick=()=>{ const l = find(b.dataset.trcsv); if(!l) return;
       const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([this.csv(l)], {type:'text/csv'}));
@@ -2106,6 +2144,103 @@ const ToolReq = {
   }
 };
 
+/* ---------------- Add tools the crew missed (v0.51) ----------------
+   Uses the gang box web app's own tool list (Cmod tools.js, loaded live; GANGBOX_TOOLS_COPY if it can't load).
+   Additions live on the job: j.toolAdds[listId] = [{category, tool, option, qty, note, by, at}]. */
+const GANGBOX_TOOLS_COPY = [{"name":"Power Tools (Battery Operated)","tools":["Battery Drill/Driver","Battery Impact Driver","Battery Hammer Drill","Battery Rotary Hammer (SDS)","Battery Right Angle Drill","Battery Sawzall (Reciprocating Saw)","Battery Portaband (Band Saw)","Battery Circular Saw","Battery Angle Grinder","Battery Oscillating Multi-Tool","Spare Batteries","Battery Chargers"]},{"name":"Plumbing","tools":["Pipe Wrench 14\"","Pipe Wrench 18\"","Pipe Wrench 24\"","Basin Wrench","Copper Tubing Cutter","PVC Cutter","Pipe Threader","Press Tool (ProPress)","Press Jaws 1/2\"-1\"","Press Jaws 1-1/4\"-2\"","PEX Crimp Tool","PEX Expansion Tool","Torch Kit","Solder & Flux","Drain Snake/Auger","Test Plugs","Test Gauge","Pipe Vise/Tripod Stand"]},{"name":"Electrical","tools":["Multimeter","Clamp Meter","Non-Contact Voltage Tester","Wire Strippers","Lineman's Pliers","Cable Cutters","Crimpers","Conduit Bender 1/2\"","Conduit Bender 3/4\"","Conduit Bender 1\"","Knockout Set","Fish Tape","Wire Puller","Cable Lube","Label Maker"]},{"name":"Hand Tools","tools":["Screwdriver Set","Nut Driver Set","Channel Locks","Adjustable Wrench Set","Socket Set","Hex Key Set","Hammer","Utility Knife","Hacksaw","Tape Measure","Torpedo Level","4' Level","Chalk Line","Flashlight"]},{"name":"Digging","tools":["Round Point Shovel","Square Point Shovel","Trenching Shovel","Drain Spade","Pick / Mattock","Digging Bar","Post Hole Digger","Garden Rake","Hoe","Hand Trowel","Wheelbarrow","5-Gallon Buckets"]},{"name":"Layout & Measuring","tools":["Laser Level","Laser Tripod","Stud Finder","Marking Paint","Sharpies"]},{"name":"Gas Cylinders","tools":[{"name":"Acetylene Bottle","choose":{"label":"Size","options":["MC (10 cu ft)","B (40 cu ft)","#3 (75 cu ft)","#4 (145 cu ft)","#5 (300 cu ft)"]}},{"name":"Oxygen Bottle","choose":{"label":"Size","options":["R (20 cu ft)","D (40 cu ft)","80 cu ft","125 cu ft","250 cu ft"]}},"Torch Regulators (Oxy/Acetylene)","Bottle Cart","Bottle Wrench","Cylinder Caps"]},{"name":"Ladders & Access","tools":["6' Step Ladder","8' Step Ladder","10' Step Ladder","Extension Ladder","Rolling Scaffold"]},{"name":"Rigging: Hoists & Pullers","tools":[{"name":"Chain Fall 1/4 Ton","choose":{"label":"Lift length","options":["10'","15'","20'","30'"]}},{"name":"Chain Fall 1/2 Ton","choose":{"label":"Lift length","options":["10'","15'","20'","30'"]}},{"name":"Chain Fall 1 Ton","choose":{"label":"Lift length","options":["10'","15'","20'","30'"]}},{"name":"Chain Fall 1-1/2 Ton","choose":{"label":"Lift length","options":["10'","15'","20'","30'"]}},{"name":"Chain Fall 2 Ton","choose":{"label":"Lift length","options":["10'","15'","20'","30'"]}},{"name":"Chain Fall 3 Ton","choose":{"label":"Lift length","options":["10'","15'","20'","30'"]}},{"name":"Chain Fall 5 Ton","choose":{"label":"Lift length","options":["10'","15'","20'","30'"]}},{"name":"Lever Hoist (Come-Along) 1/4 Ton","choose":{"label":"Lift length","options":["5'","10'","15'","20'"]}},{"name":"Lever Hoist (Come-Along) 1/2 Ton","choose":{"label":"Lift length","options":["5'","10'","15'","20'"]}},{"name":"Lever Hoist (Come-Along) 3/4 Ton","choose":{"label":"Lift length","options":["5'","10'","15'","20'"]}},{"name":"Lever Hoist (Come-Along) 1 Ton","choose":{"label":"Lift length","options":["5'","10'","15'","20'"]}},{"name":"Lever Hoist (Come-Along) 1-1/2 Ton","choose":{"label":"Lift length","options":["5'","10'","15'","20'"]}},{"name":"Lever Hoist (Come-Along) 3 Ton","choose":{"label":"Lift length","options":["5'","10'","15'","20'"]}},{"name":"Lever Hoist (Come-Along) 6 Ton","choose":{"label":"Lift length","options":["5'","10'","15'","20'"]}},"Cable Come-Along 1 Ton","Cable Come-Along 2 Ton",{"name":"Electric Chain Hoist 1/2 Ton","choose":{"label":"Lift length","options":["10'","15'","20'","30'"]}},{"name":"Electric Chain Hoist 1 Ton","choose":{"label":"Lift length","options":["10'","15'","20'","30'"]}},{"name":"Electric Chain Hoist 2 Ton","choose":{"label":"Lift length","options":["10'","15'","20'","30'"]}},"Beam Clamp 1/2 Ton","Beam Clamp 1 Ton","Beam Clamp 2 Ton","Beam Clamp 3 Ton","Beam Clamp 5 Ton","Beam Trolley 1/2 Ton","Beam Trolley 1 Ton","Beam Trolley 2 Ton","Beam Trolley 3 Ton","Beam Trolley 5 Ton",{"name":"Aluminum Gantry 1 Ton (adjustable height)","choose":{"label":"Span","options":["8'","10'","12'","15'","20'"]}},{"name":"Aluminum Gantry 2 Ton (adjustable height)","choose":{"label":"Span","options":["8'","10'","12'","15'","20'"]}},{"name":"Aluminum Gantry 3 Ton (adjustable height)","choose":{"label":"Span","options":["8'","10'","12'","15'","20'"]}},{"name":"Steel Gantry 2 Ton (adjustable height)","choose":{"label":"Span","options":["8'","10'","12'","15'","20'"]}},{"name":"Steel Gantry 3 Ton (adjustable height)","choose":{"label":"Span","options":["8'","10'","12'","15'","20'"]}},{"name":"Steel Gantry 5 Ton (adjustable height)","choose":{"label":"Span","options":["8'","10'","12'","15'","20'"]}},"Tripod Hoist Stand"]},{"name":"Rigging: Slings","tools":["Nylon Sling 1\" x 4'","Nylon Sling 1\" x 6'","Nylon Sling 2\" x 6'","Nylon Sling 2\" x 10'","Nylon Sling 3\" x 10'","Round Sling 4'","Round Sling 8'","Wire Rope Sling 3/8\" x 6'","Wire Rope Sling 1/2\" x 10'","Chain Sling 3/8\" x 6'","Chain Sling 1/2\" x 10'","Sling Wear Pads / Protectors"]},{"name":"Rigging: Hardware","tools":["Shackle 3/8\"","Shackle 1/2\"","Shackle 5/8\"","Shackle 3/4\"","Eye Bolt 1/2\"","Eye Bolt 5/8\"","Eye Bolt 3/4\"","Swivel Hoist Ring","Turnbuckle","Wire Rope Clips","Grab Hooks","Snatch Block 2 Ton","Snatch Block 4 Ton","Spreader Bar"]},{"name":"Rigging: Rope & Tie-Down","tools":["Tag Lines","Rope 1/2\" x 100'","Ratchet Straps","Chain 3/8\" x 20'","Chain Binders"]},{"name":"Rigging: Moving & Jacking","tools":["Pipe Rollers","Machinery Skates","Pallet Jack","Pipe Dolly / Pipe Cart","Appliance Dolly","Bottle Jack 5 Ton","Bottle Jack 12 Ton","Toe Jack","Pry Bar / J-Bar","Cribbing / Blocking","Pipe Jack Stand (Roller Head)","Pipe Jack Stand (V-Head)"]},{"name":"Rigging: Lifts & Safety","tools":["Material Lift (Genie)","Duct / Pipe Lift","Rigging Gloves","Rigging Inspection Tags","Barricade Tape / Cones"]},{"name":"Safety","tools":["Hard Hats","Safety Glasses","Gloves","Hearing Protection","Hi-Vis Vests","Harness & Lanyard","First Aid Kit","Fire Extinguisher","Lockout/Tagout Kit"]},{"name":"Site & Power","tools":["Extension Cords","Spider Box","Work Lights","Shop Vac","Gang Box Lock"]},{"name":"Consumables","tools":["Drill Bit Set","Hole Saw Kit","Sawzall Blades","Portaband Blades","Grinder Discs","Teflon Tape","Pipe Dope","PVC Primer & Cement","Wire Nuts","Electrical Tape","Zip Ties","Anchors & Fasteners","Rags"]}];
+const ToolAdd = {
+  cat:null, job:null, list:null, rows:[], open_:{}, q:'',
+  async catalog(){
+    if(this.cat) return this.cat;
+    if(!window.GANGBOX_TOOLS) await new Promise(res=>{ const sc = document.createElement('script'); sc.src = CMOD_URL + 'tools.js?v=' + Date.now().toString(36).slice(0,-3);
+      sc.onload = sc.onerror = ()=>res(); setTimeout(res, 4000); document.head.appendChild(sc); });
+    const src = Array.isArray(window.GANGBOX_TOOLS) && window.GANGBOX_TOOLS.length ? window.GANGBOX_TOOLS : GANGBOX_TOOLS_COPY;
+    return this.cat = src.map(c=>({name:c.name, tools:c.tools.map(t=>typeof t==='string' ? {name:t} : {name:t.name, choose:t.choose||null})}));
+  },
+  optText(t, o){ if(!o || !t.choose) return o||''; return /^size$/i.test(t.choose.label) ? o : `${o} ${t.choose.label.toLowerCase()}`; },
+  async open(j, l){
+    this.job = j; this.list = l; this.q = '';
+    this.rows = ((j.toolAdds||{})[l.id]||[]).map(a=>Object.assign({}, a));
+    $('#taBox').innerHTML = '<div class="note">Loading the tool list…</div>'; $('#taModal').classList.add('open');
+    $('#taModal').onclick = e=>{ if(e.target.id==='taModal') this.close(); };
+    await this.catalog(); this.draw();
+  },
+  close(){ $('#taModal').classList.remove('open'); },
+  find(name){ for(const c of this.cat) for(const t of c.tools) if(t.name===name) return t; return null; },
+  have(name){ return (this.list.lines||[]).some(i=>i.tool===name); },
+  trayHtml(){
+    if(!this.rows.length) return `<div class="note" style="padding:6px 0">Nothing added yet. Tap a tool below to add it.</div>`;
+    return this.rows.map((r,i)=>{ const t = this.find(r.tool);
+      return `<div class="tarow ${r.at?'':'new'}" data-tai="${i}">
+        <div class="taqty"><button type="button" data-taq="-1" aria-label="One less">−</button><b>${r.qty}</b><button type="button" data-taq="1" aria-label="One more">+</button></div>
+        <div class="tanm">${esc(r.tool)}<small>${esc(r.category||'Other')}${r.at?' · added '+esc(fdate(String(r.at).slice(0,10)))+(r.by?' by '+esc(Cloud.nameOf(r.by)):''):''}</small></div>
+        <button class="btn ghost sm" data-tarm aria-label="Remove ${esc(r.tool)}">✕</button>
+        <div class="taex">${t && t.choose ? `<select data-taopt aria-label="${esc(t.choose.label)}"><option value="">${esc(t.choose.label)}…</option>${t.choose.options.map(o=>`<option value="${esc(o)}" ${r.optRaw===o?'selected':''}>${esc(o)}</option>`).join('')}</select>` : ''}
+          <input data-tanote placeholder="Note (size, brand…) optional" value="${esc(r.note||'')}" maxlength="300"></div></div>`; }).join('');
+  },
+  catHtml(){
+    const q = this.q.trim().toLowerCase();
+    return this.cat.map(c=>{
+      const T = c.tools.filter(t=>!q || t.name.toLowerCase().includes(q) || c.name.toLowerCase().includes(q)); if(!T.length) return '';
+      const open = q || this.open_[c.name];
+      return `<div class="tacat ${open?'open':''}" data-tacat="${esc(c.name)}"><button type="button" aria-expanded="${open?'true':'false'}">${esc(c.name)}<span class="n">${T.length} tools ▾</span></button>
+        <div class="tagrid">${T.map(t=>{ const on = this.rows.some(r=>r.tool===t.name), crew = this.have(t.name);
+          return `<button type="button" class="${on?'on':''}" data-tapick="${esc(t.name)}" data-tacatn="${esc(c.name)}"><span class="plus">${on?'✓':'＋'}</span>${esc(t.name)}${crew?'<br><small class="note">already on their list</small>':''}</button>`; }).join('')}</div></div>`;
+    }).join('') || `<div class="note" style="padding:8px 0">No tools match "${esc(this.q)}". Add it below as a tool that's not listed.</div>`;
+  },
+  draw(){
+    const l = this.list;
+    $('#taBox').innerHTML = `<div class="tfhead"><div><h3>Add tools</h3><p class="tfsum">To ${esc(l.requestedBy||'the crew')}'s list · ${esc([jid(this.job), this.job.name].filter(Boolean).join(' '))}</p></div><button class="btn ghost sm" id="taX" aria-label="Close">✕</button></div>
+      <div class="ncostep">Adding (${this.rows.length})</div><div class="tatray" id="taTray">${this.trayHtml()}</div>
+      <div class="ncostep">Gang box tool list</div>
+      <input type="search" class="tasearch" id="taQ" placeholder="🔍 Search tools" value="${esc(this.q)}" autocomplete="off">
+      <div id="taCats">${this.catHtml()}</div>
+      <div class="tacustom"><input id="taNew" placeholder="A tool that's not listed" maxlength="160"><button class="btn" id="taNewGo">＋ Add</button></div>
+      <div class="tfacts"><button class="btn" id="taCancel">Cancel</button><button class="btn primary" id="taSave">Save to the list</button></div>`;
+    this.wire();
+  },
+  redraw(part){
+    if(part!=='cats'){ $('#taTray').innerHTML = this.trayHtml(); $('#taBox .ncostep').textContent = `Adding (${this.rows.length})`; }
+    if(part!=='tray') $('#taCats').innerHTML = this.catHtml();
+    this.wireParts();
+  },
+  add(name, category, choose){
+    const i = this.rows.findIndex(r=>r.tool===name);
+    if(i>=0) this.rows.splice(i,1); else this.rows.push({category, tool:name, option:'', optRaw:'', qty:1, note:''});
+    this.redraw();
+  },
+  wire(){
+    $('#taX').onclick = $('#taCancel').onclick = ()=>this.close();
+    $('#taQ').oninput = e=>{ this.q = e.target.value; this.redraw('cats'); };
+    const addNew = ()=>{ const v = $('#taNew').value.trim(); if(!v) return $('#taNew').focus();
+      if(!this.rows.some(r=>r.tool.toLowerCase()===v.toLowerCase())) this.rows.push({category:'Other', tool:v.slice(0,160), option:'', optRaw:'', qty:1, note:''});
+      $('#taNew').value = ''; this.redraw('tray'); };
+    $('#taNewGo').onclick = addNew; $('#taNew').onkeydown = e=>{ if(e.key==='Enter'){ e.preventDefault(); addNew(); } };
+    $('#taSave').onclick = ()=>this.save();
+    this.wireParts();
+  },
+  wireParts(){
+    const box = $('#taBox');
+    box.querySelectorAll('[data-tacat]>button').forEach(b=>b.onclick=()=>{ const n = b.parentElement.dataset.tacat; this.open_[n] = !this.open_[n]; b.parentElement.classList.toggle('open', this.open_[n]); b.setAttribute('aria-expanded', this.open_[n]?'true':'false'); });
+    box.querySelectorAll('[data-tapick]').forEach(b=>b.onclick=()=>this.add(b.dataset.tapick, b.dataset.tacatn));
+    box.querySelectorAll('[data-tai]').forEach(row=>{
+      const r = this.rows[+row.dataset.tai], t = this.find(r.tool);
+      row.querySelectorAll('[data-taq]').forEach(b=>b.onclick=()=>{ r.qty = Math.max(1, Math.min(999, r.qty + +b.dataset.taq)); row.querySelector('.taqty b').textContent = r.qty; });
+      row.querySelector('[data-tarm]').onclick = ()=>{ this.rows.splice(+row.dataset.tai,1); this.redraw(); };
+      const sel = row.querySelector('[data-taopt]'); if(sel) sel.onchange = ()=>{ r.optRaw = sel.value; r.option = this.optText(t, sel.value); };
+      row.querySelector('[data-tanote]').oninput = e=>{ r.note = e.target.value; };
+    });
+  },
+  save(){
+    const j = this.job, now = new Date().toISOString(), me = (typeof Cloud!=='undefined' && Cloud.email) || '';
+    const need = this.rows.find(r=>{ const t = this.find(r.tool); return t && t.choose && !r.optRaw; });
+    if(need){ toast(`Pick the ${this.find(need.tool).choose.label.toLowerCase()} for ${need.tool}`); return; }
+    const out = this.rows.map(r=>({category:r.category||'Other', tool:r.tool, option:r.option||'', optRaw:r.optRaw||'', qty:r.qty, note:(r.note||'').trim(), by:r.by||me, at:r.at||now}));
+    j.toolAdds = j.toolAdds || {};
+    if(out.length) j.toolAdds[this.list.id] = out; else delete j.toolAdds[this.list.id];
+    this.close(); changed(); toast(out.length ? `${out.length} added tool${out.length>1?'s':''} saved to the list` : 'Added tools removed');
+  }
+};
 /* ---------------- Warehouse forms from a tool list (v0.50) ----------------
    Fills the company's TOOL AND EQUIPMENT REQUISITION and TRUCK TRIP REQUEST (.xlsx, blank copies built in:
    TOOLFORM_TPL) from a list the crew sent back. Anything the list or job doesn't say is asked in a window.
