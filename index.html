@@ -917,7 +917,7 @@ th{font-size:10.5px;font-weight:500;letter-spacing:.06em}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.45 (recap apprentice check)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.46 (Quote letter PDF)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -2944,7 +2944,7 @@ const LetterTpl = {
     let xml = new XMLSerializer().serializeToString(P.doc);
     if(!xml.startsWith('<?xml')) xml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n' + xml;
     await Zip.setText(P.ent, xml);
-    return new Blob([await Zip.write(P.ents).arrayBuffer()], {type:DOC_TYPES.docx});
+    return {blob: new Blob([await Zip.write(P.ents).arrayBuffer()], {type:DOC_TYPES.docx}), doc: P.doc, ents: P.ents};
   },
   async box(){
     const el = $('#ltBox'); if(!el) return;
@@ -2956,6 +2956,193 @@ const LetterTpl = {
       try{ await this.upload(f); toast('Quote letter form saved'); this.box(); }catch(err){ toast(err.message||String(err)); } };
   }
 };
+/* ---------------- Quote letter as PDF (v0.46) ----------------
+   Lays the filled letter out the way Word does and writes a PDF in the
+   browser: Arial-metric fonts (Liberation Sans/Serif, same widths as Arial
+   and Times New Roman, so lines break in the same places), the logos from
+   your blank's headers, "Page X of Y" on later pages, the footer, Symbol
+   bullets and the Edwardian Script signature (drawn from its outline, filled
+   and stroked the way Word makes it bold). Page size, margins and line
+   heights are Word's, measured from your own Word-made PDFs.            */
+const LetterPdf = {
+  SIG_TEXT: 'Austin Pirone',
+  SIG_PATH: 'M1786 -1016Q1786 -1005 1749 -963Q1647 -846 1556 -846Q1498 -846 1461.5 -886.5Q1425 -927 1425 -993Q1425 -1049 1491 -1174Q1522 -1232 1522 -1270Q1522 -1320 1466.5 -1355.5Q1411 -1391 1331 -1391Q1102 -1391 906.5 -1215Q711 -1039 711 -834Q711 -730 776.5 -664Q842 -598 946 -598Q1059 -598 1173.5 -680.5Q1288 -763 1335 -879Q1338 -889 1343 -889Q1352 -889 1352 -879Q1352 -858 1317 -804.5Q1282 -751 1245 -715Q1110 -582 942 -582Q828 -582 759 -652Q690 -722 690 -838Q690 -1049 893.5 -1229Q1097 -1409 1335 -1409Q1440 -1409 1499.5 -1357Q1559 -1305 1559 -1214Q1559 -1146 1511 -1053Q1468 -968 1468 -938Q1468 -864 1556 -864Q1656 -864 1763 -1012Q1772 -1024 1778 -1024Q1786 -1024 1786 -1016ZM2857 -1198Q2857 -1180 2836 -1180Q2827 -1180 2769 -1192Q2662 -1214 2591 -1214Q2430 -1165 2306.5 -1024Q2183 -883 2025 -567Q1783 -82 1405 6Q1484 18 1542 18Q1726 18 1851 -100Q1972 -214 2052 -342Q2061 -356 2066 -356Q2072 -356 2073 -352Q2073 -337 1958 -197Q1851 -66 1763 -16.5Q1675 33 1548 33Q1475 33 1370 12Q1306 33 1223 33Q1165 33 1165 12Q1165 -12 1243 -12Q1298 -12 1370 -2Q1525 -39 1604.5 -124Q1684 -209 1911 -584H1526Q1281 -326 1147 -217Q834 37 557 37Q399 37 288.5 -37Q178 -111 178 -217Q178 -272 211.5 -311Q245 -350 293 -350Q358 -350 358 -287Q358 -254 335.5 -230.5Q313 -207 283 -207Q236 -207 236 -252L238 -272Q240 -276 240 -283Q240 -293 231 -293Q221 -293 211 -268Q201 -243 201 -217Q201 -119 304 -51.5Q407 16 557 16Q772 16 1030 -195Q1089 -242 1161 -319Q1304 -469 1389 -553L1419 -584H1225L1237 -602Q1333 -602 1434 -600Q1727 -926 2002.5 -1076.5Q2278 -1227 2585 -1229Q2656 -1243 2718 -1243Q2857 -1243 2857 -1198ZM2540 -1210Q2279 -1197 2056 -1060Q1833 -923 1542 -600H1921Q2049 -823 2230 -1000Q2408 -1176 2540 -1210ZM2687 -313Q2687 -290 2542 -119Q2422 23 2352 23Q2308 23 2277.5 -12.5Q2247 -48 2247 -98Q2247 -137 2286 -207L2266 -180Q2174 -62 2131 -22Q2084 23 2042 23Q1998 23 1968 -11.5Q1938 -46 1938 -96Q1938 -154 1983 -229L2165 -535Q2199 -528 2218 -528Q2237 -528 2286 -535L2048 -143Q2012 -83 2012 -37Q2012 8 2050 8Q2151 8 2374 -369L2472 -535Q2503 -528 2524 -528Q2549 -528 2595 -535L2435 -274Q2321 -88 2321 -35Q2321 8 2362 8Q2442 8 2622 -244L2653 -287L2671 -309Q2676 -319 2681 -319Q2687 -319 2687 -313ZM3025 -702Q3025 -662 2900 -543Q2894 -512 2894 -489Q2894 -431 2947 -305Q2974 -242 2974 -199Q2974 -109 2886.5 -43Q2799 23 2679 23Q2611 23 2570.5 -15.5Q2530 -54 2530 -119Q2530 -194 2583.5 -265Q2637 -336 2694 -336Q2704 -336 2712 -332L2792 -430Q2828 -473 2888 -549Q2905 -619 2940 -669Q2975 -719 3009 -719Q3025 -719 3025 -702ZM2886 -307Q2886 -337 2884 -366.5Q2882 -396 2882 -451Q2882 -496 2886 -526Q2830 -455 2724 -326Q2743 -310 2743 -287Q2743 -228 2646 -207Q2607 -198 2578.5 -164.5Q2550 -131 2550 -94Q2550 -54 2579 -27Q2608 0 2651 0Q2735 0 2810.5 -97.5Q2886 -195 2886 -307ZM3455 -543 3447 -528H3316L3093 -147Q3052 -78 3052 -37Q3052 8 3099 8Q3190 8 3406 -309Q3413 -319 3418 -319Q3424 -319 3424 -313Q3423 -310 3414 -297L3371 -238Q3183 23 3088 23Q3041 23 3009.5 -11Q2978 -45 2978 -96Q2978 -156 3031 -246L3199 -528H3097L3107 -543H3207L3324 -737Q3354 -729 3381 -729Q3409 -729 3439 -737L3324 -543ZM3752 -727Q3752 -692 3722.5 -661.5Q3693 -631 3658 -631Q3613 -631 3613 -676Q3613 -709 3644 -739.5Q3675 -770 3709 -770Q3752 -770 3752 -727ZM3766 -313Q3765 -310 3756 -297L3713 -238Q3525 23 3426 23Q3379 23 3347.5 -10.5Q3316 -44 3316 -94Q3316 -152 3385 -270L3541 -535Q3572 -528 3590 -528Q3617 -528 3666 -535L3439 -162Q3390 -81 3390 -37Q3390 8 3437 8Q3526 8 3750 -309Q3755 -319 3760 -319Q3766 -319 3766 -313ZM4569 -313Q4569 -292 4424 -119Q4305 23 4237 23Q4192 23 4161.5 -12Q4131 -47 4131 -98Q4131 -143 4149.5 -181.5Q4168 -220 4246 -334Q4327 -454 4327 -487Q4327 -528 4284 -528Q4138 -528 3834 14Q3785 10 3775 10Q3740 10 3709 14L3865 -233Q3998 -445 3998 -498Q3998 -528 3973 -528Q3922 -528 3772 -313Q3763 -300 3758 -299Q3753 -299 3752 -305Q3753 -310 3756 -313L3775 -338Q3928 -543 3981 -543Q4015 -543 4039 -512Q4063 -481 4063 -438Q4063 -374 3988 -260Q4106 -423 4169.5 -483Q4233 -543 4287 -543Q4331 -543 4361 -507Q4391 -471 4391 -418Q4391 -351 4299 -213Q4205 -72 4205 -33Q4205 8 4246 8Q4335 8 4553 -309Q4558 -319 4563 -319Q4569 -319 4569 -313ZM7233 -1040Q7233 -988 7219 -926Q7205 -864 7192 -864Q7182 -864 7182 -874Q7182 -877 7184 -883Q7211 -953 7211 -1034Q7211 -1160 7136 -1236.5Q7061 -1313 6938 -1313Q6772 -1313 6596 -1204Q6746 -1084 6746 -932Q6746 -804 6643 -709Q6540 -614 6402 -614Q6348 -614 6286 -635.5Q6224 -657 6224 -676Q6226 -682 6232 -682Q6237 -682 6248 -676Q6310 -641 6373 -641Q6487 -641 6568.5 -739Q6650 -837 6650 -973Q6650 -1090 6566 -1182Q6349 -1020 6154 -612Q6036 -365 5938 -256Q5840 -147 5663 -59Q5454 43 5290 43Q5156 43 5067 -18.5Q4978 -80 4978 -172Q4978 -223 5008.5 -260Q5039 -297 5081 -297Q5142 -297 5142 -229Q5142 -195 5121.5 -171Q5101 -147 5071 -147Q5019 -147 5021 -201Q5022 -223 5017 -223Q5001 -223 5001 -170Q5001 -87 5082.5 -32Q5164 23 5288 23Q5507 23 5685 -139Q5763 -210 5818 -284Q5878 -364 6080 -672Q6181 -824 6318 -977Q6455 -1130 6551 -1196Q6395 -1329 6093 -1329Q5671 -1329 5359 -1024Q5103 -774 5103 -553Q5103 -441 5175 -375Q5247 -309 5370 -309Q5571 -309 5785.5 -502Q6000 -695 6000 -877Q6000 -1022 5851 -1022Q5702 -1022 5531.5 -855.5Q5361 -689 5361 -543Q5361 -507 5385 -481Q5409 -455 5441 -455Q5458 -455 5458 -446Q5458 -438 5439 -438Q5391 -438 5358 -481.5Q5325 -525 5325 -588Q5325 -744 5496 -892Q5667 -1040 5847 -1040Q6019 -1040 6019 -881Q6019 -687 5800 -489Q5581 -291 5368 -291Q5229 -291 5145.5 -374.5Q5062 -458 5062 -598Q5062 -881 5381.5 -1114.5Q5701 -1348 6088 -1348Q6382 -1348 6582 -1217Q6765 -1331 6936 -1331Q7070 -1331 7151.5 -1251Q7233 -1171 7233 -1040ZM6834 -727Q6834 -692 6804.5 -661.5Q6775 -631 6740 -631Q6695 -631 6695 -676Q6695 -709 6726 -739.5Q6757 -770 6791 -770Q6834 -770 6834 -727ZM6848 -313Q6847 -310 6838 -297L6795 -238Q6607 23 6508 23Q6461 23 6429.5 -10.5Q6398 -44 6398 -94Q6398 -152 6467 -270L6623 -535Q6654 -528 6672 -528Q6699 -528 6748 -535L6521 -162Q6472 -81 6472 -37Q6472 8 6519 8Q6608 8 6832 -309Q6837 -319 6842 -319Q6848 -319 6848 -313ZM7420 -313Q7420 -305 7360 -240Q7284 -156 7217 -156Q7141 -156 7141 -244Q7141 -272 7153 -315Q7090 -260 7050.5 -206Q7011 -152 6914 14Q6861 10 6852 10Q6848 10 6791 14L6955 -252Q7078 -452 7078 -500Q7078 -528 7055 -528Q6999 -528 6852 -313Q6843 -299 6836 -299Q6832 -300 6832 -305Q6833 -310 6836 -313L6854 -338Q7008 -543 7063 -543Q7143 -543 7143 -440Q7143 -363 7061 -236Q7113 -296 7160 -334Q7198 -423 7254.5 -483Q7311 -543 7356 -543Q7387 -543 7387 -516Q7387 -468 7248 -379Q7226 -365 7182 -338L7170 -328Q7156 -282 7156 -252Q7156 -168 7219 -168Q7297 -168 7389 -297Q7409 -319 7414 -319Q7420 -319 7420 -313ZM8011 -315Q8011 -299 7952 -240Q7864 -152 7790 -152Q7759 -152 7735 -164Q7603 23 7487 23Q7427 23 7384.5 -26.5Q7342 -76 7342 -145Q7342 -299 7544 -442Q7686 -543 7778 -543Q7864 -543 7864 -451Q7864 -336 7743 -174Q7763 -162 7788 -162Q7833 -162 7893 -204Q7953 -246 7991 -305Q8002 -319 8007 -319Q8011 -319 8011 -315ZM7849 -449Q7849 -530 7776 -530Q7685 -530 7554 -356Q7423 -182 7423 -63Q7423 6 7489 6Q7597 6 7725 -172Q7696 -204 7696 -238Q7696 -287 7735 -339Q7774 -391 7811 -391Q7827 -391 7833 -371Q7849 -406 7849 -449ZM8814 -313Q8814 -292 8669 -119Q8550 23 8482 23Q8437 23 8406.5 -12Q8376 -47 8376 -98Q8376 -143 8394.5 -181.5Q8413 -220 8491 -334Q8572 -454 8572 -487Q8572 -528 8529 -528Q8383 -528 8079 14Q8030 10 8020 10Q7985 10 7954 14L8110 -233Q8243 -445 8243 -498Q8243 -528 8218 -528Q8167 -528 8017 -313Q8008 -300 8003 -299Q7998 -299 7997 -305Q7998 -310 8001 -313L8020 -338Q8173 -543 8226 -543Q8260 -543 8284 -512Q8308 -481 8308 -438Q8308 -374 8233 -260Q8351 -423 8414.5 -483Q8478 -543 8532 -543Q8576 -543 8606 -507Q8636 -471 8636 -418Q8636 -351 8544 -213Q8450 -72 8450 -33Q8450 8 8491 8Q8580 8 8798 -309Q8803 -319 8808 -319Q8814 -319 8814 -313ZM9318 -313Q9318 -310 9300 -287L9257 -233Q9050 23 8902 23Q8832 23 8784.5 -27.5Q8737 -78 8737 -154Q8737 -334 8988 -471Q9120 -543 9203 -543Q9239 -543 9264.5 -521.5Q9290 -500 9290 -469Q9290 -397 9196 -346.5Q9102 -296 8882 -252Q8814 -149 8814 -80Q8814 6 8907 6Q9065 6 9294 -303Q9306 -319 9314 -319Q9318 -318 9318 -313ZM9234 -498Q9234 -530 9199 -530Q9146 -530 9059.5 -456.5Q8973 -383 8890 -266Q9034 -303 9134 -370.5Q9234 -438 9234 -498Z',
+  SIG_ADV: 9132,     // the signature's width in font units (2048 per em)
+  libs: null,
+  loadScript(src){ return new Promise((ok, no)=>{ const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = ()=>no(new Error('could not load ' + src)); document.head.appendChild(s); }); },
+  async load(){
+    if(this.libs) return this.libs;
+    if(!window.PDFLib) await this.loadScript('sdk/pdf-lib.min.js').catch(()=>this.loadScript('https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js'));
+    if(!window.fontkit) await this.loadScript('sdk/fontkit.umd.min.js').catch(()=>this.loadScript('https://cdn.jsdelivr.net/npm/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js'));
+    const get = async n => { const r = await fetch('sdk/fonts/' + n); if(!r.ok) throw new Error('PDF fonts are only in the web app'); return new Uint8Array(await r.arrayBuffer()); };
+    const [sr, sb, tr, tb] = await Promise.all(['LiberationSans-Regular.ttf','LiberationSans-Bold.ttf','LiberationSerif-Regular.ttf','LiberationSerif-Bold.ttf'].map(get));
+    return this.libs = {sr, sb, tr, tb};
+  },
+  /* font metrics (per em): ascent includes the line gap, the way Word spaces lines */
+  M: {sans:{a:(1854+67)/2048, d:434/2048}, serif:{a:(1825+87)/2048, d:443/2048}, sig:{a:1742/2048, d:672/2048}},
+  BULLET_EXTRA: 0.79/11,        // a Symbol bullet makes its line this much taller (per point of size)
+  PAGE: {w:612, h:792, left:54, right:558, bottom:734.4, footBase:768.24, footPitch:12.72},
+  async make(doc, ents){
+    const L = await this.load(); const {PDFDocument: PD, rgb: RGB} = window.PDFLib;
+    const W = LetterTpl.W, kids = (el, n) => Array.from(el ? el.children : []).filter(e=>e.localName===n), kid = (el, n) => kids(el, n)[0];
+    const val = (el, n, a='val') => { const k = kid(el, n); return k ? k.getAttributeNS(W, a) : null; };
+    const pdf = await PD.create(); pdf.registerFontkit(window.fontkit);
+    const opt = {subset:true, features:{kern:false, liga:false, clig:false, calt:false}};
+    const F = {sans: await pdf.embedFont(L.sr, opt), sansB: await pdf.embedFont(L.sb, opt), serif: await pdf.embedFont(L.tr, opt), serifB: await pdf.embedFont(L.tb, opt)};
+    const black = RGB(0,0,0);
+    const fam = name => /edwardian/i.test(name||'') ? 'sig' : /times/i.test(name||'') ? 'serif' : 'sans';
+    const fontOf = r => r.fam==='sig' ? null : F[r.fam + (r.b ? 'B' : '')];
+    const isSig = (r, t) => r.fam==='sig' && t.trim()===this.SIG_TEXT;
+    const width = (r, t) => r.fam==='sig' ? (isSig(r, t) ? this.SIG_ADV/2048*r.sz : F.sans.widthOfTextAtSize(t, r.sz)) : fontOf(r).widthOfTextAtSize(t, r.sz);
+    // styles: "Default" is Arial 12, Normal is Times 12; runs override
+    const styleFam = id => id==='Default' ? 'sans' : 'serif';
+    const numInd = {};   // numbering: bullet size per numId (13 has a 10 pt bullet)
+    const numEnt = ents.find(x=>x.name==='word/numbering.xml');
+    if(numEnt){ const nd = new DOMParser().parseFromString(await Zip.text(numEnt), 'application/xml');
+      const abs = {}; Array.from(nd.getElementsByTagNameNS(W,'abstractNum')).forEach(a=>abs[a.getAttributeNS(W,'abstractNumId')] = a);
+      Array.from(nd.getElementsByTagNameNS(W,'num')).forEach(n=>{ const a = abs[val(n,'abstractNumId')]; if(!a) return;
+        const lvl = Array.from(a.getElementsByTagNameNS(W,'lvl')).find(l=>l.getAttributeNS(W,'ilvl')==='0'); if(!lvl) return;
+        const ind = lvl.getElementsByTagNameNS(W,'ind')[0], sz = kid(kid(lvl,'rPr'),'sz');
+        numInd[n.getAttributeNS(W,'numId')] = {left:+(ind && ind.getAttributeNS(W,'left'))||720, hang:+(ind && ind.getAttributeNS(W,'hanging'))||360, sz: sz ? +sz.getAttributeNS(W,'val')/2 : null}; }); }
+    // the body's paragraphs, as runs of text with their font, size, bold and underline
+    const body = doc.getElementsByTagNameNS(W,'body')[0];
+    const paras = kids(body,'p').map(p=>{
+      const pPr = kid(p,'pPr'), st = val(pPr,'pStyle') || 'Normal', baseFam = styleFam(st);
+      const rp = el => { const f = kid(el,'rFonts'), sz = kid(el,'sz');
+        return {fam: f && f.getAttributeNS(W,'ascii') ? fam(f.getAttributeNS(W,'ascii')) : baseFam, sz: sz ? +sz.getAttributeNS(W,'val')/2 : 12, b: !!kid(el,'b') && kid(el,'b').getAttributeNS(W,'val')!=='0', u: !!kid(el,'u') && kid(el,'u').getAttributeNS(W,'val')!=='none'}; };
+      const mark = rp(kid(pPr,'rPr'));
+      const runs = kids(p,'r').map(r=>Object.assign(rp(kid(r,'rPr')), {t: kids(r,'t').map(t=>t.textContent).join('') + (kids(r,'tab').length ? '\t' : '')})).filter(r=>r.t);
+      const numPr = kid(pPr,'numPr'), nid = numPr ? val(numPr,'numId') : null, ni = nid ? (numInd[nid] || {left:720, hang:360}) : null;
+      const ind = kid(pPr,'ind'), at = a => ind && ind.getAttributeNS(W,a) ? +ind.getAttributeNS(W,a)/20 : null;
+      const left = at('left') ?? (ni ? ni.left/20 : 0), first = at('firstLine') ?? (at('hanging')!=null ? -at('hanging') : (ni ? -ni.hang/20 : 0));
+      const sp = kid(pPr,'spacing'), after = sp && sp.getAttributeNS(W,'after') ? +sp.getAttributeNS(W,'after')/20 : 0;
+      return {runs, mark, bullet: ni ? {sz: ni.sz || (runs[0]||mark).sz} : null, left, first, after,
+        keepNext: !!kid(pPr,'keepNext'), keepLines: !!kid(pPr,'keepLines')};
+    });
+    // break each paragraph into lines the way Word does: at spaces and after hyphens, trailing spaces hang past the margin
+    const P = this.PAGE;
+    const lay = para => {
+      const lines = []; const x0 = P.left + para.left, avail1 = para.bullet ? P.right - x0 : P.right - (x0 + Math.max(0, para.first)), availN = P.right - x0;
+      const segs = []; para.runs.forEach(r=>{ if(r.fam==='sig'){ segs.push({r, s:r.t}); return; } (r.t.match(/[^\s-]*-+(?=\S)|\S+\s*|\s+/g)||[]).forEach(s=>segs.push({r, s})); });
+      let cur = [], w = 0;
+      const push = () => { lines.push(cur); cur = []; w = 0; };
+      for(const g of segs){
+        const avail = lines.length ? availN : avail1, core = g.s.replace(/\s+$/,''), wc = width(g.r, core), wf = width(g.r, g.s);
+        if(cur.length && w + wc > avail + 0.01) push();
+        cur.push(g); w += wf;
+      }
+      push();
+      return lines.map((segs, i)=>{
+        const rs = segs.length ? segs.map(g=>g.r) : [para.mark];
+        let a = Math.max(...rs.map(r=>this.M[r.fam].a*r.sz)), d = Math.max(...rs.map(r=>this.M[r.fam].d*r.sz));
+        if(i===0 && para.bullet) a = Math.max(a, this.M.sans.a*para.bullet.sz + this.BULLET_EXTRA*para.bullet.sz);
+        return {segs, a, d, x: x0 + (i===0 && !para.bullet ? para.first : 0), bullet: i===0 ? para.bullet : null, bx: x0 + para.first};
+      });
+    };
+    const laid = paras.map(p=>({p, lines: lay(p)}));
+    const hOf = (L, from=0, to=L.lines.length) => L.lines.slice(from, to).reduce((s,l)=>s+l.a+l.d,0) + (to===L.lines.length ? L.p.after : 0);
+    // pages: Word's top of text on page 1 and on later pages (under the bigger header with "Page X of Y")
+    const hdr = await this.headers(ents, pdf);
+    const pages = [[]]; let y = hdr.firstTop;
+    const newPage = () => { pages.push([]); y = hdr.otherTop; };
+    for(let i=0;i<laid.length;i++){
+      const L = laid[i];
+      // keep-with-next chains (the closing paragraph and signature) move to the next page together
+      if(L.p.keepNext && !(i>0 && laid[i-1].p.keepNext)){
+        let j = i, h = 0; while(j<laid.length && laid[j].p.keepNext){ h += hOf(laid[j]); j++; }
+        if(j<laid.length) h += laid[j].lines[0].a + laid[j].lines[0].d;
+        if(y + h > P.bottom && pages[pages.length-1].length && hdr.otherTop + h <= P.bottom) newPage();
+      }
+      if(L.p.keepLines && y + hOf(L) > P.bottom && pages[pages.length-1].length) newPage();
+      L.lines.forEach((ln, k)=>{
+        if(y + ln.a + ln.d > P.bottom + 0.01 && pages[pages.length-1].length) newPage();
+        const base = y + ln.a; pages[pages.length-1].push({ln, base}); y = base + ln.d;
+      });
+      y += L.p.after;
+    }
+    // draw
+    const N = pages.length;
+    pages.forEach((items, pi)=>{
+      const pg = pdf.addPage([P.w, P.h]), Y = v => P.h - v;
+      hdr.draw(pg, pi, N, F, black);
+      this.footer(pg, hdr.footText, F, black);
+      for(const {ln, base} of items){
+        if(ln.bullet){ const s = ln.bullet.sz; pg.drawCircle({x: ln.bx + (471.5/2048)*s, y: Y(base - (576.5/2048)*s), size: (365.5/2048)*s, color: black}); }
+        let x = ln.x;
+        ln.segs.forEach((g, k)=>{
+          const r = g.r, text = g.s.replace(/\t/g,' ');
+          if(r.fam==='sig'){
+            if(isSig(r, text)) this.sig(pg, x, Y(base), r.sz, black);
+            else if(text.trim()) pg.drawText(text, {x, y: Y(base), size: r.sz, font: F.sans, color: black});
+          } else if(text){ pg.drawText(text, {x, y: Y(base), size: r.sz, font: fontOf(r), color: black}); }
+          const wf = width(r, g.s), last = k===ln.segs.length-1 || ln.segs.slice(k+1).every(h=>!h.s.trim());
+          if(r.u){ const uw = last ? width(r, g.s.replace(/\s+$/,'')) : wf; if(uw>0) pg.drawRectangle({x, y: Y(base + 1.2 + 1.2), width: uw, height: 1.2, color: black}); }
+          x += wf;
+        });
+      }
+    });
+    return new Blob([await pdf.save()], {type:'application/pdf'});
+  },
+  sig(pg, x, y, sz, color){
+    const s = sz/2048;
+    pg.drawSvgPath(this.SIG_PATH, {x, y, scale: s, color, borderColor: color, borderWidth: 0.57257/s});
+  },
+  footer(pg, text, F, color){
+    if(!text) return; const P = this.PAGE, sz = 11, avail = P.right - P.left;
+    const words = text.split(/(\s+)/); const lines = []; let cur = '';
+    words.forEach(w=>{ const t = cur + w; if(cur && F.sans.widthOfTextAtSize(t.replace(/\s+$/,''), sz) > avail){ lines.push(cur); cur = w.trimStart(); } else cur = t; });
+    if(cur.trim()) lines.push(cur);
+    lines.forEach((ln, i)=>{ const t = ln.replace(/\s+$/,''), w = F.sans.widthOfTextAtSize(t, sz);
+      pg.drawText(t, {x: P.left + (avail - w)/2, y: P.h - (P.footBase - (lines.length-1-i)*P.footPitch), size: sz, font: F.sans, color}); });
+  },
+  /* the blank's headers: first page = big logo, later pages = logo + "Page X of Y"; and the footer text */
+  async headers(ents, pdf){
+    const W = LetterTpl.W, txt = async n => { const e = ents.find(x=>x.name===n); return e ? Zip.text(e) : null; };
+    const parse = s => new DOMParser().parseFromString(s, 'application/xml');
+    const docx = parse(await txt('word/document.xml'));
+    const rels = parse(await txt('word/_rels/document.xml.rels'));
+    const target = id => { const r = Array.from(rels.getElementsByTagName('Relationship')).find(x=>x.getAttribute('Id')===id); return r ? 'word/' + r.getAttribute('Target') : null; };
+    const refs = {}; Array.from(docx.getElementsByTagNameNS(W,'headerReference')).forEach(h=>refs['h_'+h.getAttributeNS(W,'type')] = target(h.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships','id')));
+    Array.from(docx.getElementsByTagNameNS(W,'footerReference')).forEach(h=>refs['f_'+h.getAttributeNS(W,'type')] = target(h.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships','id')));
+    const pic = async path => {
+      if(!path) return null; const x = await txt(path); if(!x) return null; const d = parse(x);
+      const ext = d.getElementsByTagNameNS('http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing','extent')[0];
+      const blip = d.getElementsByTagNameNS('http://schemas.openxmlformats.org/drawingml/2006/main','blip')[0];
+      const relX = await txt(path.replace(/word\/(.*)$/, 'word/_rels/$1.rels'));
+      let img = null;
+      if(blip && relX){ const id = blip.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships','embed');
+        const r = Array.from(parse(relX).getElementsByTagName('Relationship')).find(e=>e.getAttribute('Id')===id);
+        const ent = r && ents.find(e=>e.name==='word/' + r.getAttribute('Target'));
+        if(ent){ const raw = ent.method===0 ? ent.data : await Zip.pipe(ent.data, new DecompressionStream('deflate-raw'));
+          img = /\.png$/i.test(ent.name) ? await pdf.embedPng(raw) : await pdf.embedJpg(raw); } }
+      const fields = /PAGE/.test(x);
+      return {img, w: ext ? +ext.getAttribute('cx')/12700 : 0, h: ext ? +ext.getAttribute('cy')/12700 : 0, fields};
+    };
+    const first = await pic(refs.h_first || refs.h_default), other = await pic(refs.h_default || refs.h_first);
+    const fx = await txt(refs.f_default || refs.f_first || '');
+    const footText = fx ? Array.from(parse(fx).getElementsByTagNameNS(W,'t')).map(t=>t.textContent).join('').trim() : '';
+    const TOP = 21.6, P = this.PAGE;
+    return {
+      footText,
+      firstTop: TOP + (first ? first.h : 0) + 0.02,
+      otherTop: TOP + (other ? other.h : 0) + (other && other.fields ? 2.63 : 0.02),
+      draw(pg, i, n, F, color){
+        const h = i===0 ? first : other; if(!h || !h.img) return;
+        const base = TOP + h.h;
+        if(h.fields && i>0){
+          const parts = [['Page ', F.serif], [String(i+1), F.serifB], [' of ', F.serif], [String(n), F.serifB]];
+          const tw = parts.reduce((s,[t,f])=>s+f.widthOfTextAtSize(t,12),0);
+          let x = P.left + (P.right - P.left - h.w - tw)/2;
+          pg.drawImage(h.img, {x, y: P.h - base, width: h.w, height: h.h}); x += h.w;
+          parts.forEach(([t,f])=>{ pg.drawText(t, {x, y: P.h - base, size: 12, font: f, color}); x += f.widthOfTextAtSize(t,12); });
+        } else {
+          pg.drawImage(h.img, {x: P.left + (P.right - P.left - h.w)/2, y: P.h - base, width: h.w, height: h.h});
+        }
+      }
+    };
+  }
+};
+
 const LETTER_LABELS = ['Total Project Lump Sum','Budgetary Lump Sum','Credit Lump Sum'];
 const LETTER_CLAR = ['No permit or engineered drawings included.','AEMC is not responsible for hazardous material abatement if any are discovered.','No additional work is to be performed under this proposal.','No overtime or holiday rates are included in this proposal.','AEMC is not responsible for the condition of existing pipes and fittings.'];
 /* typed ' and " become the curly marks Word puts in your letters (4’ of 2” pipe) */
@@ -2997,7 +3184,7 @@ async function openLetter(j){
       <details class="ltclar"><summary>Clarifications (standard, from your blank)</summary><ul>${LETTER_CLAR.map(c=>`<li>${esc(c)}</li>`).join('')}</ul></details>
       <div class="rccheck ${ok?'ok':'bad'}">${ok ? `✓ Ready: ${scope.length} scope line${scope.length>1?'s':''} plus “Test to ensure Leak Free”, ${addr.length}-line address.` : `<b>Before it can be made:</b><ul>${issues.map(i=>`<li>${esc(i)}</li>`).join('')}</ul>`}
         ${!tpl ? `<div style="margin-top:8px"><button class="btn sm" id="ltUp2" type="button">Upload blank quote letter (.docx)</button><input type="file" id="ltFile2" accept=".docx" hidden></div>`:''}</div>
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button class="btn" id="ltClose">Close</button><button class="btn primary" id="ltGo" ${ok?'':'disabled'}>Make quote letter</button></div>`;
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button class="btn" id="ltClose">Close</button><button class="btn" id="ltWord" ${ok?'':'disabled'}>Word only</button><button class="btn primary" id="ltGo" ${ok?'':'disabled'}>Make Word + PDF</button></div>`;
     $('#pickBox').style.width = 'min(680px,96%)';
     const keep = (id, k, fn = v=>v) => $('#'+id).onchange = e=>{ L[k] = fn(e.target.value); Store.save(); draw(); };
     keep('ltAddr','address', v=>v.replace(/\s+$/,'')); keep('ltTitle','title', v=>v.trim()); keep('ltScope','scope', v=>v.replace(/\s+$/,'')); keep('ltLabel','label');
@@ -3008,27 +3195,34 @@ async function openLetter(j){
       $('#ltFile2').onchange = async e=>{ const f = e.target.files[0]; if(!f) return;
         try{ tpl = await LetterTpl.upload(f); toast('Quote letter form saved'); draw(); }catch(err){ toast(err.message||String(err)); } }; }
     $('#ltClose').onclick = ()=>{ $('#pick').classList.remove('open'); $('#pickBox').style.width = 'min(520px,94%)'; };
-    $('#ltGo').onclick = async ()=>{
-      $('#ltGo').disabled = true; $('#ltGo').textContent = 'Making…';
+    const go = async withPdf => {
+      const btn = $(withPdf ? '#ltGo' : '#ltWord'), label = btn.textContent;
+      $('#ltGo').disabled = $('#ltWord').disabled = true; btn.textContent = 'Making…';
       try{
-        const blob = await LetterTpl.build(tpl, {date: letterDate(date), address: lines(L.address).map(smartQ), svLine: (j.sv + ' ' + smartQ((L.title||'').trim())).trim(),
+        const made = await LetterTpl.build(tpl, {date: letterDate(date), address: lines(L.address).map(smartQ), svLine: (j.sv + ' ' + smartQ((L.title||'').trim())).trim(),
           scope: lines(L.scope).map(smartQ), label: L.label, total: amount()});
-        const rv = j.revisions.length, name = safeName(`${j.sv} ${j.name} Quote Letter${rv?' '+revName(rv):''}`) + '.docx';
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
-        let where = 'Downloaded';
-        const home = par || j;
-        if(FileLayer.connected && home.folder && home.folder.status==='created'){
-          try{ await FileLayer.writeFile([FileLayer.folderName(home), par ? '03 Change Orders' : '01 Bid Documents', name], blob);
-            where += ` and saved to ${FileLayer.folderName(home)}\\${par ? '03 Change Orders' : '01 Bid Documents'}`; }catch(_){}
+        const rv = j.revisions.length, base = safeName(`${j.sv} ${j.name} Quote Letter${rv?' '+revName(rv):''}`);
+        const files = [{name: base + '.docx', blob: made.blob, type: DOC_TYPES.docx}];
+        if(withPdf){
+          try{ files.push({name: base + '.pdf', blob: await LetterPdf.make(made.doc, made.ents), type: DOC_TYPES.pdf}); }
+          catch(e){ toast('The Word letter was made, but not the PDF: ' + (e.message||e)); }
         }
-        L.made = {at:new Date().toISOString(), name, total:amount()}; Store.save();
-        $('#pick').classList.remove('open'); $('#pickBox').style.width = 'min(520px,94%)'; toast(where + ': ' + name);
+        files.forEach((f, i)=>setTimeout(()=>{ const a = document.createElement('a'); a.href = URL.createObjectURL(f.blob); a.download = f.name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 4000); }, i*400));
+        let where = 'Downloaded';
+        const home = par || j, sub = par ? '03 Change Orders' : '01 Bid Documents';
+        if(FileLayer.connected && home.folder && home.folder.status==='created'){
+          try{ for(const f of files) await FileLayer.writeFile([FileLayer.folderName(home), sub, f.name], f.blob);
+            where += ` and saved to ${FileLayer.folderName(home)}\\${sub}`; }catch(_){}
+        }
+        L.made = {at:new Date().toISOString(), name: files.map(f=>f.name).join(', '), total:amount()}; Store.save();
+        $('#pick').classList.remove('open'); $('#pickBox').style.width = 'min(520px,94%)'; toast(where + ': ' + files.map(f=>f.name.slice(base.length+1)).join(' + ') + ' · ' + base);
         if(JobDocs.avail() && typeof Cloud!=='undefined' && Cloud.canEdit()){
-          try{ await JobDocs.upload(j, new File([blob], name, {type:DOC_TYPES.docx}), 'letter', 'generated'); changed(); }
+          try{ for(const f of files) await JobDocs.upload(j, new File([f.blob], f.name, {type:f.type}), 'letter', 'generated'); changed(); }
           catch(err){ toast('Letter made, but its copy was not saved to Documents: ' + JobDocs.why(err)); }
         }
-      }catch(e){ toast('Could not make the quote letter: ' + (e.message||e)); $('#ltGo').disabled = false; $('#ltGo').textContent = 'Make quote letter'; }
+      }catch(e){ toast('Could not make the quote letter: ' + (e.message||e)); $('#ltGo').disabled = $('#ltWord').disabled = false; btn.textContent = label; }
     };
+    $('#ltGo').onclick = ()=>go(true); $('#ltWord').onclick = ()=>go(false);
   };
   draw(); $('#pick').classList.add('open');
 }
