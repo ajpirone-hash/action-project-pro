@@ -959,6 +959,46 @@ th{font-size:10.5px;font-weight:500;letter-spacing:.06em}
   header .wm .pro{font-size:10.5px;letter-spacing:1.5px;padding:3px 7px 2px;flex:none}
   header .brand{overflow:hidden}
 }
+/* v0.53 Contacts (Settings list + picker) */
+.cthead{display:flex;align-items:center;gap:10px;margin:2px 0 6px}
+.cthead h4{margin:0;font-size:13px;color:var(--muted);text-transform:uppercase}
+.cthead .ctn{font:500 12px/1 var(--font);color:var(--muted);font-variant-numeric:tabular-nums}
+.cthead .btn{margin-left:auto}
+#ctSec{margin-top:16px}
+.ctsearch{width:100%;box-sizing:border-box;background:var(--field,var(--panel));color:var(--ink);border:1px solid var(--line2);border-radius:var(--rs);padding:8px 11px;font:inherit;margin:8px 0 4px}
+.ctsearch:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--focus)}
+.ctl{display:flex;flex-direction:column;max-height:340px;overflow:auto;margin:4px 0 2px;border-top:1px solid var(--line)}
+.cti{display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--line)}
+.ctav{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent);font:600 12.5px/1 var(--font);letter-spacing:.02em}
+.ctmain{min-width:0}
+.ctmain b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.ctsub{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ctlinks{display:flex;flex-wrap:wrap;gap:2px 12px;font-size:12.5px;margin-top:2px}
+.ctlinks a{color:var(--accent);text-decoration:none;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.ctlinks a:hover{text-decoration:underline}
+.ctacts{display:flex;gap:6px}
+.ctempty{padding:16px 12px;text-align:center;color:var(--muted);border:1px dashed var(--line2);border-radius:var(--rs);margin-top:8px}
+.ctform{border:1px solid var(--accent);background:var(--accent-soft);border-radius:var(--rs);padding:12px;margin:8px 0}
+.ctform .form{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+.ctform .f input{width:100%;box-sizing:border-box}
+.ctfoot{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
+.viewonly .ctedit{display:none!important}
+.f label .ctbtn{float:right;margin:-2px 0 0 8px;padding:0 2px;border:0;background:none;color:var(--accent);font:600 11px/1.4 var(--font);text-transform:none;letter-spacing:0;cursor:pointer}
+.f label .ctbtn:hover{text-decoration:underline}
+#ctPick{z-index:40}
+#ctPick .ctl{max-height:min(420px,60vh)}
+#ctPick .cti{cursor:pointer;grid-template-columns:34px minmax(0,1fr);border-radius:var(--rs);padding:9px 8px}
+#ctPick .cti:hover,#ctPick .cti:focus-visible{background:var(--accent-soft);outline:none}
+@media(max-width:640px){
+  .cti{grid-template-columns:34px minmax(0,1fr)}
+  .ctacts{grid-column:2;justify-content:flex-start}
+  .ctacts .btn{min-height:34px}
+  .ctlinks a{padding:3px 0}
+  .ctl{max-height:none}
+  .ctfoot .btn{flex:1;justify-content:center;min-height:44px}
+  .ctsearch{font-size:16px}
+  .ctform .f input{font-size:16px}
+}
 </style>
 </head>
 <body>
@@ -968,7 +1008,7 @@ th{font-size:10.5px;font-weight:500;letter-spacing:.06em}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.52 (None option for pick up / deliver to)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.53 (contact list)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -1000,6 +1040,7 @@ th{font-size:10.5px;font-weight:500;letter-spacing:.06em}
 <div class="modal" id="settings"><div class="box" id="settingsBox"></div></div>
 <div class="modal" id="pick"><div class="box" style="width:min(520px,94%)" id="pickBox"></div></div>
 <div class="modal" id="taModal"><div class="box" style="width:min(680px,96%)" id="taBox"></div></div>
+<div class="modal" id="ctPick"><div class="box" style="width:min(460px,96%)" id="ctPickBox"></div></div>
 <div class="modal" id="tfModal"><div class="box" style="width:min(760px,96%)" id="tfBox"></div></div>
 <div class="modal" id="ask"><div class="box" style="width:min(420px,94%)">
   <h3 id="askTitle">Are you sure?</h3><p id="askMsg" style="margin:0 0 18px;color:var(--muted)"></p>
@@ -1467,7 +1508,7 @@ function askJobNo(j){
 function openJob(id){ openId=id; renderDrawer(); $('#drawer').classList.add('open'); $('#scrim').classList.add('open'); }
 function closeJob(){ closeIdMenu(); JobChat.stop(); ToolReq.stop(); openId=null; $('#drawer').classList.remove('open'); $('#scrim').classList.remove('open'); }
 $('#scrim').onclick = closeJob;
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeIdMenu(); closeJob(); $('#settings').classList.remove('open'); $('#newBid').classList.remove('open'); $('#newCO').classList.remove('open'); $('#pick').classList.remove('open'); $('#intake').classList.remove('open'); $('#tfModal').classList.remove('open'); $('#taModal').classList.remove('open'); }});
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeIdMenu(); closeJob(); $('#settings').classList.remove('open'); $('#newBid').classList.remove('open'); $('#newCO').classList.remove('open'); $('#pick').classList.remove('open'); $('#intake').classList.remove('open'); $('#tfModal').classList.remove('open'); $('#taModal').classList.remove('open'); $('#ctPick').classList.remove('open'); }});
 
 const fld = (label,key,val,type='text',extra='') => `<div class="f ${type==='textarea'?'wide':''}"><label>${label}</label>${
   type==='textarea' ? `<textarea rows="2" data-k="${key}">${esc(val)}</textarea>`
@@ -2119,6 +2160,7 @@ const ToolReq = {
     this.watch(x);
     const showUrl = ()=>{ $('#trUrl').textContent = this.url(x, f); };
     $('#trJob').onchange = e=>{ this.sel = e.target.value; renderDrawer(); };
+    Contacts.bind($('#trCrew'), {email: $('#trTo')});
     [['trCrew','crew'],['trTo','to'],['trAddr','addr'],['trNeed','need'],['trFrom','from']].forEach(([id,k])=>{
       $('#'+id).oninput = $('#'+id).onchange = e=>{ f[k] = e.target.value;
         try{ if(k==='to') localStorage.setItem('apToolTo', f.to.trim()); if(k==='from') localStorage.setItem('apInviteFrom', f.from.trim()); }catch(_){}
@@ -2361,6 +2403,7 @@ const ToolForms = {
       el.oninput = el.onchange = upd;
     });
     $('#tfGo').onclick = ()=>this.make();
+    Contacts.bind($('#tf_pickContact'), {phone: $('#tf_pickPhone')}); Contacts.bind($('#tf_delContact'), {phone: $('#tf_delPhone')});
   },
   /* changing a pick-up / delivery place swaps in what's saved for that place */
   placeChanged(k){
@@ -2606,10 +2649,10 @@ let ncoParent = null;
 function svRequestWire(boxId){
   const box = $('#'+(boxId||'newBox'));
   const keep = (id, key)=>{ const el=$('#'+id); try{ el.value = localStorage.getItem(key)||''; }catch(_){} el.addEventListener('input', ()=>{ try{ localStorage.setItem(key, el.value.trim()); }catch(_){} }); };
-  const list = Store.settings.svContacts || [];
+  const list = Contacts.sorted().filter(x=>x.email);
   box.querySelector('#svReq .form').insertAdjacentHTML('afterbegin', list.length
-    ? `<div class="f wide"><label>Send to</label><select id="svPick"><option value="">Choose a contact…</option>${list.map((x,i)=>`<option value="${i}">${esc(x.name)} · ${esc(x.email)}</option>`).join('')}<option value="other">Someone else (type below)</option></select></div>`
-    : `<div class="f wide note" style="margin:0">Tip: save the people you ask for SV numbers in <b>Rates &amp; settings</b> and pick them here.</div>`);
+    ? `<div class="f wide"><label>Send to</label><select id="svPick"><option value="">Choose a contact…</option>${list.map((x,i)=>`<option value="${i}">${esc(x.name)}${x.role?' ('+esc(x.role)+')':''} · ${esc(x.email)}</option>`).join('')}<option value="other">Someone else (type below)</option></select></div>`
+    : `<div class="f wide note" style="margin:0">Tip: save the people you ask for SV numbers under <b>Contacts</b> in Settings and pick them here.</div>`);
   keep('svFrom', 'apInviteFrom'); keep('svTo', 'apSvTo'); keep('svToEmail', 'apSvToEmail');
   if($('#svPick')){
     const cur = list.findIndex(x=>x.email.toLowerCase()===$('#svToEmail').value.trim().toLowerCase());
@@ -2632,10 +2675,122 @@ function svRequestWire(boxId){
   };
 }
 
+/* ---------------- Contacts (v0.53) ----------------
+   Store.settings.contacts = [{id, name, company, role, email, phone}], kept in Settings.
+   Starts from the older SV # request list (settings.svContacts) until the first edit.
+   Name boxes elsewhere get a type-ahead (<datalist id="ctList">) plus a "Contacts" pick
+   button; picking someone fills the email / phone boxes next to it. */
+const Contacts = {
+  q: '', edit: null,
+  all(){ const s = Store.settings;
+    if(Array.isArray(s.contacts)) return s.contacts;
+    return (s.svContacts||[]).map((x,i)=>({id:'sv'+i, name:x.name||'', company:'', role:'SV # requests', email:x.email||'', phone:''})); },
+  own(){ const s = Store.settings; if(!Array.isArray(s.contacts)) s.contacts = this.all().map(x=>Object.assign({}, x, {id:this.newId()})); return s.contacts; },
+  newId(){ return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2,6); },
+  sorted(list){ return (list||this.all()).slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'', undefined, {sensitivity:'base'})); },
+  find(name){ const n = String(name||'').trim().toLowerCase(); return n ? this.all().find(x=>(x.name||'').trim().toLowerCase()===n) || null : null; },
+  sub(x){ return [x.role, x.company].filter(Boolean).join(' · '); },
+  initials(x){ const w = String(x.name||'?').trim().split(/\s+/); return ((w[0]||'?')[0] + (w.length>1 ? w[w.length-1][0] : '')).toUpperCase(); },
+  text(x){ return [x.name, x.company, x.role, x.email, x.phone, String(x.phone||'').replace(/\D/g,'')].join(' ').toLowerCase(); },
+  match(x, q){ q = String(q||'').trim().toLowerCase(); return !q || q.split(/\s+/).every(w=>this.text(x).includes(w)); },
+  phone(v){ v = String(v||'').trim(); const d = v.replace(/\D/g,''), t = d.length===11 && d[0]==='1' ? d.slice(1) : d;
+    return t.length===10 && /^[\d\s().+-]+$/.test(v) ? `(${t.slice(0,3)}) ${t.slice(3,6)}-${t.slice(6)}` : v; },
+  /* the shared type-ahead list */
+  datalist(){ let dl = document.getElementById('ctList');
+    if(!dl){ dl = document.createElement('datalist'); dl.id = 'ctList'; document.body.appendChild(dl); }
+    dl.innerHTML = this.sorted().map(x=>`<option value="${esc(x.name)}">${esc([this.sub(x), x.phone||x.email].filter(Boolean).join(' · '))}</option>`).join(''); },
+  /* fill: {email: inputEl, phone: inputEl}. Adds the type-ahead and a "Contacts" pick button on the box's label. */
+  bind(nameEl, fill){
+    if(!nameEl || nameEl.dataset.ct) return; nameEl.dataset.ct = '1';
+    this.datalist(); nameEl.setAttribute('list','ctList'); nameEl.setAttribute('autocomplete','off');
+    const put = x=>{ const set = (el, v)=>{ if(!el || el.value===v) return; el.value = v; el.dispatchEvent(new Event('input',{bubbles:true})); el.dispatchEvent(new Event('change',{bubbles:true})); };
+      set(nameEl, x.name); Object.entries(fill||{}).forEach(([k, el])=>{ if(x[k]) set(el, x[k]); }); };
+    nameEl.addEventListener('input', ()=>{ const x = this.find(nameEl.value); if(x) put(x); });
+    const lab = nameEl.closest('.f') && nameEl.closest('.f').querySelector('label');
+    if(lab && !lab.querySelector('.ctbtn')){
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'ctbtn'; b.textContent = 'Contacts';
+      b.title = 'Pick from your contact list'; b.onclick = e=>{ e.preventDefault(); e.stopPropagation(); this.pick(x=>{ put(x); nameEl.focus(); }, Object.keys(fill||{})); };
+      lab.appendChild(b);
+    }
+  },
+  row(x, i, pick){
+    const links = pick ? [x.phone, x.email].filter(Boolean).map(v=>`<span>${esc(v)}</span>`).join('')
+      : (x.phone ? `<a href="tel:${esc(String(x.phone).replace(/[^\d+]/g,''))}">${esc(x.phone)}</a>` : '') + (x.email ? `<a href="mailto:${esc(x.email)}">${esc(x.email)}</a>` : '');
+    return `<div class="cti" ${pick?`role="button" tabindex="0" data-ctp="${i}"`:''} data-ctrow="${esc(x.id)}">
+      <span class="ctav" aria-hidden="true">${esc(this.initials(x))}</span>
+      <div class="ctmain"><b>${esc(x.name)}</b>${this.sub(x)?`<div class="ctsub">${esc(this.sub(x))}</div>`:''}${links?`<div class="ctlinks">${links}</div>`:''}</div>
+      ${pick ? '' : `<div class="ctacts ctedit"><button class="btn ghost sm" data-ctedit="${esc(x.id)}">Edit</button><button class="btn ghost sm" data-ctdel="${esc(x.id)}">Remove</button></div>`}
+    </div>`;
+  },
+  /* the picker window; need = which boxes it fills, contacts missing all of them go last */
+  pick(cb, need){
+    const draw = ()=>{
+      const q = ($('#ctPq')||{}).value || '';
+      const list = this.sorted().filter(x=>this.match(x, q));
+      const has = x=>!need || !need.length || need.some(k=>x[k]);
+      const L = [...list.filter(has), ...list.filter(x=>!has(x))];
+      $('#ctPl').innerHTML = L.length ? L.map((x,i)=>this.row(x, i, true)).join('')
+        : `<div class="ctempty">${this.all().length ? 'Nobody matches that.' : 'No contacts yet. Add them in <b>Settings</b> under Contacts.'}</div>`;
+      $('#ctPl').querySelectorAll('[data-ctp]').forEach(el=>{ const go = ()=>{ $('#ctPick').classList.remove('open'); cb(L[+el.dataset.ctp]); };
+        el.onclick = go; el.onkeydown = e=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); go(); } }; });
+    };
+    $('#ctPickBox').innerHTML = `<div class="cthead"><h3 style="margin:0">Pick a contact</h3><button class="btn ghost sm" id="ctPx" aria-label="Close">✕</button></div>
+      <input class="ctsearch" id="ctPq" type="search" placeholder="Search name, company, phone or email" autocomplete="off">
+      <div class="ctl" id="ctPl"></div>`;
+    $('#ctPick').classList.add('open'); draw();
+    $('#ctPq').oninput = draw; $('#ctPx').onclick = ()=>$('#ctPick').classList.remove('open');
+    $('#ctPick').onclick = e=>{ if(e.target.id==='ctPick') $('#ctPick').classList.remove('open'); };
+    if(matchMedia('(pointer:fine)').matches) setTimeout(()=>$('#ctPq').focus(), 30);
+  },
+  /* Settings section */
+  section(){
+    const all = this.sorted(), L = all.filter(x=>this.match(x, this.q)), e = this.edit;
+    const ef = e ? (e==='new' ? {} : this.all().find(x=>x.id===e) || {}) : null;
+    const inp = (k, label, type='text', ph='')=>`<div class="f"><label for="ctf_${k}">${label}</label><input id="ctf_${k}" type="${type}" value="${esc(ef[k]||'')}" placeholder="${esc(ph)}" autocomplete="off"${type==='tel'?' inputmode="tel"':''}></div>`;
+    return `<div class="cthead"><h4>Contacts</h4><span class="ctn">${all.length||''}</span>${e ? '' : '<button class="btn sm ctedit" id="ctNew">+ New contact</button>'}</div>
+      <div class="note">People you email or call for jobs: office staff for SV numbers, crews, the warehouse, onsite contacts. They show up in the Send to list in New bid and New change order, and behind the <b>Contacts</b> button in the Tools tab and Warehouse forms.</div>
+      ${ef ? `<div class="ctform ctedit" id="ctForm"><div class="form">
+          ${inp('name','Name','text','First and last name')}${inp('company','Company','text','e.g. Action, GC, supplier')}
+          ${inp('role','Role','text','e.g. Foreman, Warehouse, PM')}${inp('phone','Phone','tel','(555) 555-5555')}
+          <div class="f" style="grid-column:1/-1"><label for="ctf_email">Email</label><input id="ctf_email" type="email" value="${esc(ef.email||'')}" placeholder="name@actioncontractors.com" autocomplete="off"></div>
+        </div><div class="ctfoot"><button class="btn" id="ctCancel">Cancel</button><button class="btn primary" id="ctSave">${e==='new'?'Add contact':'Save'}</button></div></div>` : ''}
+      ${all.length > 5 ? `<input class="ctsearch" id="ctQ" type="search" value="${esc(this.q)}" placeholder="Search name, company, phone or email" autocomplete="off">` : ''}
+      ${all.length ? `<div class="ctl" id="ctl">${L.map(x=>this.row(x)).join('') || '<div class="ctempty">Nobody matches that.</div>'}</div>`
+        : (ef ? '' : '<div class="ctempty">No contacts yet. Add the people you email and call most.</div>')}`;
+  },
+  wire(again){
+    const box = $('#settingsBox');
+    if($('#ctNew')) $('#ctNew').onclick = ()=>{ this.edit = 'new'; again(); const n = $('#ctf_name'); if(n){ n.focus(); n.scrollIntoView({block:'nearest'}); } };
+    if($('#ctQ')) $('#ctQ').oninput = e=>{ this.q = e.target.value;
+      box.querySelectorAll('[data-ctrow]').forEach(r=>{ const x = this.all().find(c=>c.id===r.dataset.ctrow); r.hidden = !(x && this.match(x, this.q)); }); };
+    box.querySelectorAll('[data-ctedit]').forEach(b=>b.onclick=()=>{ this.edit = b.dataset.ctedit; again(); const f = $('#ctForm'); if(f) f.scrollIntoView({block:'nearest'}); if($('#ctf_name')) $('#ctf_name').focus(); });
+    box.querySelectorAll('[data-ctdel]').forEach(b=>b.onclick=async ()=>{
+      const list = this.own(), x = list.find(c=>c.id===b.dataset.ctdel) || list[this.all().findIndex(c=>c.id===b.dataset.ctdel)];
+      if(!x) return;
+      if(!await askSure('Remove ' + x.name + '?', 'They come off your contact list. Nothing already filled in on jobs or forms changes.', 'Remove')) return;
+      list.splice(list.indexOf(x), 1); Store.save(); again(); toast(x.name + ' removed'); });
+    if($('#ctCancel')) $('#ctCancel').onclick = ()=>{ this.edit = null; again(); };
+    if($('#ctForm')) $('#ctForm').onkeydown = e=>{ if(e.key==='Enter' && e.target.tagName==='INPUT'){ e.preventDefault(); $('#ctSave').click(); } };
+    if($('#ctSave')) $('#ctSave').onclick = ()=>{
+      const v = k=>$('#ctf_'+k).value.trim();
+      const x = {name: v('name'), company: v('company'), role: v('role'), email: v('email'), phone: this.phone(v('phone'))};
+      if(!x.name){ toast('Type their name'); return $('#ctf_name').focus(); }
+      if(x.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x.email)){ toast('That email doesn’t look right'); return $('#ctf_email').focus(); }
+      const list = this.own(), idx = this.edit==='new' ? -1 : this.all().findIndex(c=>c.id===this.edit);
+      const dup = list.find((c,i)=>i!==idx && c.name.trim().toLowerCase()===x.name.toLowerCase());
+      if(dup){ toast(x.name + ' is already in your contacts'); return $('#ctf_name').focus(); }
+      if(idx>=0) Object.assign(list[idx], x); else list.push(Object.assign({id: this.newId()}, x));
+      this.edit = null; Store.save(); this.datalist(); again(); toast(idx>=0 ? 'Saved' : x.name + ' added');
+    };
+  }
+};
+
 /* ---------------- Settings ---------------- */
 $('#btnSettings').onclick = ()=>{
   const s = Store.settings;
   $('#settingsBox').innerHTML = `<h3>Rates &amp; settings</h3>
+    <div id="ctSec">${Contacts.section()}</div>
+    <h4 style="margin:18px 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase">Rates</h4>
     <div class="form" id="sForm">
       <div class="f"><label>OT multiplier</label><input data-s="otMultiplier" type="number" step="any" value="${s.otMultiplier}"></div>
       <div class="f"><label>Insurance &amp; taxes (%)</label><input data-s="insuranceTaxes" data-pct type="number" step="any" value="${(s.insuranceTaxes*100).toFixed(1)}"></div>
@@ -2655,10 +2810,6 @@ $('#btnSettings').onclick = ()=>{
     ${(s.rateSets||[]).length ? `<h4 style="margin:16px 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase">Saved locals</h4>
       ${(s.rateSets||[]).map((x,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0"><span>${esc(x.name)} <span class="note">JM ${money((x.list.find(r=>r.cls==='Journeyman')||{}).st,2)} · H&amp;W ${money((x.list.find(r=>r.cls==='Journeyman')||{}).hw,2)} · ins. ${+(x.ins*100).toFixed(2)}%</span></span><button class="btn ghost sm" data-rsdel="${i}">Remove</button></div>`).join('')}
       <div class="note">Removing one here doesn't change jobs already using it.</div>` : ''}
-    <h4 style="margin:16px 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase">SV # request contacts</h4>
-    <div class="note">The people you email for a new SV #. They show up as a drop-down in New bid and New change order.</div>
-    <div class="svcl">${(s.svContacts||[]).map((x,i)=>`<div class="svci"><span><b>${esc(x.name)}</b> <span class="note">${esc(x.email)}</span></span><button class="btn ghost sm" data-svcdel="${i}">Remove</button></div>`).join('') || '<div class="note" style="padding:6px 0">No contacts saved yet.</div>'}</div>
-    <div class="svcadd"><input id="svcName" placeholder="Name" autocomplete="off"><input id="svcEmail" type="email" placeholder="name@actioncontractors.com" autocomplete="off"><button class="btn sm" id="svcAdd">+ Add</button></div>
     <h4 style="margin:16px 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase">Recap form</h4>
     <div id="rtBox"><div class="note">Loading…</div></div>
     <h4 style="margin:16px 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase">Quote letter form</h4>
@@ -2675,18 +2826,11 @@ $('#btnSettings').onclick = ()=>{
     s.laborRates[+el.dataset.r][el.dataset.rk] = +el.value; Store.save(); render(); if(openId) renderDrawer(); $('#btnSettings').onclick();
   });
   $('#settingsBox').querySelectorAll('[data-rsdel]').forEach(b=>b.onclick=()=>{ s.rateSets.splice(+b.dataset.rsdel,1); Store.save(); render(); if(openId) renderDrawer(); $('#btnSettings').onclick(); });
-  $('#settingsBox').querySelectorAll('[data-svcdel]').forEach(b=>b.onclick=()=>{ s.svContacts.splice(+b.dataset.svcdel,1); Store.save(); $('#btnSettings').onclick(); });
-  $('#svcAdd').onclick = ()=>{
-    const name = $('#svcName').value.trim(), email = $('#svcEmail').value.trim();
-    if(!name){ toast('Type their name'); return $('#svcName').focus(); }
-    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ toast('Type a valid email'); return $('#svcEmail').focus(); }
-    s.svContacts = (s.svContacts||[]).filter(x=>x.email.toLowerCase()!==email.toLowerCase()).concat([{name, email}]);
-    Store.save(); $('#btnSettings').onclick(); toast(name+' added');
-  };
-  $('#sDone').onclick = ()=>$('#settings').classList.remove('open');
+  Contacts.wire(()=>{ const b = $('#settingsBox'), top = b.scrollTop; $('#btnSettings').onclick(); b.scrollTop = top; });
+  $('#sDone').onclick = ()=>{ $('#settings').classList.remove('open'); Contacts.edit = null; Contacts.q = ''; };
   $('#sReset').onclick = async ()=>{ if(await askSure('Reset all data?','Every job and change will be replaced with the original data from the spreadsheet, and Recently deleted will be emptied. This cannot be undone.','Reset')){ Store.settings=structuredClone(DEFAULT_SETTINGS); Store.jobs=structuredClone(SEED).map(normalizeJob); Store.trash=[]; Store.save(); $('#settings').classList.remove('open'); closeJob(); render(); toast('Demo data restored'); } };
 };
-$('#settings').onclick = e=>{ if(e.target.id==='settings') $('#settings').classList.remove('open'); };
+$('#settings').onclick = e=>{ if(e.target.id==='settings'){ $('#settings').classList.remove('open'); Contacts.edit = null; Contacts.q = ''; } };
 
 /* ---------------- Backup ---------------- */
 $('#btnExport').onclick = ()=>{
