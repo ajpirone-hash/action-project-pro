@@ -500,7 +500,7 @@ html.dark #tfBox .f.need label .src{color:var(--gold,#e8a317)}
 @media (max-width:640px){ .qrow{padding:10px} .qbar .btn{flex:1 1 auto;text-align:center} }
 </style>
 <script>/* v0.32 appearance: light / dark / system, remembered per device */
-(function(){try{var m=localStorage.getItem('apAppearance')||'system';var d=m==='dark'||m==='3d'||(m==='system'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);document.documentElement.dataset.appear=m;}catch(e){}try{if(window.matchMedia&&matchMedia('(hover: none) and (pointer: coarse)').matches)document.documentElement.classList.add('touch');}catch(e){}try{if(localStorage.getItem('apCloseSide')==='left')document.documentElement.classList.add('closeleft');}catch(e){}})();</script>
+(function(){try{var m=localStorage.getItem('apAppearance')||'system';if(m==='3d'){m='dark';localStorage.setItem('apAppearance','dark');}var d=m==='dark'||(m==='system'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);document.documentElement.dataset.appear=m;}catch(e){}try{if(window.matchMedia&&matchMedia('(hover: none) and (pointer: coarse)').matches)document.documentElement.classList.add('touch');}catch(e){}try{if(localStorage.getItem('apCloseSide')==='left')document.documentElement.classList.add('closeleft');}catch(e){}})();</script>
 <style id="iosTheme">
 /* ---- v0.32 iOS look (light + dark) ---- */
 /* Appearance switch (header) */
@@ -1014,7 +1014,7 @@ th{font-size:10.5px;font-weight:500;letter-spacing:.06em}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.55 (one line per tool on the Tool Request)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.56 (new job layout beta, 3D theme removed)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -5389,7 +5389,7 @@ if(Cloud.on){
 <script>/* v0.32 appearance switch + phone tab bar */
 (function(){
   var root=document.documentElement, mq=window.matchMedia?matchMedia('(prefers-color-scheme: dark)'):null;
-  function apply(m){ var d=m==='dark'||m==='3d'||(m==='system'&&mq&&mq.matches); root.classList.toggle('dark',d); root.dataset.appear=m;
+  function apply(m){ var d=m==='dark'||(m==='system'&&mq&&mq.matches); root.classList.toggle('dark',d); root.dataset.appear=m;
     document.querySelectorAll('#appear button').forEach(function(b){b.classList.toggle('on',b.dataset.ap===m)});
     var tc=document.querySelector('meta[name=theme-color]'); if(tc) tc.content=d?'#000000':'#0d1b2e'; }
   function cur(){ try{return localStorage.getItem('apAppearance')||'system'}catch(e){return 'system'} }
@@ -5405,42 +5405,438 @@ if(Cloud.on){
   if(bi&&ti&&window.MutationObserver){ new MutationObserver(badge).observe(bi,{childList:true,subtree:true}); badge(); }
 })();
 </script>
-<script>/* v0.47 3D appearance (beta): a 4th choice next to Light / Dark / Auto, only for the beta account.
-   Nobody else sees the button or downloads the 3D code (theme3d/ is loaded on demand). */
+<style id="njCss">
+/* v0.56 new job layout (beta, Austin only): Files card, Actions menu, guided New bid. Every rule is scoped to html.njon. */
+.nj-new{display:inline-flex;align-items:center;font:600 10px/1 "Geist Mono",ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);background:var(--accent-soft,rgba(27,58,102,.08));border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);border-radius:999px;padding:3px 7px;margin-left:8px;vertical-align:middle}
+
+/* ---------- 1. Files card ---------- */
+.njfiles .njfh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.njfiles .njfh h4{margin:0;flex:1 1 auto}
+.njfiles .njfh .btns{display:flex;gap:8px;flex-wrap:wrap}
+.njchips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 0 12px;padding-bottom:2px}
+.njchips::-webkit-scrollbar{display:none}
+.njchip{all:unset;box-sizing:border-box;flex:none;display:inline-flex;align-items:center;gap:7px;cursor:pointer;padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--ink2,var(--ink));font-weight:550;font-size:13px;transition:background .15s,border-color .15s,color .15s}
+.njchip:hover{border-color:var(--line2,var(--muted))}
+.njchip:focus-visible{outline:2px solid var(--focus,var(--accent));outline-offset:2px}
+.njchip .c{font:500 11px/1 "Geist Mono",ui-monospace,monospace;color:var(--muted)}
+.njchip.on{background:var(--ink);border-color:var(--ink);color:var(--panel)}
+.njchip.on .c{color:color-mix(in srgb,var(--panel) 70%,transparent)}
+.njchip .sw{width:8px;height:8px;border-radius:2px;background:var(--k)}
+.njlist{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--rs,8px);overflow:hidden;background:var(--panel)}
+.njrow{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:10px 12px;border-top:1px solid var(--line)}
+.njrow:first-child{border-top:0}
+.njrow:hover{background:var(--fill)}
+.njic{width:34px;height:40px;border-radius:5px;position:relative;background:color-mix(in srgb,var(--k) 12%,var(--panel));border:1px solid color-mix(in srgb,var(--k) 35%,transparent);display:flex;align-items:flex-end;justify-content:center;padding-bottom:5px;font:700 9px/1 "Geist Mono",ui-monospace,monospace;color:var(--k);letter-spacing:.03em}
+.njic::before{content:"";position:absolute;top:-1px;right:-1px;width:10px;height:10px;background:var(--panel);border-left:1px solid color-mix(in srgb,var(--k) 35%,transparent);border-bottom:1px solid color-mix(in srgb,var(--k) 35%,transparent);border-bottom-left-radius:3px}
+.njm{min-width:0}
+.njm .nm{font-weight:600;color:var(--ink);word-break:break-word;font-size:14px}
+.njm .sub{font-size:12px;color:var(--muted);margin-top:3px;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center}
+.njm .sub .njmoney{font-size:12px;font-family:"Geist Mono",ui-monospace,monospace;color:var(--ink2,var(--ink))}
+.njkind{font:600 10px/1 "Geist Mono",ui-monospace,monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--k);padding:3px 6px;border-radius:4px;background:color-mix(in srgb,var(--k) 11%,transparent)}
+.njpc{font-size:11px;color:var(--muted);border:1px dashed var(--line2,var(--line));border-radius:4px;padding:1px 6px}
+.njact{display:flex;gap:6px;align-items:center}
+.njfoot{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--muted)}
+.njempty{padding:22px 14px;text-align:center;color:var(--muted);font-size:13px}
+.njk-quote{--k:#b26a00}
+.njk-recap{--k:#17703c}
+.njk-letter{--k:#1f4e9e}
+.njk-form{--k:#7b3fb0}
+html.dark .njk-quote{--k:#f0b04a}
+html.dark .njk-recap{--k:#6fd69a}
+html.dark .njk-letter{--k:#8fb4ff}
+html.dark .njk-form{--k:#c79bf0}
+@media (max-width:640px){
+  .njrow{padding:10px;gap:10px}
+  .njact{gap:2px}
+  .njact .btn.ghost{padding-left:6px;padding-right:6px}
+  .njfiles .njfh .btns{width:100%}
+  .njfiles .njfh .btns .btn{flex:1;justify-content:center}
+}
+
+/* ---------- 2. Actions menu ---------- */
+.njactbtn{display:inline-flex;align-items:center;gap:6px;font-weight:600}
+.njactbtn .car{font-size:10px;opacity:.7;transition:transform .2s}
+.njactbtn[aria-expanded="true"] .car{transform:rotate(180deg)}
+.njmenu{position:fixed;z-index:70;width:330px;max-height:calc(100vh - 90px);overflow-y:auto;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:12px;box-shadow:0 24px 60px rgba(10,15,25,.22),0 2px 6px rgba(10,15,25,.08);padding:6px;animation:njpop .16s cubic-bezier(.2,.8,.2,1)}
+@keyframes njpop{from{opacity:0;transform:translateY(-4px) scale(.98)}to{opacity:1;transform:none}}
+.njmenu .hd{padding:10px 10px 8px;border-bottom:1px solid var(--line);margin:-6px -6px 6px;padding-left:16px}
+.njmenu .hd .id{font:600 15px/1.2 "Geist Mono",ui-monospace,monospace;color:var(--ink)}
+.njmenu .hd small{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+.njmenu .grp{font:600 10.5px/1 "Geist Mono",ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:12px 10px 6px}
+.njmi{all:unset;box-sizing:border-box;width:100%;display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;padding:7px 10px;border-radius:8px;cursor:pointer;min-height:42px}
+.njmi:hover,.njmi:focus-visible{background:var(--fill)}
+.njmi .ic{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;background:var(--fill);color:var(--accent);font-size:14px;font-weight:700}
+.njmi:hover .ic{background:var(--panel)}
+.njmi b{display:block;font-weight:560;font-size:14px}
+.njmi small{display:block;color:var(--muted);font-size:12px;margin-top:2px;line-height:1.3}
+.njmi .kbd{font:500 11px/1 "Geist Mono",ui-monospace,monospace;color:var(--muted)}
+.njmi.pri b{color:var(--accent)}
+.njmi.danger b,.njmi.danger .ic{color:var(--lost,#c0392b)}
+.njmi.dis{opacity:.45;pointer-events:none}
+.njmenu .sep{height:1px;background:var(--line);margin:6px 4px}
+.njscrim{position:fixed;inset:0;z-index:69;background:rgba(6,10,18,.35);animation:njfade .15s}
+@keyframes njfade{from{opacity:0}}
+@media (max-width:640px){
+  .njmenu{left:0!important;right:0!important;top:auto!important;bottom:0;width:auto!important;max-height:82dvh;border-radius:16px 16px 0 0;padding:6px 8px calc(10px + env(safe-area-inset-bottom));animation:njup .22s cubic-bezier(.2,.8,.2,1)}
+  .njmenu::before{content:"";display:block;width:38px;height:4px;border-radius:4px;background:var(--line2,var(--line));margin:4px auto 4px}
+  .njmenu .hd{margin:0 -8px 6px}
+  @keyframes njup{from{transform:translateY(30px);opacity:0}}
+  .dh .njactbtn{flex:1;justify-content:center}
+}
+.dh .idbtn.njplain .idcaret{display:none}
+
+/* ---------- 3. Guided bid flow ---------- */
+#newBid .box.njflow{width:min(760px,96%);padding:0;display:flex;flex-direction:column;max-height:92vh;overflow:hidden}
+.njflow .fh{padding:18px 22px 14px;border-bottom:1px solid var(--line)}
+.njflow .fh h3{margin:0 0 14px;display:flex;align-items:center;gap:8px}
+.njflow .fb{padding:18px 22px;overflow-y:auto;flex:1 1 auto}
+.njflow .ff{padding:12px 22px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:center;background:var(--fill)}
+.njflow .ff .sp{flex:1}
+.njsteps{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;list-style:none;margin:0;padding:0;counter-reset:s}
+.njsteps li{position:relative;display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--muted)}
+.njsteps li .bar{height:4px;border-radius:4px;background:var(--line)}
+.njsteps li .lb{display:flex;gap:6px;align-items:center;font-weight:550}
+.njsteps li .nb{font:600 11px/1 "Geist Mono",ui-monospace,monospace;width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line2,var(--line));color:var(--muted)}
+.njsteps li.done .bar{background:var(--accent)}
+.njsteps li.done .nb{background:var(--accent);border-color:var(--accent);color:var(--accent-ink,#fff)}
+.njsteps li.cur{color:var(--ink)}
+.njsteps li.cur .bar{background:linear-gradient(90deg,var(--accent) 50%,var(--line) 50%)}
+.njsteps li.cur .nb{border-color:var(--accent);color:var(--accent)}
+.njsteps li.skip .nb{border-style:dashed}
+.njsteps li button{all:unset;cursor:pointer;display:contents}
+.njstepm{display:none;font-size:13px;color:var(--muted)}
+.njstepm b{color:var(--ink)}
+.njdrop{border:1.5px dashed var(--line2,var(--line));border-radius:var(--r,12px);padding:28px 18px;text-align:center;background:var(--fill);transition:border-color .15s,background .15s}
+.njdrop.over{border-color:var(--accent);background:var(--accent-soft,var(--fill))}
+.njdrop .big{font-size:15px;font-weight:600;color:var(--ink);margin:8px 0 4px}
+.njdrop .row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+.njdrop svg{color:var(--muted)}
+.njfile{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:var(--rs,8px);padding:10px 12px;background:var(--panel);margin-top:12px}
+.njfile .njm{flex:1}
+.njrev{width:100%;border-collapse:collapse;font-size:14px}
+.njrev td{padding:9px 4px;border-bottom:1px solid var(--line)}
+.njrev td:last-child{text-align:right;font-family:"Geist Mono",ui-monospace,monospace;white-space:nowrap}
+.njrev tr.sub td{color:var(--muted);font-size:13px;padding-left:16px}
+.njrev tr.tot td{border-bottom:0;border-top:2px solid var(--ink);font-weight:700;font-size:16px;padding-top:12px}
+.njchk{display:flex;flex-direction:column;gap:6px;margin-top:14px}
+.njchk div{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--ink2,var(--ink))}
+.njchk .ok{color:#17703c;font-weight:700}
+html.dark .njchk .ok{color:#6fd69a}
+.njfedline{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 12px;border-radius:var(--rs,8px);background:var(--fill);font-size:13px;margin-bottom:14px}
+.njdone{text-align:center;padding:12px 0 4px}
+.njdone .tick{width:52px;height:52px;border-radius:50%;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,#17703c 14%,transparent);color:#17703c;font-size:26px;font-weight:700}
+.njdone ul{list-style:none;padding:0;margin:14px auto 0;max-width:420px;text-align:left;display:flex;flex-direction:column;gap:6px;font-size:13.5px}
+.njdone li{display:flex;gap:8px}
+.njerr{color:var(--lost,#c0392b);font-size:13px;margin-right:auto}
+.fedq.njneed{outline:2px solid var(--lost,#c0392b);outline-offset:2px;border-radius:var(--rs,8px)}
+@media (max-width:640px){
+  #newBid .box.njflow{width:100%;max-height:100dvh;height:100dvh;border-radius:0}
+  .njflow .fh{padding:calc(12px + env(safe-area-inset-top)) 16px 12px}
+  .njflow .fb{padding:14px 16px}
+  .njflow .ff{padding:10px 16px calc(10px + env(safe-area-inset-bottom))}
+  .njsteps li .lb .tx{display:none}
+  .njsteps{gap:5px}
+  .njstepm{display:block;margin-top:10px}
+  .njflow .ff .btn{flex:1;justify-content:center}
+  .njflow .ff .sp{display:none}
+}
+
+/* bid steps strip inside a bid's job panel */
+.njbs{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.njbs ol{display:flex;gap:6px;list-style:none;margin:0;padding:0;flex:1 1 380px;min-width:0}
+.njbs li{flex:1;display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted);min-width:0}
+.njbs li .bar{height:4px;border-radius:4px;background:var(--line)}
+.njbs li.done{color:var(--ink2,var(--ink))}
+.njbs li.done .bar{background:var(--accent)}
+.njbs li.cur{color:var(--ink);font-weight:600}
+.njbs li.cur .bar{background:linear-gradient(90deg,var(--accent) 35%,var(--line) 35%)}
+.njbs li span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:640px){ .njbs .btn{width:100%;justify-content:center} }
+
+
+.njpickhd{margin:0 0 16px}
+.njpickhd .njsteps{margin-bottom:2px}
+.njact a.btn{text-decoration:none}
+
+</style>
+<script>
+/* v0.56 new job layout (beta, only for the beta account, same gate the 3D theme used):
+   1 Files card: one list for quote PDFs, saved documents (letters, recaps, warehouse forms) and recaps in Documents.
+   2 Actions menu in the job header: job #, New change order, Quote letter, Import recap, Warehouse forms, Mark completed, Add as CO, Delete.
+   3 Guided New bid: Details (federal question) -> Import recap -> Review (the recap check) -> Quote letter, plus a Bid steps strip with Continue.
+   Everyone else keeps the old layout. Nothing here changes how data is stored. */
 (function(){
-  var BETA='austinpironeaec1@gmail.com', V='0.49', root=document.documentElement, ap=document.getElementById('appear'), loaded=false;
-  if(!ap || typeof Cloud==='undefined') return;
-  function cur(){ try{return localStorage.getItem('apAppearance')||'system'}catch(e){return 'system'} }
-  function ok(){ return String(Cloud.email||'').toLowerCase()===BETA; }
-  function gl(){ try{ var c=document.createElement('canvas'); return !!(window.WebGLRenderingContext&&(c.getContext('webgl2')||c.getContext('webgl'))); }catch(e){ return false; } }
-  function mark(){ ap.querySelectorAll('button').forEach(function(b){ b.classList.toggle('on', b.dataset.ap===cur()); }); }
-  function load(){
-    if(loaded) return; loaded=true;
-    var l=document.createElement('link'); l.rel='stylesheet'; l.href='theme3d/theme3d.css?v='+V; document.head.appendChild(l);
-    import('./theme3d/theme3d.js?v='+V).catch(function(e){ loaded=false; root.classList.remove('t3d','t3d-D'); if(typeof toast==='function') toast('3D could not load: '+(e&&e.message||e)); });
+const BETA = 'austinpironeaec1@gmail.com', root = document.documentElement;
+const NJ = window.NJ = { filter:{}, guided:null };
+NJ.on = ()=> typeof Cloud!=='undefined' && String(Cloud.email||'').toLowerCase()===BETA;
+const canEdit = ()=> !(typeof Cloud!=='undefined' && Cloud.on && !Cloud.canEdit());
+
+/* ---------- 1. Files ---------- */
+const KINDS = [['all','All'],['quote','Quotes'],['recap','Recaps'],['letter','Letters'],['form','Forms']];
+const KL = {quote:'Quote',recap:'Recap',letter:'Letter',form:'Form'};
+const extTag = n => { const x = String(n||'').split('.').pop().toLowerCase(); return x==='pdf'?'PDF':/^doc/.test(x)?'DOC':/^xls/.test(x)?'XLS':(x||'FILE').slice(0,4).toUpperCase(); };
+function filesOf(j){
+  const L = [];
+  (j.quotePdfs||[]).forEach(e=>L.push({k:'quote', at:String(e.at||''), html:row('quote', e.name,
+    [e.supplier, e.docNo?'#'+e.docNo:'', e.docType], e.total, e.at, e.by, e.size,
+    `<a class="btn sm" href="${esc(e.url||'#')}" target="_blank" rel="noopener" data-qopen="${esc(e.id)}">Open</a><button class="btn ghost sm qedit" data-qdel="${esc(e.id)}" title="Delete the online copy" aria-label="Delete ${esc(e.name)}">✕</button>`)}));
+  (j.docFiles||[]).forEach(e=>{ const k = e.kind==='letter'?'letter':e.kind==='recap'?'recap':'form';
+    L.push({k, at:String(e.at||''), html:row(k, e.name, [DOC_LBL[e.kind]||'File', e.from==='generated'?'made in the app':e.from==='tool forms'?'Warehouse forms':''], null, e.at, e.by, e.size,
+    `<a class="btn sm" href="${esc(e.url||'#')}" rel="noopener" data-dopen="${esc(e.id)}">Download</a><button class="btn ghost sm qedit" data-ddel="${esc(e.id)}" title="Delete the saved copy" aria-label="Delete ${esc(e.name)}">✕</button>`)}); });
+  (j.recaps||[]).forEach(r=>{ const full = r.path || (r.folder + '\\' + r.file);
+    L.push({k:'recap', at:'', html:row('recap', r.file, [r.label||'Recap', r.date||'', r.total!=null?money(r.total,2)+' w/ bond':'', 'Documents\\'+r.folder], null, null, null, null,
+    `<button class="btn sm" data-copypath="${esc(full)}" title="${esc(full)}">Copy path</button>`, true)}); });
+  return L.sort((a,b)=>b.at.localeCompare(a.at));
+}
+function row(k, name, sub, total, at, by, size, act, pc){
+  const d = at ? fdate(String(at).slice(0,10)) : '';
+  return `<div class="njrow njk-${k}"><div class="njic">${extTag(name)}</div>
+    <div class="njm"><div class="nm">${esc(name)}</div><div class="sub"><span class="njkind">${KL[k]}</span>${sub.filter(Boolean).map(s=>`<span>${esc(s)}</span>`).join('')}${total?`<span class="njmoney">${money(total,2)}</span>`:''}${d?`<span>${d}${by?' · '+esc(Cloud.nameOf(by)):''}</span>`:''}${size?`<span>${kb(size)}</span>`:''}${pc?'<span class="njpc">On your PC · read only</span>':''}</div></div>
+    <div class="njact">${act}</div></div>`;
+}
+function filesCard(j){
+  const L = filesOf(j), f = NJ.filter[j.id] || 'all', top = folderJob(j), done = !!top.completedDate;
+  const cnt = k => k==='all' ? L.length : L.filter(x=>x.k===k).length;
+  const rows = L.filter(x=>f==='all'||x.k===f).map(x=>x.html).join('');
+  const qOn = QuotePdfs.avail(), dOn = JobDocs.avail(), nq = (j.quotePdfs||[]).length;
+  const folderOk = FileLayer.connected && j.folder && j.folder.status==='created';
+  const btns = [
+    qOn && !done ? `<label class="btn sm qedit">⬆ Quote PDF<input type="file" accept="application/pdf,.pdf" multiple id="qFile" hidden></label>` : '',
+    dOn ? `<label class="btn sm qedit">⬆ Letter or document<input type="file" accept=".docx,.doc,.pdf,.xlsx,.xlsm,application/pdf" multiple id="dFile" hidden></label>` : '',
+    qOn && !done && folderOk ? `<button class="btn sm qedit" id="qFolder" title="Uploads the PDFs in this job's 04 Material Quotes &amp; POs folder that aren't online yet">📁 From job folder</button>` : '',
+    qOn && done && nq ? `<button class="btn sm qedit" id="qPurge" style="color:var(--lost)">🗑 Delete the ${nq} online quote cop${nq>1?'ies':'y'}</button>` : ''].join('');
+  const rem = top.quotesRemoved;
+  const doneNote = done ? `<div class="note" style="margin-bottom:10px">✓ ${isChild(j)?esc(top.name)+' is':'This job is'} completed${rem&&rem.n?`, so its ${rem.n} quote PDF${rem.n>1?'s were':' was'} removed from online storage on ${fdate(rem.at)}`:''}. Files on your PC were not touched.</div>` : '';
+  const empty = !qOn && !dOn ? `Saved files live online, so they show up in the online app: <a href="https://ajpirone-hash.github.io/action-project-pro/" target="_blank" rel="noopener">Action Project PRO online</a>.`
+    : `No ${f==='all'?'files':KINDS.find(x=>x[0]===f)[1].toLowerCase()} yet. Email intake quotes, imported recaps, quote letters and warehouse forms land here on their own.`;
+  return `<div class="card njfiles doccard" id="docCard"><div id="qTab">
+    <div class="njfh"><h4>Files <span class="n" style="font-weight:400;color:var(--muted)">${L.length||''}</span></h4><div class="btns">${btns}</div></div>
+    ${doneNote}
+    <div class="njchips" role="tablist" aria-label="Filter files">${KINDS.map(([k,l])=>`<button type="button" class="njchip ${k!=='all'?'njk-'+k:''} ${f===k?'on':''}" role="tab" aria-selected="${f===k}" data-njf="${k}">${k!=='all'?'<span class="sw"></span>':''}${l}<span class="c">${cnt(k)}</span></button>`).join('')}</div>
+    <div class="njlist">${rows || `<div class="njempty">${empty}</div>`}</div>
+    <div class="njfoot"><span>Quotes come from email intake and uploads. Recaps, letters and warehouse forms are saved when you make or import them.</span>${nq && !isChild(j) && !done ? `<span>The ${nq} quote PDF${nq>1?'s are':' is'} removed online when the job is marked completed.</span>` : ''}</div>
+    <div class="note qmsg" id="qMsg"></div><div class="note qmsg" id="dMsg"></div></div></div>`;
+}
+
+/* ---------- 3b. Bid steps strip ---------- */
+const STEPS = ['Details','Import recap','Review','Quote letter'];
+function stage(j){ return (j.letter && j.letter.made) ? 4 : (j.recapImports||[]).length ? 3 : 1; }
+function stepsCard(j){
+  if(!['Estimating','Bid Sent'].includes(j.bidStatus)) return '';
+  const n = stage(j); if(j.bidStatus==='Bid Sent' && n>=4) return '';
+  return `<div class="card njsteps-card"><h4>Bid steps</h4>
+    <div class="njbs"><ol>${STEPS.map((s,i)=>`<li class="${i<n?'done':i===n?'cur':''}"><div class="bar"></div><span>${i<n?'✓ ':''}${s}</span></li>`).join('')}</ol>
+    ${n>=4 ? `<span class="pill ok">Ready to send</span>` : canEdit() ? `<button class="btn primary" id="njCont">Continue: ${STEPS[n]} →</button>` : ''}</div></div>`;
+}
+
+/* ---------- drawer ---------- */
+const _render = renderDrawer;
+renderDrawer = function(){
+  if(!NJ.on()) return _render.apply(this, arguments);
+  if(openTab==='quotes') openTab = 'mat';
+  _render.apply(this, arguments);
+  const j = Store.get(openId); if(!j) return;
+  const D = $('#drawer'), awarded = j.bidStatus==='Awarded';
+  // 1. one Files card in place of Documents + Material Quotes
+  const old = $('#docCard'), mark = document.createElement('div');
+  if(old) old.replaceWith(mark);
+  D.querySelectorAll('#qTab').forEach(q=>{ const c = q.closest('.card'); if(c && !c.querySelector('.tabs.jt')) c.remove(); else q.remove(); });
+  D.querySelectorAll('.seg button[data-tab="quotes"]').forEach(b=>b.remove());
+  const fin = awarded ? D.querySelector('.lockbody > .card') : null;
+  if(fin){ fin.insertAdjacentHTML('afterend', filesCard(j)); mark.remove(); }
+  else mark.outerHTML = filesCard(j);
+  // 3b. bid steps on top
+  const sc = stepsCard(j); if(sc) D.querySelector('.db').insertAdjacentHTML('afterbegin', sc);
+  // 2. Actions: the old spots go away (kept hidden so the menu can reuse their handlers)
+  const hide = e=>{ if(e) e.style.display = 'none'; };
+  hide($('#letterBtn')); hide(D.querySelector('.donerow')); hide($('#dDelete') && $('#dDelete').parentElement);
+  const idb = $('#dIdBtn'); idb.classList.add('njplain');
+  $('#dClose').insertAdjacentHTML('beforebegin', `<button class="btn njactbtn" id="njAct" type="button" aria-haspopup="menu" aria-expanded="false">Actions <span class="car">▾</span></button>`);
+  const act = $('#njAct');
+  act.onclick = e=>{ e.stopPropagation(); openActions(j, act); };
+  idb.onclick = e=>{ e.stopPropagation(); openActions(j, act); };
+  if($('#njCont')) $('#njCont').onclick = ()=>Guided.resume(j);
+  // wire the Files card with the existing handlers
+  QuoteTab.wire(j); DocTab.wire(j);
+  D.querySelectorAll('#docCard [data-copypath]').forEach(b=>b.onclick = async ()=>{ const t = b.dataset.copypath; try{ await navigator.clipboard.writeText(t); toast('Path copied. Paste it into File Explorer.'); }catch(_){ toast(t); } });
+  D.querySelectorAll('[data-njf]').forEach(b=>b.onclick = ()=>{ NJ.filter[j.id] = b.dataset.njf; renderDrawer(); });
+  Guided.check(j);
+};
+
+/* ---------- 2. Actions menu ---------- */
+function closeActions(){ document.querySelectorAll('.njmenu,.njscrim').forEach(e=>e.remove()); const b = $('#njAct'); if(b) b.setAttribute('aria-expanded','false'); document.removeEventListener('keydown', escKey, true); document.removeEventListener('click', outside, true); }
+function escKey(e){ if(e.key==='Escape'){ e.stopPropagation(); closeActions(); } }
+function outside(e){ const m = $('.njmenu'); if(m && !m.contains(e.target)) closeActions(); }
+function openActions(j, btn){
+  if($('.njmenu')) return closeActions();
+  const ed = canEdit(), awarded = j.bidStatus==='Awarded', n = jnum(j), top = !isChild(j), F = folderJob(j);
+  const it = (a, ic, t, sub='', cls='') => `<button type="button" role="menuitem" class="njmi ${cls}" data-act="${a}"><span class="ic">${ic}</span><span><b>${t}</b>${sub?`<small>${sub}</small>`:''}</span></button>`;
+  let h = `<div class="hd"><div class="id">${n?'Job '+esc(n):esc(j.sv||'No SV # yet')}</div><small>${esc(j.name)}${n&&j.sv?' · was '+esc(j.sv):''}</small></div><div class="grp">Job number</div>`;
+  if(ed && !n && awarded) h += it('set','#','Change to job number…','Job # becomes the main ID. SV # stays searchable.','pri');
+  if(ed && !n && !awarded && top) h += it('award','✓','Mark as Awarded','Then enter the job number');
+  if(ed && n) h += it('set','✎','Edit job number…');
+  if(n) h += it('copyjob','⧉','Copy job number');
+  if(j.sv) h += it('copysv','⧉','Copy SV number');
+  if(ed && n) h += it('clear','↩','Go back to SV number','Removes the job number','danger');
+  if(ed){
+    h += `<div class="sep"></div><div class="grp">Make</div>`;
+    if(F.bidStatus==='Awarded') h += it('newco','＋','New change order', isChild(j) ? 'On '+esc(F.name) : 'Priced as its own linked bid');
+    h += it('letter','✉','Quote letter','Word + PDF, saved to Files');
+    h += it('recap','⬇','Import a recap (.xlsx)','Fills the bid builder, copy saved to Files');
+    if(awarded) h += it('forms','▤','Warehouse forms','Truck Trip, Tool Request, Shop Stock from a tool list');
+    h += `<div class="sep"></div><div class="grp">Job</div>`;
+    if(top && awarded) h += F.completedDate ? it('reopen','↺','Reopen job','Completed '+fdate(F.completedDate)) : it('complete','✓','Mark job completed','Removes quote PDFs online. PC files stay.');
+    if(isChild(j)) h += it('detach','↩','Make this its own job again');
+    else if(!childrenOf(j.id).length) h += it('makeco','↪','Add as change order to another job');
+    h += it('delete','🗑','Delete this job','Goes to Recently deleted','danger');
   }
-  function addBtn(){
-    if(ap.querySelector('[data-ap="3d"]')) return;
-    var st=document.createElement('style');
-    st.textContent='html.has3d #appear{display:grid;grid-template-columns:repeat(4,1fr)}html.has3d #appear button{padding-left:2px;padding-right:2px;font-size:12px;min-width:0;white-space:nowrap}#appear button[data-ap="3d"] sup{font-size:9px;margin-left:1px;color:var(--gold,#e8a317)}';
-    document.head.appendChild(st);
-    var b=document.createElement('button'); b.dataset.ap='3d'; b.title='3D (beta, only on your account)'; b.innerHTML='🧊<span class="al"> 3D</span><sup>β</sup>';
-    b.onclick=function(){
-      if(!gl()){ if(typeof toast==='function') toast("This device can't show 3D."); return; }
-      try{ localStorage.setItem('apAppearance','3d'); }catch(e){} root.classList.add('dark'); root.dataset.appear='3d'; mark(); load();
+  const m = document.createElement('div'); m.className = 'njmenu'; m.setAttribute('role','menu'); m.innerHTML = h;
+  const phone = innerWidth<=640;
+  if(phone){ const s = document.createElement('div'); s.className = 'njscrim'; document.body.appendChild(s); }
+  document.body.appendChild(m);
+  if(!phone){ const r = btn.getBoundingClientRect(); m.style.left = Math.max(8, Math.min(r.right - 330, innerWidth - 338)) + 'px'; m.style.top = (r.bottom + 6) + 'px'; }
+  btn.setAttribute('aria-expanded','true');
+  setTimeout(()=>{ document.addEventListener('click', outside, true); document.addEventListener('keydown', escKey, true); const f = m.querySelector('.njmi'); if(f) f.focus({preventScroll:true}); }, 0);
+  const copy = async v=>{ try{ await navigator.clipboard.writeText(v); toast(v+' copied'); }catch(_){ toast(v); } };
+  m.querySelectorAll('[data-act]').forEach(b=>b.onclick = async ev=>{
+    ev.stopPropagation(); closeActions();
+    const a = b.dataset.act;
+    if(a==='copyjob') return copy(n);
+    if(a==='copysv') return copy(j.sv);
+    if(a==='award') return setStatus(j.id,'Awarded');
+    if(a==='set') return askJobNo(j);
+    if(a==='clear'){
+      if(!await askSure('Go back to the SV number?', `Job ${n} is taken off ${j.name}. It shows as ${j.sv||'its SV #'} again. Nothing else on the job changes.`, 'Remove job #')) return;
+      j.jobNo = ''; j.jobNoAt = ''; Store.save(); render(); renderDrawer(); return toast(`Back to ${j.sv||'SV #'}`);
+    }
+    if(a==='newco') return newChangeOrder(F.id);
+    if(a==='letter') return openLetter(j);
+    if(a==='recap') return importRecap(j);
+    if(a==='forms'){ openTab = 'tools'; renderDrawer(); const t = $('#drawer .tabs.jt'); if(t) t.scrollIntoView({block:'start', behavior:'smooth'}); return toast('Press Warehouse forms on the returned tool list'); }
+    if(a==='complete') return completeJob(j);
+    if(a==='reopen') return reopenJob(j);
+    if(a==='detach'){ const x = $('#dDetach'); return x && x.click(); }
+    if(a==='makeco') return pickParent(j);
+    if(a==='delete'){ const x = $('#dDelete'); return x && x.click(); }
+  });
+}
+
+/* ---------- 3. Guided New bid ---------- */
+const LAB = ['Details','Recap','Review','Quote letter'];
+const stepsHTML = (cur, done) => `<ol class="njsteps">${LAB.map((l,i)=>`<li class="${i<done||i<cur?'done':i===cur?'cur':''}"><div class="bar"></div><div class="lb"><span class="nb">${i<done||i<cur?'✓':i+1}</span><span class="tx">${l}</span></div></li>`).join('')}</ol>
+  <div class="njstepm">Step <b>${cur+1} of 4</b> · ${LAB[cur]}</div>`;
+const Guided = NJ.Guided = {
+  st:null, obs:null, poll:null,
+  open(){
+    this.st = {step:0, job:null};
+    $('#newCOBox').innerHTML = '';
+    const B = $('#newBox'); B.classList.add('njflow');
+    B.innerHTML = `<div class="fh"><h3>New bid</h3>${stepsHTML(0,0)}</div>
+      <div class="fb">
+        <div class="form">
+          <div class="f"><label>Job name</label><input id="nName" placeholder="e.g. VA HOSPITAL RESTROOMS"></div>
+          <div class="f"><label>SV number</label><input id="nSv" placeholder="SV26-____"></div>
+          <div class="f"><label>Job location</label><input id="nLoc" placeholder="City, State"></div>
+          <div class="f"><label>Priority</label><select id="nPri">${opts(['Low','Normal','High'],'Normal')}</select></div>
+        </div>
+        <div class="fedq" id="njFed"><b>Is this a federal job?</b>
+          <div class="note">Federal jobs get the payment &amp; performance bond added automatically with the tiered formula. No bond at $150,000 or less.</div>
+          <div class="yn"><label><input type="radio" name="nFed" value="yes"> Yes, federal</label><label><input type="radio" name="nFed" value="no"> No</label></div>
+        </div>
+        <details class="svreq" id="svReq"><summary>✉ Need an SV #? Email a request</summary>
+          <div class="form">
+            <div class="f"><label>Send to (name)</label><input id="svTo" placeholder="e.g. Sarah"></div>
+            <div class="f"><label>Their email (optional)</label><input id="svToEmail" type="email" placeholder="name@actioncontractors.com"></div>
+            <div class="f wide"><label>Short description of the job</label><textarea id="svDesc" rows="2" placeholder="e.g. Replace restroom fixtures and add 2 floor drains"></textarea></div>
+            <div class="f wide"><label>Your name</label><input id="svFrom" placeholder="Your name"></div>
+          </div>
+          <div class="svprev" id="svPrev"></div>
+          <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap"><button class="btn" id="svCopy">Copy email</button><button class="btn primary" id="svMail">Open in Outlook</button></div>
+        </details>
+      </div>
+      <div class="ff"><button class="btn" id="njCancel">Cancel</button><span class="njerr" id="njErr"></span><span class="sp"></span><button class="btn primary" id="njNext">Create bid &amp; next →</button></div>`;
+    $('#newBid').classList.add('open'); setTimeout(()=>{ if($('#nName')) $('#nName').focus(); }, 50);
+    svRequestWire('newBox');
+    $('#njCancel').onclick = ()=>this.close();
+    $('#newBid').onclick = e=>{ if(e.target.id==='newBid') this.close(); };
+    document.querySelectorAll('input[name=nFed]').forEach(r=>r.onchange = ()=>$('#njFed').classList.remove('njneed'));
+    $('#njNext').onclick = ev=>{ ev.stopPropagation();
+      const name = $('#nName').value.trim(), fed = document.querySelector('input[name=nFed]:checked'), err = $('#njErr');
+      if(!name){ err.textContent = 'Type the job name.'; $('#nName').focus(); return; }
+      if(!fed){ err.textContent = 'Answer: is this a federal job?'; $('#njFed').classList.add('njneed'); return; }
+      const j = normalizeJob({id:'job-'+Date.now(), sv:$('#nSv').value.trim(), name, priority:$('#nPri').value, estStatus:'In Progress', startDate:today(), bidStatus:'Estimating', federal: fed.value==='yes',
+        recapLocation:($('#nLoc').value||'').trim(), recapDesc:($('#svDesc').value||'').trim()});
+      Store.jobs.unshift(j); Store.save(); filter = 'Active'; bidTab = 'bq'; render(); openJob(j.id);
+      this.recapStep(j);
     };
-    ap.appendChild(b); root.classList.add('has3d');
-    // leaving 3D: the scene is wired into the page, so a quick reload switches back cleanly
-    ap.querySelectorAll('button:not([data-ap="3d"])').forEach(function(x){ x.addEventListener('click', function(){ if(loaded) setTimeout(function(){ location.reload(); }, 50); }); });
-  }
-  var h=Cloud.header;
-  Cloud.header=function(){
-    var r=h.apply(this, arguments);
-    if(ok()){ addBtn(); mark(); if(cur()==='3d' && gl()) load(); }
-    else if(cur()==='3d'){ try{ localStorage.setItem('apAppearance','dark'); }catch(e){} }
-    return r;
-  };
+  },
+  close(){ $('#newBid').classList.remove('open'); $('#newBox').classList.remove('njflow'); },
+  resume(j){ const n = stage(j); if(n<3) this.recapStep(j); else this.letterStep(j); },
+  recapStep(j){
+    this.st = {step:1, job:j.id};
+    const B0 = $('#newBox'), B = B0.cloneNode(false); B0.replaceWith(B); B.classList.add('njflow'); // drops the SV-request listeners from step 1
+    B.innerHTML = `<div class="fh"><h3>${esc(j.name)}</h3>${stepsHTML(1,1)}</div>
+      <div class="fb"><div class="njdrop" id="njDrop">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 18v-6"/><path d="m9 15 3-3 3 3"/></svg>
+        <div class="big">Drop the recap .xlsx here</div><div class="note">The app reads Install Recap 1 and the material list. Your recap file is not changed.</div>
+        <div class="row"><label class="btn primary">Choose recap file<input type="file" accept=".xlsx,.xlsm" id="njRFile" hidden></label></div></div>
+        <div class="note" style="margin-top:12px">No recap yet? Press <b>Skip for now</b> and build the bid by hand. The job keeps a <b>Continue</b> button so you can come back to this step.</div></div>
+      <div class="ff"><span class="njerr" id="njErr"></span><span class="sp"></span><button class="btn" id="njSkip">Skip for now</button></div>`;
+    $('#newBid').classList.add('open');
+    $('#newBid').onclick = e=>{ if(e.target.id==='newBid') this.close(); };
+    $('#njSkip').onclick = ()=>this.close();
+    const go = async f=>{
+      if(!f) return; if(!/\.xls[xm]$/i.test(f.name)){ $('#njErr').textContent = 'Pick the recap .xlsx file.'; return; }
+      $('#njErr').textContent = 'Reading ' + f.name + '…';
+      try{ const R = await riRead(await f.arrayBuffer()), P = riParse(R, f, j); P.src = f; this.close(); this.reviewStep(j, P); }
+      catch(e){ $('#njErr').textContent = 'Could not read that recap: ' + (e.message||e); }
+    };
+    $('#njRFile').onchange = e=>go(e.target.files[0]);
+    const dz = $('#njDrop');
+    dz.ondragover = e=>{ e.preventDefault(); dz.classList.add('over'); }; dz.ondragleave = ()=>dz.classList.remove('over');
+    dz.ondrop = e=>{ e.preventDefault(); dz.classList.remove('over'); go(e.dataTransfer.files[0]); };
+  },
+  // the real recap check screen, with the step bar on top
+  reviewStep(j, P){
+    this.st = {step:2, job:j.id, imports:(j.recapImports||[]).length};
+    riReview(j, P); this.header(2);
+  },
+  letterStep(j){
+    this.st = {step:3, job:j.id, made:(j.letter&&j.letter.made&&j.letter.made.at)||''};
+    Promise.resolve(openLetter(j)).then(()=>this.header(3));
+  },
+  // keeps the step bar at the top of the shared #pickBox window while it redraws
+  header(step){
+    this.stopWatch();
+    const box = $('#pickBox'), add = ()=>{ if(!this.st || this.st.step!==step || !$('#pick').classList.contains('open')) return this.stopWatch();
+      if(!box.querySelector('.njpickhd')) box.insertAdjacentHTML('afterbegin', `<div class="njpickhd">${stepsHTML(step,step)}</div>`); };
+    add(); this.obs = new MutationObserver(add); this.obs.observe(box, {childList:true});
+    this.poll = setInterval(()=>{
+      const j = Store.get(this.st && this.st.job);
+      if(!j || !$('#pick').classList.contains('open')){ if(this.st && this.st.step===3 && j && j.letter && j.letter.made && j.letter.made.at!==this.st.made) this.finish(j); else if(!(this.st && this.st.step===2 && j && (j.recapImports||[]).length>this.st.imports)) { this.stopWatch(); this.st = null; } return; }
+      if(this.st.step===3 && j.letter && j.letter.made && j.letter.made.at!==this.st.made) this.finish(j);
+    }, 600);
+  },
+  stopWatch(){ if(this.obs){ this.obs.disconnect(); this.obs = null; } if(this.poll){ clearInterval(this.poll); this.poll = null; } },
+  // called from renderDrawer: a finished recap import moves on to the quote letter
+  check(j){
+    const s = this.st; if(!s || s.job!==j.id) return;
+    if(s.step===2 && (j.recapImports||[]).length > s.imports){ this.stopWatch(); this.st = null; setTimeout(()=>this.letterStep(j), 350); }
+  },
+  finish(j){ this.stopWatch(); this.st = null; toast(`${j.name}: quote letter made. Bid steps done.`); if(openId===j.id) renderDrawer(); }
+};
+
+// New bid (side menu, top bar and phone tab bar all click #btnNew)
+const btnNew = $('#btnNew'), oldNew = btnNew.onclick;
+btnNew.onclick = function(e){ if(NJ.on()) return Guided.open(); $('#newBox').classList.remove('njflow'); return oldNew.call(this, e); };
+
+// redraw once the sign-in is known
+if(typeof Cloud!=='undefined' && Cloud.header){
+  const h = Cloud.header;
+  Cloud.header = function(){ const r = h.apply(this, arguments); root.classList.toggle('njon', NJ.on()); if(openId) renderDrawer(); return r; };
+}
 })();
+
 </script>
 <script>/* v0.34 swipe down to close an open job (touch devices) */
 (function(){
