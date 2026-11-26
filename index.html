@@ -1014,7 +1014,7 @@ th{font-size:10.5px;font-weight:500;letter-spacing:.06em}
     <div class="div"></div>
     <div>
       <div class="wm">Action Project <span class="pro"><span>PRO</span></span></div>
-      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.59 (Project Manager page)</span></div>
+      <div class="tag"><b>Action Electrical &amp; Mechanical</b> Contractors <span class="ver" style="opacity:.6;font-weight:400">· v0.60 (access titles)</span></div>
       <div class="addr">2600 Collins Springs Dr. SE · Atlanta, GA 30339 · (404) 799-3551 · actioncontractors.com</div>
     </div>
   </div>
@@ -5023,17 +5023,38 @@ $('#intake').onclick = e=>{ if(e.target.id==='intake') $('#intake').classList.re
    this browser. The web build (web-app/build.py) fills CLOUD_CONFIG in, and
    then everyone signs in and shares one Firebase workspace with live updates.
    Firestore layout: ws/<workspace>/jobs/<job id>, ws/<workspace>/trash/<tid>,
-   ws/<workspace>/meta/{settings,intake}, members/<email> {role}.
+   ws/<workspace>/meta/{settings,intake}, ws/<workspace>/pm/<job id>,
+   members/<email> {role}.
    Each doc holds {json, by, at}. Saves only write what changed.
+   v0.60: four access titles (ROLES below). A job's Project Manager data (j.pm)
+   is saved in its own pm/<job id> doc, so the security rules can let a
+   Plumbing project manager change billing without being able to change jobs.
+   Older jobs still carry j.pm inside the job doc; a pm/ doc wins when both exist.
    ========================================================================== */
 const CLOUD_CONFIG = {"firebase": {"apiKey": "AIzaSyCGvTCBJVSUc-V6655Ukbqjomnv6d_a9t0", "authDomain": "action-project-pro-d38d9.firebaseapp.com", "projectId": "action-project-pro-d38d9", "storageBucket": "action-project-pro-d38d9.firebasestorage.app", "messagingSenderId": "328180623566", "appId": "1:328180623566:web:7a9595d6477f33fbf4489f"}, "owner": "austinpironeaec1@gmail.com", "workspace": "main", "sdkBase": "sdk/"};
 
+/* Access titles. edit: 'all' = everything, 'pm' = Project Manager page only, 'none' = view only.
+   Older member docs say 'editor' / 'viewer'; those read as Plumbing manager / Plumbing department. */
+const ROLES = {
+  manager:   {label:'Plumbing manager',         short:'Manager',         edit:'all',  what:'Can edit everything'},
+  estimator: {label:'Plumbing estimator',       short:'Estimator',       edit:'all',  what:'Can edit everything'},
+  pm:        {label:'Plumbing project manager', short:'Project manager', edit:'pm',   what:'Edits the Project Manager page, views jobs'},
+  dept:      {label:'Plumbing department',      short:'View only',       edit:'none', what:'Views everything, changes nothing'}
+};
+const roleKey = r => ROLES[r] ? r : r==='editor' ? 'manager' : 'dept';
+
 const Cloud = {
   on: !!CLOUD_CONFIG, ready:false, role:null, email:'', db:null, auth:null, ws:null,
-  synced: {jobs:new Map(), trash:new Map(), meta:new Map()},
+  synced: {jobs:new Map(), trash:new Map(), meta:new Map(), pm:new Map()},
+  cmp: new Map(),                                           // job doc json with pm taken out, to spot real job changes
   pending: 0, failed: false, holdDrawer: false,
   enc: id => encodeURIComponent(String(id)).replace(/\./g,'%2E'),
-  canEdit(){ return this.role==='owner' || this.role==='editor'; },
+  canEdit(){ return this.role==='owner' || (ROLES[this.role]||{}).edit==='all'; },
+  canEditPM(){ return this.canEdit() || this.role==='pm'; },
+  roleLabel(){ return this.role==='owner' ? 'Owner' : (ROLES[this.role]||ROLES.dept).label; },
+  strip(json){ if(json.indexOf('"pm":')<0) return json; const o = JSON.parse(json); delete o.pm; return JSON.stringify(o); },
+  /* a job from its synced doc, with its pm/ doc on top */
+  job(id, json){ const j = normalizeJob(JSON.parse(json)), pm = this.synced.pm.get(id); if(pm) j.pm = JSON.parse(pm); return j; },
 
   async loadSDK(){
     const base = CLOUD_CONFIG.sdkBase || 'https://www.gstatic.com/firebasejs/10.14.1/';
@@ -5135,12 +5156,12 @@ const Cloud = {
     else {
       let m = null; try{ m = await this.db.collection('members').doc(this.email).get(); }catch(_){}
       if(!m || !m.exists){ sessionStorage.setItem('apNoAccess', this.email); await this.auth.signOut().catch(()=>{}); return; }
-      this.role = m.data().role === 'editor' ? 'editor' : 'viewer';
+      this.role = roleKey(m.data().role);
       if(m.data().mustChange) await this.choosePassword(u, m.ref);
     }
     this.login('Loading jobs…', true);
     this.ws = this.db.collection('ws').doc(CLOUD_CONFIG.workspace || 'main');
-    await Promise.all(['jobs','trash','meta'].map(c=>new Promise((res,rej)=>{
+    await Promise.all(['jobs','trash','meta','pm'].map(c=>new Promise((res,rej)=>{
       let done = false; const finish = ()=>{ if(!done){ done=true; res(); } };
       setTimeout(finish, 8000);                               // offline: go with what's cached
       this.ws.collection(c).onSnapshot({includeMetadataChanges:true}, snap=>{
@@ -5149,13 +5170,14 @@ const Cloud = {
       }, err=>{ if(!done){ done=true; rej(err); } else toast('Lost the live connection: '+err.message); });
     })));
     const meta = k => this.synced.meta.has(k) ? JSON.parse(this.synced.meta.get(k)) : null;
-    Store.init({jobs: [...this.synced.jobs.values()].map(s=>JSON.parse(s)),
+    Store.init({jobs: [...this.synced.jobs].map(([id,s])=>{ const j = JSON.parse(s), pm = this.synced.pm.get(id); if(pm) j.pm = JSON.parse(pm); return j; }),
       trash: this.sortTrash([...this.synced.trash.values()].map(s=>JSON.parse(s))),
       settings: meta('settings') || undefined, intake: meta('intake') || undefined});
     this.ready = true;
     JobChat.startBadges();
     if(this.canEdit()) Store.save();                         // writes settings the first time only
     document.body.classList.toggle('viewonly', !this.canEdit());
+    document.body.classList.toggle('pmrole', this.role==='pm');
     $('#login').classList.remove('open');
     this.header(); render(); renderIntakeBtn();
     if(this.canEdit()) FileLayer.init().then(()=>{ if(FileLayer.connected) Intake.sync(); if(openId) renderDrawer(); });
@@ -5170,9 +5192,9 @@ const Cloud = {
     snap.docChanges().forEach(ch=>{
       if(ch.doc.metadata.hasPendingWrites) return;           // our own save, already applied
       const id = ch.doc.id, map = this.synced[c];
-      if(ch.type==='removed'){ if(map.has(id)){ map.delete(id); out.push({id, del:true}); } return; }
+      if(ch.type==='removed'){ if(map.has(id)){ map.delete(id); if(c==='jobs') this.cmp.delete(id); out.push({id, del:true}); } return; }
       const d = ch.doc.data();
-      if(map.get(id) !== d.json){ map.set(id, d.json); out.push({id, json:d.json, by:d.by}); }
+      if(map.get(id) !== d.json){ map.set(id, d.json); if(c==='jobs') this.cmp.set(id, this.strip(d.json)); out.push({id, json:d.json, by:d.by}); }
     });
     if(this.ready && out.length) this.apply(c, out);
   },
@@ -5181,9 +5203,13 @@ const Cloud = {
     if(c==='jobs') changes.forEach(ch=>{
       const i = Store.jobs.findIndex(j=>this.enc(j.id)===ch.id);
       if(ch.del){ if(i>=0){ what = Store.jobs[i].name; Store.jobs.splice(i,1); } return; }
-      const nj = normalizeJob(JSON.parse(ch.json)); what = nj.name; who = ch.by;
+      const nj = this.job(ch.id, ch.json); what = nj.name; who = ch.by;
       if(i>=0){ const o = Store.jobs[i]; Object.keys(o).forEach(k=>delete o[k]); Object.assign(o, nj); }   // same object, so open screens keep working
       else Store.jobs.unshift(nj);
+    });
+    if(c==='pm') changes.forEach(ch=>{
+      const j = Store.jobs.find(j=>this.enc(j.id)===ch.id); if(!j || ch.del) return;
+      j.pm = JSON.parse(ch.json); what = j.name; who = ch.by;
     });
     if(c==='trash') Store.trash = this.sortTrash([...this.synced.trash.values()].map(s=>JSON.parse(s)));
     if(c==='meta') changes.forEach(ch=>{
@@ -5193,7 +5219,7 @@ const Cloud = {
     });
     render(); renderIntakeBtn();
     if(openId){ if(!Store.get(openId)) closeJob(); else if(this.typing()) this.holdDrawer = true; else renderDrawer(); }
-    if(c==='jobs' && who && who!==this.email && changes.length===1) toast(`${this.nameOf(who)} updated ${what}`);
+    if((c==='jobs'||c==='pm') && who && who!==this.email && changes.length===1) toast(`${this.nameOf(who)} updated ${what}${c==='pm'?' billing':''}`);
   },
   typing(){ const a = document.activeElement; return !!(a && a.closest && a.closest('#drawer') && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)); },
   nameOf: e => String(e||'').split('@')[0],
@@ -5202,16 +5228,23 @@ const Cloud = {
   save(){
     if(!this.ready) return;
     const ops = [];
-    const diff = (c, cur, dels=true)=>{
+    const diff = (c, cur, dels=true, cmp=this.synced[c])=>{
       const map = this.synced[c];
-      cur.forEach((json,id)=>{ if(map.get(id)!==json) ops.push({c,id,json}); });
+      cur.forEach((json,id)=>{ if(cmp.get(id)!==json) ops.push({c,id,json}); });
       if(dels) map.forEach((_,id)=>{ if(!cur.has(id)) ops.push({c,id,json:null}); });
     };
-    diff('jobs', new Map(Store.jobs.map(j=>[this.enc(j.id), JSON.stringify(j)])));
+    const jobs = new Map(), pm = new Map();
+    Store.jobs.forEach(j=>{ const id = this.enc(j.id), {pm:p, ...rest} = j; jobs.set(id, JSON.stringify(rest)); if(p) pm.set(id, JSON.stringify(p)); });
+    diff('jobs', jobs, true, this.cmp);
+    diff('pm', pm);
     diff('trash', new Map(Store.trash.map(t=>[this.enc(t.tid), JSON.stringify(t)])));
     diff('meta', new Map([['settings', JSON.stringify(Store.settings)], ['intake', JSON.stringify(Store.intake)]]), false);
+    if(!this.canEdit()){
+      // Plumbing project manager: only the Project Manager page saves. Anything else stays as it was on the server.
+      if(this.canEditPM()){ ops.splice(0, ops.length, ...ops.filter(o=>o.c==='pm')); }
+      else if(ops.length){ this.revert(); toast('You have view-only access, so changes are not saved.'); return; }
+    }
     if(!ops.length) return;
-    if(!this.canEdit()){ this.revert(); toast('You have view-only access, so changes are not saved.'); return; }
     const big = ops.find(o=>o.json && o.json.length > 900000);
     if(big){ toast('That job has grown too large to save online. Ask Claude to split it up.'); this.revert(); return; }
     const by = this.email, at = firebase.firestore.FieldValue.serverTimestamp();
@@ -5221,14 +5254,15 @@ const Cloud = {
         const ref = this.ws.collection(o.c).doc(o.id);
         if(o.json===null){ b.delete(ref); this.synced[o.c].delete(o.id); }
         else { b.set(ref, {json:o.json, by, at}); this.synced[o.c].set(o.id, o.json); }
+        if(o.c==='jobs'){ if(o.json===null) this.cmp.delete(o.id); else this.cmp.set(o.id, o.json); }
       });
       this.pending++; this.pill();
-      b.commit().then(()=>{ this.failed=false; }).catch(e=>{ this.failed=true; toast('Could not save: '+(e.code==='permission-denied'?'your login is not allowed to edit.':e.message)); })
+      b.commit().then(()=>{ this.failed=false; }).catch(e=>{ this.failed=true; toast('Could not save: '+(e.code==='permission-denied'?(this.role==='pm'?'billing changes need the updated Firebase rules. Ask the owner to publish them.':'your login is not allowed to edit.'):e.message)); })
         .finally(()=>{ this.pending--; this.pill(); });
     }
   },
   revert(){
-    Store.jobs = [...this.synced.jobs.values()].map(s=>normalizeJob(JSON.parse(s)));
+    Store.jobs = [...this.synced.jobs].map(([id,s])=>this.job(id, s));
     Store.trash = this.sortTrash([...this.synced.trash.values()].map(s=>JSON.parse(s)));
     render(); if(openId){ if(Store.get(openId)) renderDrawer(); else closeJob(); }
   },
@@ -5236,12 +5270,13 @@ const Cloud = {
   /* ---------- header bits ---------- */
   pill(){
     const p = $('#syncPill'); if(!p) return;
-    const [cls, txt] = !navigator.onLine ? ['off','Offline · will sync'] : this.pending ? ['busy','Saving…'] : this.failed ? ['off','Not saved'] : ['ok', this.canEdit()?'Saved · live':'Live · view only'];
+    const [cls, txt] = !navigator.onLine ? ['off','Offline · will sync'] : this.pending ? ['busy','Saving…'] : this.failed ? ['off','Not saved'] : ['ok', this.canEdit()?'Saved · live':this.canEditPM()?'Live · billing edits':'Live · view only'];
     p.className = 'syncpill '+cls; p.textContent = txt;
   },
   header(){
     $('#syncPill').hidden = false; $('#btnAccount').hidden = false;
-    $('#btnAccount').textContent = '👤 ' + this.nameOf(this.email) + (this.role==='viewer'?' (view only)':'');
+    $('#btnAccount').textContent = '👤 ' + this.nameOf(this.email) + (this.role==='owner' ? '' : ' · ' + (ROLES[this.role]||ROLES.dept).short);
+    $('#btnAccount').title = this.roleLabel();
   },
   banner(){
     const b = $('#cloudBanner'); if(!b) return;
@@ -5254,20 +5289,25 @@ const Cloud = {
     const box = $('#settingsBox'); if(!box || $('#pplCard')) return;
     const row = box.lastElementChild;
     const d = document.createElement('div'); d.id = 'pplCard';
+    const opts = sel => Object.entries(ROLES).map(([k,r])=>`<option value="${k}" ${k===sel?'selected':''}>${r.label}</option>`).join('');
     d.innerHTML = `<h4 style="margin:16px 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase">People who can sign in</h4>
-      <div class="note">You (${esc(this.email)}) are the owner. View only people see every update live but can't change anything.</div>
-      <table><tbody id="pplRows"><tr><td class="note">Loading…</td></tr></tbody></table>
+      <div class="note">You (${esc(this.email)}) are the owner and can change everything. Everyone on the list sees every update live.</div>
+      <div class="pplkey">${Object.values(ROLES).map(r=>`<div><b>${r.label}</b><span>${r.what}</span></div>`).join('')}</div>
+      <div class="pplrows" id="pplRows"><div class="note">Loading…</div></div>
       <div class="form" style="margin-top:8px"><div class="f"><label>Email</label><input id="pEmail" placeholder="boss@actioncontractors.com"></div>
-        <div class="f"><label>Access</label><select id="pRole"><option value="viewer">View only</option><option value="editor">Can edit</option></select></div></div>
+        <div class="f"><label>Title</label><select id="pRole">${opts('dept')}</select></div></div>
       <div style="margin-top:8px"><button class="btn primary sm" id="pAdd">Add person and email them a link</button></div>`;
     box.insertBefore(d, row);
     const load = async ()=>{
       const snap = await this.db.collection('members').get();
-      $('#pplRows').innerHTML = snap.docs.length ? snap.docs.map(m=>`<tr><td>${esc(m.id)}</td>
-        <td><select class="inl" data-prole="${esc(m.id)}"><option value="viewer" ${m.data().role!=='editor'?'selected':''}>View only</option><option value="editor" ${m.data().role==='editor'?'selected':''}>Can edit</option></select></td>
-        <td><button class="btn sm" data-plink="${esc(m.id)}">Email reset link</button> <button class="btn sm danger" data-pdel="${esc(m.id)}">Remove</button></td></tr>`).join('')
-        : `<tr><td class="note">Nobody else yet.</td></tr>`;
-      $('#pplRows').querySelectorAll('[data-prole]').forEach(s=>s.onchange=async ()=>{ await this.db.collection('members').doc(s.dataset.prole).set({role:s.value}, {merge:true}); toast('Access updated'); });
+      /* old "Can edit" / "View only" entries move to Plumbing manager / Plumbing department the first time the owner opens this */
+      const old = snap.docs.filter(m=>!ROLES[m.data().role]);
+      if(old.length){ await Promise.all(old.map(m=>m.ref.set({role:roleKey(m.data().role)}, {merge:true}))).catch(()=>{}); toast(`Moved ${old.length} ${old.length>1?'people':'person'} to the new titles`); }
+      $('#pplRows').innerHTML = snap.docs.length ? snap.docs.map(m=>{ const k = roleKey(m.data().role); return `<div class="pplrow"><span class="pplem">${esc(m.id)}</span>
+        <select class="inl" data-prole="${esc(m.id)}" aria-label="Title for ${esc(m.id)}">${opts(k)}</select>
+        <span class="pplbtns"><button class="btn sm" data-plink="${esc(m.id)}">Email reset link</button> <button class="btn sm danger" data-pdel="${esc(m.id)}">Remove</button></span></div>`; }).join('')
+        : `<div class="note">Nobody else yet.</div>`;
+      $('#pplRows').querySelectorAll('[data-prole]').forEach(s=>s.onchange=async ()=>{ await this.db.collection('members').doc(s.dataset.prole).set({role:s.value}, {merge:true}); toast(`${s.dataset.prole} is now ${ROLES[s.value].label}`); });
       $('#pplRows').querySelectorAll('[data-plink]').forEach(b=>b.onclick=async ()=>{ if(await askSure('Send a reset email?', `Firebase will email ${b.dataset.plink} a link to set a new password. It comes from Firebase's address, so tell them to check Junk.`, 'Send it')) this.sendLink(b.dataset.plink); });
       $('#pplRows').querySelectorAll('[data-pdel]').forEach(b=>b.onclick=async ()=>{
         if(!await askSure('Remove this person?', `${b.dataset.pdel} won't be able to see the jobs anymore.`, 'Remove')) return;
@@ -5286,7 +5326,7 @@ const Cloud = {
         else this.inviteCard(em, role, null);
       }catch(e){ toast('Could not add them: '+(e.message||e)); }
     };
-    load().catch(e=>{ $('#pplRows').innerHTML = `<tr><td class="note">Could not load: ${esc(e.message)}</td></tr>`; });
+    load().catch(e=>{ $('#pplRows').innerHTML = `<div class="note">Could not load: ${esc(e.message)}</div>`; });
   },
   /* Makes their login without signing you out (uses a second, throwaway connection). */
   async makeAccount(em, pw){
@@ -5301,11 +5341,13 @@ const Cloud = {
     return `${W[r[0]%W.length]}-${1000 + r[1]%9000}-${W[r[2]%W.length]}`;
   },
   appUrl(){ return location.origin + location.pathname; },
+  accessText(role){ const e = ROLES[roleKey(role)].edit;
+    return e==='all' ? 'view and edit our bids and jobs' : e==='pm' ? 'view our bids and jobs and keep the billing on the Project Manager page' : 'view our bids and jobs'; },
   inviteFrom(){ try{ return localStorage.getItem('apInviteFrom') || 'Action E&M'; }catch(_){ return 'Action E&M'; } },
   /* The invite email, styled like the app. Inline styles and tables so it looks right in Outlook and Gmail. */
   inviteHTML(em, role, temp){
     const url = this.appUrl(), logo = new URL('icons/email-logo.png', url).href, from = this.inviteFrom();
-    const access = role==='editor' ? 'view and edit' : 'view';
+    const access = this.accessText(role);
     return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f7;padding:24px 0;font-family:Segoe UI,Helvetica,Arial,sans-serif"><tr><td align="center">
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e5ea">
 <tr><td style="background:#0d1b2e;background-image:linear-gradient(120deg,#0d1b2e,#1b3a66);padding:22px 28px;border-bottom:4px solid #e8a317">
@@ -5318,7 +5360,7 @@ const Cloud = {
 </td></tr>
 <tr><td style="padding:30px 28px 8px;color:#1d232b">
  <div style="font-size:24px;font-weight:800;margin:0 0 8px">You've been invited to Action Project PRO</div>
- <div style="font-size:15px;line-height:1.55;color:#3b4552">${esc(from)} added you so you can ${access} our bids and jobs. Everything updates live, on your computer or your phone.</div>
+ <div style="font-size:15px;line-height:1.55;color:#3b4552">${esc(from)} added you as <b>${esc((ROLES[roleKey(role)]).label)}</b>, so you can ${access}. Everything updates live, on your computer or your phone.</div>
 </td></tr>
 <tr><td style="padding:18px 28px 6px">
  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f7;border-radius:10px;border:1px solid #e2e5ea">
@@ -5337,7 +5379,7 @@ const Cloud = {
 </table></td></tr></table>`;
   },
   inviteText(em, role, temp){
-    return `You've been invited to Action Project PRO\n\n${this.inviteFrom()} added you so you can ${role==='editor'?'view and edit':'view'} our bids and jobs. Everything updates live, on your computer or your phone.\n\nOpen: ${this.appUrl()}\nEmail: ${em}\n${temp ? `Temporary password: ${temp}\n\n1. Open the link and sign in with the email and temporary password above.\n2. Choose your own password when asked.\n3. ` : `Password: the one you already use (forgot it? tap Forgot your password on the sign-in page)\n\n1. Open the link and sign in.\n2. `}On iPhone: open the link in Safari, tap Share, then Add to Home Screen.\n\nAction Electrical & Mechanical Contractors`;
+    return `You've been invited to Action Project PRO\n\n${this.inviteFrom()} added you as ${ROLES[roleKey(role)].label}, so you can ${this.accessText(role)}. Everything updates live, on your computer or your phone.\n\nOpen: ${this.appUrl()}\nEmail: ${em}\n${temp ? `Temporary password: ${temp}\n\n1. Open the link and sign in with the email and temporary password above.\n2. Choose your own password when asked.\n3. ` : `Password: the one you already use (forgot it? tap Forgot your password on the sign-in page)\n\n1. Open the link and sign in.\n2. `}On iPhone: open the link in Safari, tap Share, then Add to Home Screen.\n\nAction Electrical & Mechanical Contractors`;
   },
   inviteCard(em, role, temp){
     const subj = "You've been invited to Action Project PRO";
@@ -6044,7 +6086,21 @@ header .btn#btnJobs.on,header .btn#btnPM.on{background:rgba(255,255,255,.1);colo
 .pmidea .ties{font-size:12px;color:var(--muted);border-top:1px dashed var(--line2);padding-top:6px;margin-top:auto}
 .pmempty{text-align:center;padding:40px 16px;color:var(--muted)}
 .pmempty b{display:block;color:var(--ink);font-size:16px;margin-bottom:4px}
-.viewonly .pmedit{display:none!important}
+.viewonly:not(.pmrole) .pmedit{display:none!important}
+/* v0.60 access titles (People who can sign in) */
+.pplkey{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:8px 0 10px}
+@media (max-width:420px){.pplkey{grid-template-columns:1fr}}
+.pplkey div{border:1px solid var(--line);border-radius:var(--rs,8px);padding:7px 10px;background:var(--panel)}
+.pplkey b{display:block;font-size:12.5px}.pplkey span{font-size:12px;color:var(--muted)}
+.pplrows{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--rs,8px);overflow:hidden}
+.pplrow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:6px 10px;padding:8px 10px;border-top:1px solid var(--line)}
+@media (max-width:640px){.pplrow{grid-template-columns:minmax(0,1fr) auto}.pplbtns{grid-column:1/-1}}
+@media (max-width:420px){.pplrow{grid-template-columns:1fr}}
+.pplrow:first-child{border-top:0}
+.pplem{min-width:0;overflow-wrap:anywhere;font-size:13px}
+.pplrow select.inl{font-size:13px;padding:4px 6px}
+.pplbtns{display:flex;gap:6px;flex-wrap:wrap}
+.pplrows>.note{padding:8px 10px}
 @media (max-width:1180px){ .pmsum{grid-template-columns:repeat(3,minmax(0,1fr))} .pmcols{grid-template-columns:1fr} }
 @media (max-width:980px){
   .pmwrap{grid-template-columns:1fr}
@@ -6111,11 +6167,12 @@ header .btn#btnJobs.on,header .btn#btnPM.on{background:rgba(255,255,255,.1);colo
    Math follows the usual application for payment (G702 / G703 style):
      completed to date = value x % complete, retainage = completed x retainage %,
      earned less retainage - previous apps = current payment due.
-   View-only accounts see everything, change nothing.
+   View-only accounts see everything, change nothing. v0.60: Plumbing project
+   manager accounts edit this page (saved in pm/<job id>) but not the jobs.
    ========================================================================== */
 const PM = window.PM = {
   sel: null, tab: 'sov', openApp: null, q: '', showDone: false,
-  ed(){ return !(typeof Cloud!=='undefined' && Cloud.on && !Cloud.canEdit()); },
+  ed(){ return !(typeof Cloud!=='undefined' && Cloud.on && !Cloud.canEditPM()); },
   rid(){ return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2,6); },
   r2(n){ return Math.round((+n||0)*100)/100; },
   jobs(){ return Store.jobs.filter(j=>j.bidStatus==='Awarded' && !isChild(j)); },
