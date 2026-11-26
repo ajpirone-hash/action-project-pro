@@ -5300,9 +5300,8 @@ const Cloud = {
     box.insertBefore(d, row);
     const load = async ()=>{
       const snap = await this.db.collection('members').get();
-      /* old "Can edit" / "View only" entries move to Plumbing manager / Plumbing department the first time the owner opens this */
-      const old = snap.docs.filter(m=>!ROLES[m.data().role]);
-      if(old.length){ await Promise.all(old.map(m=>m.ref.set({role:roleKey(m.data().role)}, {merge:true}))).catch(()=>{}); toast(`Moved ${old.length} ${old.length>1?'people':'person'} to the new titles`); }
+      /* old "Can edit" / "View only" entries show (and work) as Plumbing manager / Plumbing department; they're
+         left as they are in Firebase so nobody gets locked out if the rules haven't been republished yet */
       $('#pplRows').innerHTML = snap.docs.length ? snap.docs.map(m=>{ const k = roleKey(m.data().role); return `<div class="pplrow"><span class="pplem">${esc(m.id)}</span>
         <select class="inl" data-prole="${esc(m.id)}" aria-label="Title for ${esc(m.id)}">${opts(k)}</select>
         <span class="pplbtns"><button class="btn sm" data-plink="${esc(m.id)}">Email reset link</button> <button class="btn sm danger" data-pdel="${esc(m.id)}">Remove</button></span></div>`; }).join('')
